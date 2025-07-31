@@ -751,7 +751,7 @@ juece = sgs.CreateTriggerSkill{
     events = {sgs.EventPhaseEnd},  
       
     can_trigger = function(self, event, room, player, data)  
-        if not player:hasSkill(self:objectName()) then return "" end  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end  
         if player:getPhase() ~= sgs.Player_Finish then return "" end  
           
         -- 检查是否有没有手牌的角色  
@@ -1215,7 +1215,7 @@ fengwu = sgs.CreateTriggerSkill{
 zhaojie = sgs.CreateTriggerSkill{  
     name = "zhaojie",  
     frequency = sgs.Skill_Compulsory,  
-    events = {sgs.DamageInflicted, sgs.TargetConfirmed},  --sgs.CardEffected
+    events = {sgs.DamageInflicted},  --sgs.CardEffected
       
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
@@ -1226,14 +1226,6 @@ zhaojie = sgs.CreateTriggerSkill{
             local damage = data:toDamage()  
             -- 检查是否为红色牌造成的伤害  
             if damage.card and damage.card:isRed() then  
-                return self:objectName()  
-            end  
-        elseif event == sgs.TargetConfirmed then  
-            local use = data:toCardUse()  
-            --local effect = data:toCardEffect()  
-            -- 检查是否为延时锦囊且目标包含自己  
-            if use.card and use.card:getTypeId() == sgs.Card_TypeTrick   
-               and use.card:isKindOf("DelayedTrick") and use.to:contains(player) then  
                 return self:objectName()  
             end  
         end  
@@ -1255,22 +1247,24 @@ zhaojie = sgs.CreateTriggerSkill{
             if damage.damage <= 0 then  
                 return true  
             end  
-        elseif event == sgs.TargetConfirmed then  
-            local use = data:toCardUse()  
-            --local effect = data:toCardEffect()  
-            -- 取消延时锦囊的目标  
-            room:cancelTarget(use, player)  
-            data:setValue(use)
-            return true
         end  
           
         return false  
     end  
 }  
-  
+zhaojieDelay = sgs.CreateProhibitSkill{  --不能指定为目标，不是取消目标
+    name = "zhaojieDelay",  
+    is_prohibited = function(self, from, to, card)  
+        if to and to:hasSkill(self:objectName()) and card and card:getSubtype() == "delayed_trick" then  
+            return true  
+        end  
+        return false  
+    end  
+}
 -- 将技能添加到武将  
 luyusheng_canghai:addSkill(fengwu)  
 luyusheng_canghai:addSkill(zhaojie)  
+luyusheng_canghai:addSkill(zhaojieDelay)  
   
 -- 添加翻译  
 sgs.LoadTranslationTable{  
@@ -1279,7 +1273,9 @@ sgs.LoadTranslationTable{
     ["fengwu"] = "奉无",  
     [":fengwu"] = "与你势力相同的其他角色的准备阶段，你可以交给其一张牌，然后若其手牌数最少，其恢复一点体力；若其体力值最低，其获得牌堆一张基础牌。",  
     ["zhaojie"] = "昭节",  
-    [":zhaojie"] = "锁定技，红色牌对你的伤害-1；当你成为延时锦囊的目标时，取消之。",  
+    [":zhaojie"] = "锁定技，红色牌对你的伤害-1",  
+    ["zhaojieDelay"] = "昭节-延时",  
+    [":zhaojieDelay"] = "锁定技，你不会成为延时锦囊的目标",  
     ["@fengwu-give"] = "奉无：交给 %src 一张牌"  
 }  
   
@@ -2168,8 +2164,8 @@ qianya = sgs.CreateTriggerSkill{
                 return player:askForSkillInvoke(self:objectName(), data)
             end
         elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then  
-            room:broadcastSkillInvoke(self:objectName())  
-            room:sendCompulsoryTriggerLog(self:objectName())  
+            --room:broadcastSkillInvoke(self:objectName())  
+            --room:sendCompulsoryTriggerLog(self:objectName())  
             return true --player:askForSkillInvoke(self:objectName(), data)  
         end  
           
@@ -2187,7 +2183,7 @@ qianya = sgs.CreateTriggerSkill{
             end
         elseif event == sgs.EventPhaseStart then  
             -- 准备阶段失去技能。这部分有问题
-            room:detachSkillFromPlayer(player, "qianya")
+            room:detachSkillFromPlayer(player, self:objectName())
         end  
           
         return false  
@@ -2681,7 +2677,7 @@ wenyuan = sgs.General(extension, "wenyuan", "wei", 3) -- 吴苋，蜀势力，3�
 -- 齐力技能  
 qili = sgs.CreateTriggerSkill{  
     name = "qili",  
-    frequency = sgs.Skill_Frequent,
+    frequency = sgs.Skill_NotFrequent,
     --limit_mark = "@qili",  --不是限定技
     events = {sgs.Damage},  
     can_trigger = function(self, event, room, player, data)  
@@ -3073,10 +3069,28 @@ zongxuan = sgs.CreateTriggerSkill{
       
     on_effect = function(self, event, room, player, data)  
         local discard_num = player:getHandcardNum() - player:getMaxCards()
-        for i=1,math.min(discard_num,3) do
+        local actual_num = math.min(discard_num,3)
+
+        local to_exchange = room:askForExchange(player, self:objectName(),   
+                                               actual_num, actual_num,   
+                                               "@zongquan-exchange", "", ".|.|.|hand")  
+        if to_exchange:length() == 0 then return false end  
+        local exchange_num = to_exchange:length()  
+        -- 将手牌和牌堆顶牌合并，让玩家重新排列  
+        local all_cards = sgs.IntList()  
+        for _, id in sgs.qlist(to_exchange) do  
+            room:moveCardTo(sgs.Sanguosha:getCard(id), nil, sgs.Player_DrawPile, true)
+        end          
+        -- 使用askForGuanxing让玩家排列卡牌  
+        -- 注意：这里只能使用GuanxingUpOnly，因为我们需要所有牌都放回牌堆顶  
+        local cards = room:getNCards(exchange_num)  
+        room:askForGuanxing(player, cards, sgs.Room_GuanxingUpOnly)
+        --[[
+        for i=1,actual_num do
             card_id=room:askForCardChosen(player, player, "h", self:objectName())
             room:moveCardTo(sgs.Sanguosha:getCard(card_id), nil, sgs.Player_DrawPile, true)  
         end 
+        ]]
         return false  
     end  
 }
@@ -3126,7 +3140,7 @@ yufan:addSkill(zhiyan)
 sgs.LoadTranslationTable{
     ["yufan"] = "虞翻",
     ["zongxuan"] = "纵玄",  
-    [":zongxuan"] = "你的弃牌阶段开始时，你可以将至多三张弃牌置于牌堆顶（先选的在下面）",  
+    [":zongxuan"] = "你的弃牌阶段开始时，你可以将至多三张弃牌以任意顺序置于牌堆顶",  
     ["@zongxuan-invoke"] = "你可以发动纵玄",  
     ["@zongxuan-choose"] = "选择要置于牌堆顶的牌",  
 
