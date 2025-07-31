@@ -1,4 +1,3 @@
-
 extension = sgs.Package("equip", sgs.Package_CardPack)  
 
 qiankundai = sgs.CreateArmor{  
@@ -235,11 +234,13 @@ xiuliQiankun = sgs.CreateArmor{
     on_install = function(self, player)  
         local room = player:getRoom()  
         room:acquireSkill(player, "XiuliQiankun", true, true)  
+        room:acquireSkill(player, "zhaojieDelay")  
     end,  
       
     on_uninstall = function(self, player)  
         local room = player:getRoom()  
         room:detachSkillFromPlayer(player, "XiuliQiankun", true, false, true)  
+        room:detachSkillFromPlayer(player, "zhaojieDelay")  
     end  
 }
 
@@ -298,6 +299,7 @@ bileizhen = sgs.CreateArmor{
     end  
 }
 --[[
+--免疫雷属性伤害
 bileizhenSkill = sgs.CreateTriggerSkill{  
     name = "Bileizhen",  
     events = {sgs.DamageInflicted},  
@@ -373,7 +375,18 @@ bileizhenSkill = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data, ask_who)  
-        return ask_who:askForSkillInvoke(self:objectName(),data) -- 锁定技，自动触发  
+        --return ask_who:askForSkillInvoke(self:objectName(),data) -- 锁定技，自动触发 
+        local damage = data:toDamage()  
+        if event == sgs.DamageInflicted then --任意角色受到伤害时
+            if damage.to:objectName() ~= ask_who:objectName() then
+                return ask_who:askForSkillInvoke("@bileizhen-attrack",data)  
+            else
+                return ask_who:askForSkillInvoke("@bileizhen-immuse",data)  
+            end
+        elseif event == sgs.Damaged and damage.to == ask_who then --自己受到伤害后
+            return ask_who:askForSkillInvoke("@bileizhen-effect",data)  
+        end
+
     end,  
       
     on_effect = function(self, event, room, player, data, ask_who)
@@ -678,7 +691,7 @@ baibaoxiangTrigger = sgs.CreateTriggerSkill{
         end          
         -- 使用AG界面让玩家选择一张牌  
         room:fillAG(card_ids, player)  
-        local card_id = room:askForAG(player, card_ids, true, "shenduan")  
+        local card_id = room:askForAG(player, card_ids, true, "baibaoxiang")  
         room:clearAG(player) 
         if card_id == nil then return false end
         local equip = sgs.Sanguosha:getCard(card_id)
@@ -1637,7 +1650,7 @@ yuansuzhiren:setParent(extension) --通过
 shengfan:setParent(extension) --通过
 fantanjia:setParent(extension) --通过
 kuangzhanshi:setParent(extension) --通过
-axiuluo:setParent(extension) --通过
+--axiuluo:setParent(extension) --通过。但是不稳定，几乎不会用
 --shenmishouhu:setParent(extension) --通过。但是太强，作为pokemon的技能比较合适
 
 QiyiShouhu:setParent(extension)
@@ -1667,7 +1680,7 @@ equip_tmp:addSkill(yuansuzhirenSkill)
 equip_tmp:addSkill(shengfanSkill)
 equip_tmp:addSkill(fantanjiaSkill)
 equip_tmp:addSkill(kuangzhanshiSkill)
-equip_tmp:addSkill(axiuluoSkill)
+--equip_tmp:addSkill(axiuluoSkill)
 --equip_tmp:addSkill(shenmishouhuSkill)
 
 equip_tmp:addSkill(QiyiShouhuSkill)
@@ -1705,6 +1718,10 @@ sgs.LoadTranslationTable{
     [":Bileizhen"] = "装备牌·防具\n\n技能：\
                     任意角色受到雷属性伤害时，若其不为你，你可以选择将该伤害转移给自己；若其为你，你可以免疫此伤害\
                     当你受到雷属性伤害后，你可以选择（1）恢复1点体力（2）摸2张牌（3）获得一个出牌阶段",
+    ["@bileizhen-attrack"] = "是否将本次雷属性伤害转移到自己身上",
+    ["@bileizhen-immuse"] = "是否免疫此次雷属性伤害",
+    ["@bileizhen-effect"] = "是否引动此次雷属性伤害，选择恢复、摸牌、出牌",
+
     ["ZhenKongZhao"] = "真空罩",  
     [":ZhenKongZhao"] = "装备牌·防具\n\n技能：锁定技，每当你受到属性伤害时，你将此伤害视为无属性伤害。",  
     ["#ZhenKongZhaoNatureDamage"] = "%from 对 %to 造成的 %arg 点%arg2被【真空罩】转换为无属性伤害",  
