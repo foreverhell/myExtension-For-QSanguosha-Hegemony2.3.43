@@ -577,9 +577,9 @@ zhengnan_skill = sgs.CreateTriggerSkill{
         if not (zhengnan_player and zhengnan_player:isAlive() and zhengnan_player:hasSkill(self:objectName())) then
             return ""
         end
-        local death = data:toDeath()
+        local death = data:toDying()
         local death_player = death.who
-        local mark_name = string.format("zhengnan_%s", dead_player:objectName())  
+        local mark_name = "zhengnan" .. death_player:objectName()--string.format("zhengnan_%s", dead_player:objectName())  
         if zhengnan_player:getMark(mark_name) == 0 then
             return self:objectName(), zhengnan_player:objectName()
         end
@@ -622,9 +622,9 @@ zhengnan_skill = sgs.CreateTriggerSkill{
             -- 所有技能都已获得，摸3张牌  
             ask_who:drawCards(3, self:objectName())  
         end  
-        local death = data:toDeath()
+        local death = data:toDying()
         local death_player = death.who
-        local mark_name = string.format("zhengnan_%s", dead_player:objectName())  
+        local mark_name = "zhengnan" .. death_player:objectName()--string.format("zhengnan_%s", dead_player:objectName())  
         room:setPlayerMark(ask_who,mark_name,1)
         return false  
     end  
@@ -652,7 +652,7 @@ guansuo:addSkill(zhengnan_skill)
 sgs.LoadTranslationTable{
 ["guansuo"] = "关索",  
 ["zhengnan"] = "徵南",   
-[":zhengnan"] = "每名角色每回合限一次，任意角色进入濒死时，你可以回复一点体力，并从武圣、当先、制蛮中选择一个技能获得，然后摸1张牌；若所有技能都已获得，则摸三张牌。",  
+[":zhengnan"] = "每名角色限一次，任意角色进入濒死时，你可以回复一点体力，并从武圣、当先、制蛮中选择一个技能获得，然后摸1张牌；若所有技能都已获得，则摸三张牌。",  
 ["xiefang"] = "撷芳",  
 [":xiefang"] = "你到其他角色的距离-X，X为全场女性角色数。",  
 ["wusheng"] = "武圣",  
@@ -2071,69 +2071,37 @@ sgs.LoadTranslationTable{
 }
 
 sunru = sgs.General(extension, "sunru", "wu", 3, false)  -- 吴国，4血，男性  
-chishi = sgs.CreateTriggerSkill{  
-    name = "chishi",  
-    events = {sgs.PreCardUsed, sgs.CardResponse, sgs.CardsMoveOneTime},  
-    can_trigger = function(self, event, room, player, data)  
-        local chishi_player = room:findPlayerBySkillName(self:objectName())  
-        if not (chishi_player and chishi_player:isAlive() and chishi_player:hasSkill(self:objectName()) and not chishi_player:hasFlag("chishi")) then  
-            return ""  
-        end  
-          
-        local current_player = room:getCurrent()  
-        if not current_player then return "" end  
-        --[[
-        if current_player:isKongcheng() then
-            return self:objectName(),chishi_player:objectName()
-        end
-        ]]
-        if event == sgs.PreCardUsed then  
-            local use = data:toCardUse()  
-            if use.from:objectName() == current_player:objectName() and current_player:isLastHandCard(use.card) then  
-                return self:objectName(), chishi_player:objectName()
-            end  
-        elseif event == sgs.CardResponded then  
-            local response = data:toCardResponse()  
-            if response.m_from:objectName() == current_player:objectName() and current_player:isLastHandCard(response.m_card) then  
-                return self:objectName(), chishi_player:objectName()
-            end  
-        elseif event == sgs.CardsMoveOneTime then  
-            local move = data:toMoveOneTime()  
-            -- 检查是否是当前回合角色失去最后一张手牌  
-            if move.from and move.from:objectName() == current_player:objectName()   
-               and move.from_place == sgs.Player_PlaceHand and move.is_last_handcard then  
-                return self:objectName(), chishi_player:objectName()
-            end  
-        end  
-        
-        return "" 
-    end,  
-    on_cost = function(self, event, room, player, data, ask_who)  
-        local current_player = room:getCurrent()  
-        local _data = sgs.QVariant()  
-        _data:setValue(current_player)  
-          
-        if ask_who:askForSkillInvoke(self:objectName(), _data) then  
-            room:broadcastSkillInvoke(self:objectName())  
-            room:setPlayerFlag(ask_who, "chishi")  
-            return true  
-        end  
-        return false  
-    end,  
-    on_effect = function(self, event, room, player, data, ask_who)  
-        local current_player = room:getCurrent()  
-        if current_player and current_player:isAlive() then  
-            -- 摸2张牌  
-            room:drawCards(current_player, 2, self:objectName())  
-              
-            -- 此回合手牌上限+2  
-            local max_cards_mark = "chishi_maxcards_" .. current_player:objectName()  
-            room:setPlayerFlag(current_player, max_cards_mark)  
-        end  
-        return false  
-    end  
+chishi = sgs.CreateTriggerSkill{
+	name = "chishi",
+	events = {sgs.CardsMoveOneTime},
+    can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) then
+			local current = room:getCurrent()
+			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					if not (move.from and move.from:isAlive() and move.from:getPhase() == sgs.Player_Play and player:isFriendWith(move.from)) then return "" end
+					if move.from:isKongcheng() then
+						return self:objectName()
+					end
+				end
+			end
+		end
+		return ""
+	end,
+    on_cost = function(self, event, room, player, data)
+		return player:askForSkillInvoke(self:objectName(),data)
+	end,
+    on_effect = function(self, event, room, player, data)
+		local current = room:getCurrent()
+		current:drawCards(2)
+        local max_cards_mark = "chishi_maxcards_" .. current:objectName()  
+        room:setPlayerFlag(current, max_cards_mark)          
+		return false
+	end 
 }  
-  
+
 -- 手牌上限修正技能  
 chishi_maxcards = sgs.CreateMaxCardsSkill{  
     name = "#chishi-maxcards",  
@@ -2207,7 +2175,7 @@ sunru:addSkill(weimian)
 sgs.LoadTranslationTable{
     ["sunru"] = "孙茹",
     ["chishi"] = "持室",
-    [":chishi"] = "每回合限一次。当前回合角色使用或打出最后一张手牌时，你可以令其摸2张牌，此回合手牌上限+2",
+    [":chishi"] = "每回合限一次。当前回合角色使用、打出、失去最后一张手牌时，若其与你势力相同，你可以令其摸2张牌，此回合手牌上限+2",
     ["weimian"] = "慰勉",  
     [":weimian"] = "出牌阶段限一次，你可以弃置所有手牌，然后回复1点体力或摸四张牌。",  
     ["WeimianCard"] = "慰勉",  
@@ -2517,6 +2485,7 @@ cansi = sgs.CreateTriggerSkill{
       
     on_effect = function(self, event, room, player, data)  
         if event == sgs.EventPhaseStart then  
+            player:skip(sgs.Player_Draw)
             local others = room:getOtherPlayers(player)  
             local target = room:askForPlayerChosen(player, others, self:objectName(), "@cansi-invoke", true, true)  
             if not target then return false end  
@@ -2569,7 +2538,7 @@ sgs.LoadTranslationTable{
     ["zerong"] = "笮融",  
     ["#zerong"] = "割据徐州",  
     ["cansi"] = "残肆",  
-    [":cansi"] = "准备阶段，你可以选择一名其他角色，令你与其各回复一点体力，然后你视为对其依次使用【杀】、【决斗】、【火攻】。每当你以此法造成1次伤害后，你摸2张牌。",  
+    [":cansi"] = "准备阶段，你可以跳过摸牌阶段，并选择一名其他角色，令你与其各回复一点体力，然后你视为对其依次使用【杀】、【决斗】、【火攻】。每当你以此法造成1次伤害后，你摸2张牌。",  
     ["@cansi-invoke"] = "残肆：选择一名其他角色"  
 }
 
