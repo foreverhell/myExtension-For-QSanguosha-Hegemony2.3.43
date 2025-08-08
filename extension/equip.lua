@@ -675,7 +675,10 @@ baibaoxiangTrigger = sgs.CreateTriggerSkill{
         --收回一张
         if player:getCardCount(true)-player:getCardCount(false) > 1 then --不能只有百宝箱
             local retrive_id = room:askForCardChosen(player, player, "e", self:objectName(), true, sgs.Card_MethodNone)
-            player:addToPile("baibaoxiang", retrive_id)  
+            retrieve_card = sgs.Sanguosha:getCard(retrive_id)
+            if not retrieve_card:isKindOf("baiBaoXiang") then
+                player:addToPile("baibaoxiang", retrive_id)  
+            end
         end
 
         local pile_cards = player:getPile("baibaoxiang")  
@@ -1720,7 +1723,7 @@ sgs.LoadTranslationTable{
                     当你受到雷属性伤害后，你可以选择（1）恢复1点体力（2）摸2张牌（3）获得一个出牌阶段",
     ["@bileizhen-attrack"] = "是否将本次雷属性伤害转移到自己身上",
     ["@bileizhen-immuse"] = "是否免疫此次雷属性伤害",
-    ["@bileizhen-effect"] = "是否引动此次雷属性伤害，选择恢复、摸牌、出牌",
+    ["@bileizhen-effect"] = "是否引动避雷针的蓄电/电力引擎效果，选择恢复/摸牌/出牌",
 
     ["ZhenKongZhao"] = "真空罩",  
     [":ZhenKongZhao"] = "装备牌·防具\n\n技能：锁定技，每当你受到属性伤害时，你将此伤害视为无属性伤害。",  
