@@ -427,7 +427,7 @@ sgs.LoadTranslationTable{
     [":LuaWuhun"] = "当你受到伤害后，伤害来源获得X枚“梦魇”标记，X为伤害值。当你死亡时，选择“梦魇”标记最多的一名角色进行判定：若结果不为【桃】或【桃园结义】，则该角色失去X点体力，X为标记数"
 }  
 
-shen_liubei = sgs.General(extension, "shen_liubei", "shu", 6)  -- 吴国，4血，男性 
+shen_liubei = sgs.General(extension, "shen_liubei", "shu", 4)  -- 吴国，4血，男性 
 
 LuaLongnu = sgs.CreateTriggerSkill{  
     name = "LuaLongnu",  
@@ -1074,7 +1074,7 @@ shouma = sgs.CreateTriggerSkill{
           
         for _, id in sgs.qlist(draw_pile) do  
             local card = sgs.Sanguosha:getCard(id)  
-            if card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse") then  
+            if card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse") or card:isKindOf("SixDragons") then  
                 table.insert(horses, id)  
             end  
         end  
@@ -1316,6 +1316,106 @@ sgs.LoadTranslationTable{
     ["zhanjue"] = "斩决",
     [":zhanjue"] = "出牌阶段开始时，你可以选择：（1）摸等同于当前体力值的牌，然后本回合使用杀无距离限制（2）摸等同于已失去体力值的牌，然后本回合下一次造成伤害后回复等量体力值"
 }  
+
+
+shen_zhaoyun = sgs.General(extension, "shen_zhaoyun", "shu", 4)  
+
+juejing = sgs.CreateTriggerSkill{  
+    name = "juejing",  
+    events = {sgs.EventPhaseStart, sgs.CardUsed, sgs.CardResponded, sgs.CardsMoveOneTime},  
+    can_trigger = function(self, event, room, player, data) 
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+        if player:getPhase() == sgs.Player_Start then  
+            return self:objectName()
+        else
+            if player:getHandcardNum()~=4 then
+                return self:objectName()
+            end
+        end  
+    end,  
+    on_cost = function(self, event, room, player, data)
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
+    end,
+    on_effect = function(self, event, room, player, data)  
+        if player:getPhase() == sgs.Player_Start then  
+            player:skip(sgs.Player_Draw)  
+        else
+            local handcard_num = player:getHandcardNum()  
+            if handcard_num ~= 4 then  
+                if handcard_num < 4 then  
+                    player:drawCards(4 - handcard_num, "juejing")  
+                else  
+                    room:askForDiscard(player, "juejing", handcard_num - 4, handcard_num - 4, false, false)  
+                end  
+            end  
+        end  
+        return false -- 跳过摸牌阶段  
+    end  
+}  
+  
+longhun = sgs.CreateViewAsSkill{  
+    name = "longhun",  
+    n = 1,  
+    view_filter = function(self, selected, to_select)
+        if #selected ~= 0 then return false end
+        local pattern = sgs.Sanguosha:getCurrentCardUsePattern()
+        if string.find(pattern,"peach") then
+            return to_select:getSuit() == sgs.Card_Heart
+        elseif pattern == "slash" then
+            return to_select:getSuit() == sgs.Card_Diamond
+        elseif pattern == "jink" then
+            return to_select:getSuit() == sgs.Card_Club
+        elseif pattern == "nullification" then
+            return to_select:getSuit() == sgs.Card_Spade
+        end
+        return true
+    end,  
+    view_as = function(self, cards)  
+        if #cards ~= 1 then return nil end  
+        local card = cards[1]  
+        local suit = card:getSuit()  
+        
+        if suit == sgs.Card_Heart then  
+            local peach = sgs.Sanguosha:cloneCard("peach")  
+            peach:addSubcard(card)  
+            peach:setSkillName(self:objectName())  
+            return peach  
+        elseif suit == sgs.Card_Diamond then  
+            local fire_slash = sgs.Sanguosha:cloneCard("fire_slash")  
+            fire_slash:addSubcard(card)  
+            fire_slash:setSkillName(self:objectName())  
+            return fire_slash  
+        elseif suit == sgs.Card_Club then  
+            local jink = sgs.Sanguosha:cloneCard("jink")  
+            jink:addSubcard(card)  
+            jink:setSkillName(self:objectName())  
+            return jink  
+        elseif suit == sgs.Card_Spade then  
+            local nullification = sgs.Sanguosha:cloneCard("nullification")  
+            nullification:addSubcard(card)  
+            nullification:setSkillName(self:objectName())  
+            return nullification  
+        end  
+        return nil  
+    end,
+    enabled_at_play = function(self, player)  
+        return true  
+    end,  
+    enabled_at_response = function(self, player, pattern)  
+        return pattern == "slash" or pattern == "jink" or string.find(pattern,"peach") or pattern == "nullification"  
+    end  
+}
+
+
+--shen_zhaoyun:addSkill(juejing)  
+shen_zhaoyun:addSkill(longhun)
+sgs.LoadTranslationTable{
+    ["shen_zhaoyun"] = "神赵云",  
+    ["juejing"] = "绝境",
+    [":juejing"] = "你始终跳过你的摸牌阶段；你的手牌数始终为4.",
+    ["longhun"] = "龙魂",
+    [":longhun"] = "你的红桃牌可以视为桃，方块牌可以视为火杀，梅花牌可以视为闪，黑桃牌可以视为无懈可击"
+}
 
 shen_zhenji = sgs.General(extension, "shen_zhenji", "wei", 3, false)  -- 吴国，4血，男性  
 
