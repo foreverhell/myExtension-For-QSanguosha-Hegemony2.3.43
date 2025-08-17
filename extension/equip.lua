@@ -56,7 +56,7 @@ shixuejian_skill = sgs.CreateTriggerSkill{
             return ""   
         end  
         local damage = data:toDamage()  
-        if damage.card and damage.card:isKindOf("BasicCard") and damage.from and damage.from:objectName() == player:objectName() then  
+        if damage.card and damage.card:isKindOf("Slash") and damage.from and damage.from:objectName() == player:objectName() then  
             return self:objectName()  
         end  
         return ""  
@@ -66,7 +66,7 @@ shixuejian_skill = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data)  
         local damage = data:toDamage()
-        if not (damage.card and damage.card:isKindOf("BasicCard")) then return false end
+        if not (damage.card and damage.card:isKindOf("Slash")) then return false end
         local recover = sgs.RecoverStruct()  
         recover.who = damage.from  
         recover.recover = 1  --damage.damage
@@ -103,7 +103,7 @@ anshajian_skill = sgs.CreateTriggerSkill{
             return ""   
         end  
         local damage = data:toDamage()  
-        if damage.card and damage.card:isKindOf("BasicCard") and damage.from and damage.from:objectName()== player:objectName() then  
+        if damage.card and damage.card:isKindOf("Slash") and damage.from and damage.from:objectName()== player:objectName() then  
             return self:objectName()  
         end  
         return ""  
@@ -113,7 +113,7 @@ anshajian_skill = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data)  
         local damage = data:toDamage()
-        if not (damage.card and damage.card:isKindOf("BasicCard")) then
+        if not (damage.card and damage.card:isKindOf("Slash")) then
             return false
         end
         -- 改为体力流失  
@@ -739,305 +739,6 @@ baibaoxiangTrigger = sgs.CreateTriggerSkill{
     end  
 }  
 
-ChuanyunArrow = sgs.CreateWeapon{  
-    name = "ChuanyunArrow",  
-    class_name = "ChuanyunArrow",  
-    suit = sgs.Card_Spade,  
-    number = 3,  
-    range = 2,
-    on_install = function(self, player)  
-        local room = player:getRoom()  
-        room:acquireSkill(player, "ChuanyunArrow", true, true)  
-    end,  
-      
-    on_uninstall = function(self, player)  
-        local room = player:getRoom()  
-        room:detachSkillFromPlayer(player, "ChuanyunArrow", true, false, true)  
-    end  
-}  
-  
-ChuanyunArrowCard = sgs.CreateSkillCard{  
-    name = "ChuanyunArrow",  
-    target_fixed = false,  
-    will_throw = false,  
-    filter = function(self, targets, to_select)  
-        if #targets >= 1 then return false end
-        local slash = sgs.Sanguosha:cloneCard("slash")  
-        return sgs.Self:canSlash(to_select, slash, true)  
-        --return sgs.Self:inMyAttackRange(to_select)
-    end,  
-    feasible = function(self, targets)  
-        return #targets==1  
-    end,  
-    on_use = function(self, room, source, targets)  
-        local subcards = self:getSubcards():first()
-        local target = targets[1]  -- 获取选中的目标  
-        local next_player = room:nextPlayer(target)  -- 获取下一个角色  
-
-        -- 创建杀的使用结构  
-        local slash = sgs.Sanguosha:cloneCard(subcards:objectName(),subcards:getSuit(),subcards:getNumber())  
-        --slash:addSubcards(subcards)  
-        local slash_use = sgs.CardUseStruct()  
-        slash_use.card = slash  --subcards
-        slash_use.from = source  
-        slash_use.to = sgs.SPlayerList()  
-          
-        -- 添加原目标  
-        slash_use.to:append(target)  
-          
-        -- 检查并添加下一个角色作为目标  
-        if next_player and next_player:objectName() ~= target:objectName() then  
-            slash_use.to:append(next_player)  
-        end  
-          
-        -- 执行杀的使用  
-        room:useCard(slash_use)  
-    end
-}
-  
-ChuanyunArrowSkill = sgs.CreateOneCardViewAsSkill{  
-    name = "ChuanyunArrow",  
-    filter_pattern = "slash",  
-    response_or_use = true,  
-      
-    enabled_at_play = function(self, player)  
-        return sgs.Slash_IsAvailable(player) and player:getMark("Equips_Nullified_to_Yourself") == 0  
-    end,  
-      
-    enabled_at_response = function(self, player, pattern)  
-        return sgs.Sanguosha:getCurrentCardUseReason() == sgs.CardUseStruct_CARD_USE_REASON_RESPONSE_USE  
-            and pattern == "slash" and player:getMark("Equips_Nullified_to_Yourself") == 0  
-    end,  
-      
-    view_as = function(self, originalCard)  
-        local ChuanyunArrow_slash = ChuanyunArrowCard:cloneCard()  
-        ChuanyunArrow_slash:addSubcard(originalCard:getId())  
-        return ChuanyunArrow_slash  
-    end  
-}  
-
-
-
-Xiandanqiang = sgs.CreateWeapon{  
-    name = "Xiandanqiang",  
-    class_name = "Xiandanqiang",  
-    suit = sgs.Card_Spade,  
-    number = 3,  
-    range = 3,
-    on_install = function(self, player)  
-        local room = player:getRoom()  
-        room:acquireSkill(player, "Xiandanqiang", true, true)  
-    end,  
-      
-    on_uninstall = function(self, player)  
-        local room = player:getRoom()  
-        room:detachSkillFromPlayer(player, "Xiandanqiang", true, false, true)  
-    end  
-}  
-  
-XiandanqiangCard = sgs.CreateSkillCard{  
-    name = "Xiandanqiang",  
-    target_fixed = false,  
-    will_throw = false,  
-    filter = function(self, targets, to_select)  
-        if #targets >= 1 then return false end
-        local slash = sgs.Sanguosha:cloneCard("slash")  
-        return sgs.Self:canSlash(to_select, slash, true)  
-        --return sgs.Self:inMyAttackRange(to_select)
-    end,  
-    feasible = function(self, targets)  
-        return #targets==1  
-    end,  
-    on_use = function(self, room, source, targets)  
-        local target = targets[1]  -- 获取选中的目标  
-        distance = source:distanceTo(target)
-          
-        -- 创建杀的使用结构  
-        local slash = sgs.Sanguosha:cloneCard(subcards:objectName(),subcards:getSuit(),subcards:getNumber())  
-        --slash:addSubcards(subcards)  
-        local slash_use = sgs.CardUseStruct()  
-        slash_use.card = slash  --subcards
-        slash_use.from = source  
-        slash_use.to = sgs.SPlayerList()  
-          
-        -- 添加原目标 
-        for _,player in sgs.qlist(room:getAlivePlayers()) do
-            if source:distanceTo(player) == distance then
-                slash_use.to:append(player)  
-            end
-        end          
-        -- 执行杀的使用  
-        room:useCard(slash_use)  
-    end
-}
-  
-XiandanqiangSkill = sgs.CreateOneCardViewAsSkill{  
-    name = "Xiandanqiang",  
-    filter_pattern = "slash",  
-    response_or_use = true,  
-      
-    enabled_at_play = function(self, player)  
-        return sgs.Slash_IsAvailable(player) and player:getMark("Equips_Nullified_to_Yourself") == 0  
-    end,  
-      
-    enabled_at_response = function(self, player, pattern)  
-        return sgs.Sanguosha:getCurrentCardUseReason() == sgs.CardUseStruct_CARD_USE_REASON_RESPONSE_USE  
-            and pattern == "slash" and player:getMark("Equips_Nullified_to_Yourself") == 0  
-    end,  
-      
-    view_as = function(self, originalCard)  
-        local Xiandanqiang_slash = XiandanqiangCard:cloneCard()  
-        Xiandanqiang_slash:addSubcard(originalCard:getId())  
-        return Xiandanqiang_slash  
-    end  
-}  
-
-
-
-Gongmingzhilian = sgs.CreateWeapon{  
-    name = "Gongmingzhilian",  
-    class_name = "Gongmingzhilian",  
-    suit = sgs.Card_Spade,  
-    number = 3,  
-    range = 4,
-    on_install = function(self, player)  
-        local room = player:getRoom()  
-        room:acquireSkill(player, "Gongmingzhilian", true, true)  
-    end,  
-      
-    on_uninstall = function(self, player)  
-        local room = player:getRoom()  
-        room:detachSkillFromPlayer(player, "Gongmingzhilian", true, false, true)  
-    end  
-}  
-  
-GongmingzhilianCard = sgs.CreateSkillCard{  
-    name = "Gongmingzhilian",  
-    target_fixed = false,  
-    will_throw = false,  
-    filter = function(self, targets, to_select)  
-        if #targets >= 1 then return false end
-        local slash = sgs.Sanguosha:cloneCard("slash")  
-        return sgs.Self:canSlash(to_select, slash, true)  
-        --return sgs.Self:inMyAttackRange(to_select)
-    end,  
-    feasible = function(self, targets)  
-        return #targets==1  
-    end,  
-    on_use = function(self, room, source, targets)  
-        local target = targets[1]  -- 获取选中的目标  
-        for _,player in sgs.qlist(room:getAlivePlayers()) do
-            if player:isFriendWith(target) then
-                room:setPlayerChained(player)
-            end
-        end
-        -- 创建杀的使用结构  
-        local slash = sgs.Sanguosha:cloneCard(subcards:objectName(),subcards:getSuit(),subcards:getNumber())  
-        --slash:addSubcards(subcards)  
-        local slash_use = sgs.CardUseStruct()  
-        slash_use.card = slash --subcards 
-        slash_use.from = source  
-        slash_use.to = sgs.SPlayerList()  
-        slash_use.to:append(target)
-    
-        -- 执行杀的使用  
-        room:useCard(slash_use)  
-    end
-}
-  
-GongmingzhilianSkill = sgs.CreateOneCardViewAsSkill{  
-    name = "Gongmingzhilian",  
-    filter_pattern = "slash",  
-    response_or_use = true,  
-      
-    enabled_at_play = function(self, player)  
-        return sgs.Slash_IsAvailable(player) and player:getMark("Equips_Nullified_to_Yourself") == 0  
-    end,  
-      
-    enabled_at_response = function(self, player, pattern)  
-        return sgs.Sanguosha:getCurrentCardUseReason() == sgs.CardUseStruct_CARD_USE_REASON_RESPONSE_USE  
-            and pattern == "slash" and player:getMark("Equips_Nullified_to_Yourself") == 0  
-    end,  
-      
-    view_as = function(self, originalCard)  
-        local Gongmingzhilian_slash = GongmingzhilianCard:cloneCard()  
-        Gongmingzhilian_slash:addSubcard(originalCard:getId())  
-        return Gongmingzhilian  
-    end  
-}  
-
-
-lunhuijing = sgs.CreateTreasure{  
-    name = "LunhuiJing",  
-    class_name = "LunhuiJing",   
-    suit = sgs.Card_Spade,  
-    number = 2,  
-    on_install = function(self, player)  
-        local room = player:getRoom()  
-        room:acquireSkill(player, "LunhuiJing", true, true)  
-    end,  
-      
-    on_uninstall = function(self, player)  
-        local room = player:getRoom()  
-        room:detachSkillFromPlayer(player, "LunhuiJing", true, false, true)  
-    end  
-}
-LunhuiJingSkill = sgs.CreateTriggerSkill{  
-    name = "LunhuiJing",  
-    events = {sgs.AskForPeaches},  
-    frequency = sgs.Skill_Limited,  
-    limit_mark = "@lunhui",  
-      
-    can_trigger = function(self, event, room, player, data)  
-        local treasure = player:getTreasure()
-        if not (treasure and treasure:isKindOf("LunhuiJing")) then  
-            return ""  
-        end  
-          
-        local dying = data:toDying()  
-        if dying.who ~= player or player:getMark("@lunhui") == 0 then  
-            return ""  
-        end  
-          
-        return self:objectName()  
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        if player:askForSkillInvoke(self:objectName(), data) then  
-            room:broadcastSkillInvoke(self:objectName(), player)  
-            room:setPlayerMark(player, "@lunhui", 0)  
-            return true  
-        end  
-        return false  
-    end,  
-      
-    on_effect = function(self, event, room, player, data)  
-        -- 重置体力为满血  
-        local recover = sgs.RecoverStruct()  
-        recover.recover = player:getMaxHp() - player:getHp()  
-        recover.who = player  
-        room:recover(player, recover)  
-          
-        -- 失去所有技能  
-        local skills = {}  
-        for _, skill in sgs.qlist(player:getSkillList()) do  
-            if not skill:inherits("SPConvertSkill") and not skill:isAttachedLordSkill() then  
-                table.insert(skills, skill:objectName())  
-            end  
-        end  
-          
-        for _, skill_name in ipairs(skills) do  
-            room:detachSkillFromPlayer(player, skill_name, false, true)  
-        end  
-          
-        -- 重置武将牌状态  
-        player:setSkillsPreshowed("", true)  
-        room:broadcastProperty(player, "flags")  
-          
-        return false  
-    end  
-}
-
 yuansuzhiren = sgs.CreateWeapon{  
     name = "yuansuzhiren",  
     class_name = "yuansuzhiren",  
@@ -1066,6 +767,7 @@ yuansuzhirenSkill = sgs.CreateTriggerSkill{
         end  
         if player and player:isAlive() then  
             local damage = data:toDamage()  
+            if not (damage.card and damage.card:isKindOf("Slash")) then return "" end
             -- 只有属性伤害才触发  
             if damage.nature == sgs.DamageStruct_Fire or damage.nature == sgs.DamageStruct_Thunder then  
                 return self:objectName()  
@@ -1127,7 +829,7 @@ shengfanSkill = sgs.CreateTriggerSkill{
         end  
         if player and player:isAlive() then  
             -- 只在准备阶段触发。考虑改成任意角色的准备阶段，或者自己的每一个阶段
-            if player:getPhase() == sgs.Player_Start then  
+            if player:getPhase() == sgs.Player_Start and player:isWounded() and not player:isNude() then  
                 return self:objectName()  
             end  
         end  
@@ -1141,7 +843,9 @@ shengfanSkill = sgs.CreateTriggerSkill{
       
     on_effect = function(self, event, room, player, data)  
         room:notifySkillInvoked(player, self:objectName())  
-          
+        --弃一张牌
+        local is_discard = room:askForDiscard(player,self:objectName(),1,1,false,true)
+        if not is_discard then return false end
         -- 回复1点体力  
         local recover = sgs.RecoverStruct()  
         recover.who = player  
@@ -1218,7 +922,7 @@ fantanjiaSkill = sgs.CreateTriggerSkill{
         if remaining_damage > 0 then --否则会触发卖血技
             -- 对伤害来源造成另一半伤害  
             local reflect_damage = sgs.DamageStruct()  
-            reflect_damage.from = player  
+            reflect_damage.from = player  --这里可以考虑改为 damage.from 或 nil
             reflect_damage.to = damage.from  
             reflect_damage.damage = remaining_damage --half_damage  
             reflect_damage.nature = damage.nature  
@@ -1641,13 +1345,7 @@ xiuliQiankun:setParent(extension)  --通过
 bileizhen:setParent(extension)
 --zhenkongzhao:setParent(extension) --通过。但是太弱，在这个包里意义不明，可以考虑放到pokemon包
 yinleijian:setParent(extension)
-baiBaoXiang:setParent(extension)
-
---这四个有问题，不要了
---ChuanyunArrow:setParent(extension)  
---Xiandanqiang:setParent(extension)
---Gongmingzhilian:setParent(extension)
---lunhuijing:setParent(extension)
+--baiBaoXiang:setParent(extension)
 
 yuansuzhiren:setParent(extension) --通过
 shengfan:setParent(extension) --通过
@@ -1657,8 +1355,8 @@ kuangzhanshi:setParent(extension) --通过
 --shenmishouhu:setParent(extension) --通过。但是太强，作为pokemon的技能比较合适
 
 QiyiShouhu:setParent(extension)
-xinlingganying:setParent(extension)
-ZhiyuZhijian:setParent(extension)
+--xinlingganying:setParent(extension) --用的不多
+--ZhiyuZhijian:setParent(extension) --用的不多
 
 --用来绑定装备技能的临时武将。extension是个卡牌包，不是武将包
 equip_tmp = sgs.General(extension,"equip_tmp","god",4)
@@ -1671,13 +1369,8 @@ equip_tmp:addSkill(bileizhenSkill)
 equip_tmp:addSkill(xiuliQiankunSkill)
 --equip_tmp:addSkill(zhenkongzhaoSkill)
 equip_tmp:addSkill(yinleijianSkill)
-equip_tmp:addSkill(baibaoxiang)
-equip_tmp:addSkill(baibaoxiangTrigger)
-
---equip_tmp:addSkill(ChuanyunArrowSkill)
---equip_tmp:addSkill(XiandanqiangSkill)
---equip_tmp:addSkill(GongmingzhilianSkill)
---equip_tmp:addSkill(LunhuiJingSkill)
+--equip_tmp:addSkill(baibaoxiang)
+--equip_tmp:addSkill(baibaoxiangTrigger)
 
 equip_tmp:addSkill(yuansuzhirenSkill)
 equip_tmp:addSkill(shengfanSkill)
@@ -1687,8 +1380,8 @@ equip_tmp:addSkill(kuangzhanshiSkill)
 --equip_tmp:addSkill(shenmishouhuSkill)
 
 equip_tmp:addSkill(QiyiShouhuSkill)
-equip_tmp:addSkill(xinlingganyingSkill)
-equip_tmp:addSkill(ZhiyuZhijianSkill)
+--equip_tmp:addSkill(xinlingganyingSkill)
+--equip_tmp:addSkill(ZhiyuZhijianSkill)
 
 -- 添加翻译  
 sgs.LoadTranslationTable{  
@@ -1717,6 +1410,7 @@ sgs.LoadTranslationTable{
 
     ["XiuliQiankun"] = "袖里乾坤",  
     [":XiuliQiankun"] = "装备牌·防具\n\n技能：锁定技，你不会成为延时锦囊的目标。你不能被叠置。",
+
     ["Bileizhen"] = "避雷针",  
     [":Bileizhen"] = "装备牌·防具\n\n技能：\
                     任意角色受到雷属性伤害时，若其不为你，你可以选择将该伤害转移给自己；若其为你，你可以免疫此伤害\
@@ -1728,6 +1422,7 @@ sgs.LoadTranslationTable{
     ["ZhenKongZhao"] = "真空罩",  
     [":ZhenKongZhao"] = "装备牌·防具\n\n技能：锁定技，每当你受到属性伤害时，你将此伤害视为无属性伤害。",  
     ["#ZhenKongZhaoNatureDamage"] = "%from 对 %to 造成的 %arg 点%arg2被【真空罩】转换为无属性伤害",  
+
     ["YinLeiJian"] = "引雷剑",  
     [":YinLeiJian"] = "装备牌·武器\n\n攻击范围：4\n技能：你可以将一张普通【杀】当雷【杀】使用",  
     ["yinleijian"] = "引雷剑",
@@ -1735,26 +1430,12 @@ sgs.LoadTranslationTable{
     ["baiBaoXiang"] = "百宝箱",
     [":baiBaoXiang"] = "装备牌·宝物\n\n技能：出牌阶段，你可以将一张装备放进“百宝箱”牌堆，或者从“百宝箱”中将一张装备放入装备区；当你被其他角色指定为目标时，你可以将装备区的一张非百宝箱装备放入“百宝箱”，并可以将“百宝箱”中的一张装备放入装备区",
 
-    ["ChuanyunArrow"] = "穿云箭",  
-    [":ChuanyunArrow"] = "装备牌·武器\n\n攻击范围：2\n技能：你使用【杀】指定目标后，可以额外指定其下一个角色作为目标。",  
-    
-    ["Xiandanqiang"] = "霰弹枪",  
-    [":Xiandanqiang"] = "装备牌·武器\n\n攻击范围：3\n技能：你使用【杀】时，可以额外指定距离等于到目标距离的其他角色作为目标。",  
-
-    ["Gongmingzhilian"] = "共鸣之链",  
-    [":Gongmingzhilian"] = "装备牌·武器\n\n攻击范围：4\n技能：你使用【杀】时，可以将和目标相同势力的所有角色横置。",  
-
-    ["LunhuiJing"] = "轮回镜",  
-    [":LunhuiJing"] = "装备牌·宝物\n\n技能：限定技，当你处于濒死状态时，你可以将体力回复至体力上限，然后失去所有技能。",  
-    ["@lunhui"] = "轮回",  
-    ["~LunhuiJing"] = "选择是否发动轮回镜效果",  
-
     ["yuansuzhiren"] = "元素之刃",  
-    [":yuansuzhiren"] = "装备牌·武器\n\n攻击范围：4\n技能：锁定技，你造成的属性伤害+1。",  
+    [":yuansuzhiren"] = "装备牌·武器\n\n攻击范围：4\n技能：锁定技，你的属性杀伤害+1。",  
     ["#WeaponDamage"] = "%from 的【%arg】效果被触发，伤害+%arg2",
 
     ["shengfan"] = "剩饭",  
-    [":shengfan"] = "装备牌·防具\n\n技能：锁定技，准备阶段，你回复1点体力。",  
+    [":shengfan"] = "装备牌·防具\n\n技能：锁定技，准备阶段，你可以弃置一张牌，回复1点体力。",  
     ["#ArmorRecover"] = "%from 的【%arg】效果被触发，回复了%arg2点体力",
 
     ["fantanjia"] = "反弹甲",  
