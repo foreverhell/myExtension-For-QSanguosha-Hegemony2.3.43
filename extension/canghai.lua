@@ -3091,9 +3091,10 @@ sgs.LoadTranslationTable{
 
 -- 创建武将：
 wangyi = sgs.General(extension, "wangyi", "wei", 3)  -- 吴国，4血，男性  
+--[[
 zhenlie = sgs.CreateTriggerSkill{  
     name = "zhenlie",  
-    events = {sgs.CardEffected},  --杀/单体锦囊至少需要一个目标，此时在指定目标时触发取消目标不能成功，需要在效果生效时触发取消效果
+    events = {sgs.TargetConfirming},  --CardEffected--杀/单体锦囊至少需要一个目标，此时在指定目标时触发取消目标不能成功，需要在效果生效时触发取消效果
       
     can_trigger = function(self, event, room, player, data)  
         local effect = data:toCardEffect()  
@@ -3126,6 +3127,46 @@ zhenlie = sgs.CreateTriggerSkill{
         return true  --返回true，终止效果结算
     end  
 }
+]]
+zhenlie = sgs.CreateTriggerSkill{  
+    name = "zhenlie",  
+    events = {sgs.TargetConfirming}, --sgs.CardEffected
+    frequency = sgs.Skill_Frequent, 
+    can_trigger = function(self, event, room, player, data)  
+        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
+            return ""  
+        end  
+
+        local use = data:toCardUse()
+        if use.from and use.from ~= player and use.to:contains(player) then  
+            if use.card:isKindOf("Slash") or use.card:isNDTrick() then
+                return self:objectName()  
+            end
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName(), player)  
+            return true  
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        room:loseHp(player, 1)  -- 失去一点体力  
+        player:drawCards(1)
+
+        local use = data:toCardUse()  
+        sgs.Room_cancelTarget(use, player)
+        data:setValue(use)   
+        -- 弃置来源一张牌
+        if use.from and use.from:isAlive() and not use.from:isNude() then  
+            local card_id = room:askForCardChosen(player, use.from, "he", self:objectName())  
+            room:throwCard(card_id, use.from, player)  
+        end            
+        return false  
+    end  
+}  
 miji = sgs.CreateTriggerSkill{  
     name = "miji",  
     frequency = sgs.Skill_Frequent,  
@@ -3555,6 +3596,7 @@ luayufan = sgs.General(extension, "luayufan", "wu", 3)
 
 luazhiyan = sgs.CreateTriggerSkill{
     name = "luazhiyan",
+    --frequency = sgs.Skill_Frequent,
     events = {sgs.EventPhaseStart, sgs.Player_Finish},
     can_trigger = function(self, event, room, player, data)
         if skillTriggerable(player, self:objectName()) and event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Finish then
@@ -3574,9 +3616,7 @@ luazhiyan = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data)
         local targets = sgs.SPlayerList()
         for _, p in sgs.qlist(room:getAlivePlayers()) do
-            if p then
-                targets:append(p)
-            end
+            targets:append(p)
         end
         if not targets:isEmpty() then
             local target = room:askForPlayerChosen(player, targets, self:objectName(), "@luazhiyan_target", true, true)
@@ -3622,23 +3662,26 @@ luazongxuan_remove = sgs.CreateTriggerSkill{
         end
         return false
     end,
+
+    on_cost = function(self, event, room, player, data)
+        return false
+    end,
 }
 
 luazongxuan = sgs.CreateTriggerSkill{
     name = "luazongxuan",
-    events = {sgs.CardsMoveOneTime},
+    events = {sgs.CardsMoveOneTime}, 
     can_trigger = function(self, event, room, player, data)
-        if skillTriggerable(player, self:objectName()) and event == sgs.CardsMoveOneTime then
+        if skillTriggerable(player, self:objectName()) then
             if player:getMark("luazongxuan_discard") < 3 then
                 local move_datas = data:toList()
                 local skill_list = {}
                 for _, move_data in sgs.qlist(move_datas) do
                     local move = move_data:toMoveOneTime()
-                    if move.from:objectName() ~= player:objectName() then return false end
-                    local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
-                    if reasonx == sgs.CardMoveReason_S_REASON_DISCARD or reasonx == sgs.CardMoveReason_S_REASON_PINDIAN then
-                        if move.to_place == sgs.Player_DiscardPile and (move.from_places:contains(sgs.Player_PlaceHand) or 
-                        move.from_places:contains(sgs.Player_PlaceEquip)) then
+                    if move.from and move.from:objectName() ~= player:objectName() then return "" end
+                    if bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON) == 
+                    sgs.CardMoveReason_S_REASON_DISCARD then
+                        if move.from_places:contains(sgs.Player_PlaceHand) or move.from_places:contains(sgs.Player_PlaceEquip) then
                             table.insert(skill_list, self:objectName())
                         end
                     end
@@ -3650,19 +3693,9 @@ luazongxuan = sgs.CreateTriggerSkill{
     end,
 
     on_cost = function(self, event, room, player, data)
-        if player:getMark("luazongxuan_discard") < 3 then
-            local move_datas = data:toList()
-            for _, move_data in sgs.qlist(move_datas) do
-                local move = move_data:toMoveOneTime()
-                if move.from:objectName() ~= player:objectName() then return false end
-                if move.to_place == sgs.Player_DiscardPile and (move.from_places:contains(sgs.Player_PlaceHand) or 
-                move.from_places:contains(sgs.Player_PlaceEquip)) then
-                    if player:askForSkillInvoke(self:objectName(), data) then
-                        room:broadcastSkillInvoke(self:objectName(), player)
-                        return true
-                    end
-                end
-            end
+        if player:askForSkillInvoke(self:objectName(), data) then
+            room:broadcastSkillInvoke(self:objectName(), player)
+            return true
         end
         return false
     end,
@@ -3681,10 +3714,12 @@ luazongxuan = sgs.CreateTriggerSkill{
                 local putPile_ids = sgs.IntList()
                 putPile_ids = moveStruct.bottom
                 room:addPlayerMark(player, "luazongxuan_discard", putPile_ids:length())
+                local drawPile = room:getDrawPile()
                 for i = putPile_ids:length(), 1, -1 do
-                    room:moveCardTo(sgs.Sanguosha:getCard(putPile_ids:at(i - 1)), nil, sgs.Player_DrawPile, false)
-                    --room:getDrawPile():prepend(putPile_ids:at(i - 1))
+                    --room:moveCardTo(sgs.Sanguosha:getCard(putPile_ids:at(i - 1)), nil, sgs.Player_DrawPile, false)
+                    drawPile:prepend(putPile_ids:at(i - 1))
                 end
+                room:doBroadcastNotify(sgs.CommandType.S_COMMAND_UPDATE_PILE, sgs.QVariant(drawPile:length()))
             end
         end
         return false
@@ -3694,7 +3729,7 @@ luazongxuan = sgs.CreateTriggerSkill{
 luayufan:addSkill(luazhiyan)
 luayufan:addSkill(luazongxuan)
 luayufan:addSkill(luazongxuan_remove)
-extension:insertRelatedSkills("luazongxuan", "#luazongxuan_remove")
+canghai:insertRelatedSkills("luazongxuan", "#luazongxuan_remove")
 
 -- 加载翻译表
 sgs.LoadTranslationTable{
