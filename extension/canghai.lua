@@ -3729,7 +3729,7 @@ luazongxuan = sgs.CreateTriggerSkill{
 luayufan:addSkill(luazhiyan)
 luayufan:addSkill(luazongxuan)
 luayufan:addSkill(luazongxuan_remove)
-canghai:insertRelatedSkills("luazongxuan", "#luazongxuan_remove")
+extension:insertRelatedSkills("luazongxuan", "#luazongxuan_remove")
 
 -- 加载翻译表
 sgs.LoadTranslationTable{
