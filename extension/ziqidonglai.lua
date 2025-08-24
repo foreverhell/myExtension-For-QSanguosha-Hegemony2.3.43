@@ -5,7 +5,143 @@ sgs.addNewKingdom("jin", "#ff35e4ff")  -- 使用橙红色作为火影势力的�
 sgs.LoadTranslationTable{
     ["jin"] = "晋"
 }
+xiahouhui = sgs.General(extension, "xiahouhui", "wei", 3, false)  
 
+yishi = sgs.CreateTriggerSkill{  
+    name = "yishi",  
+    events = {sgs.CardsMoveOneTime},  
+    can_trigger = function(self, event, room, player, data)  
+        if skillTriggerable(player, self:objectName()) then
+            if player:hasFlag("yishi_used") then return "" end
+			local current = room:getCurrent()
+			if current and current:isAlive() and current:getPhase() == sgs.Player_Play then
+                if player:objectName()==current:objectName() then return "" end
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+					--if reasonx ~= sgs.CardMoveReason_S_REASON_USE and reasonx ~= sgs.CardMoveReason_S_REASON_RESPONSE then
+					if reasonx == sgs.CardMoveReason_S_REASON_DISCARD then
+                        if move.from and move.from:isAlive() and move.from:objectName()==current:objectName() and move.from:contains(sgs.Player_PlaceHand) then
+                            return self:objectName()
+                        end
+					end
+				end
+			end
+		end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then
+            room:setPlayerFlag(player,"yishi_used")
+            room:broadcastSkillInvoke(self:objectName(), player)  
+            return true  
+        end  
+        return false  
+    end,  
+    
+    on_effect = function(self, event, room, player, data)  
+		local current = room:getCurrent()
+        local move_datas = data:toList()
+        local card_ids = sgs.IntList()
+        for _, move_data in sgs.qlist(move_datas) do
+            local move = move_data:toMoveOneTime()
+            for _,card_id in sgs.qlist(move.card_ids) do
+                card_ids:append(card_id)
+            end 
+        end
+
+        -- 检查牌堆是否为空  
+        if card_ids:length() == 0 then  
+            return false
+        end          
+        -- 使用AG界面让玩家选择一张牌  
+        room:fillAG(card_ids, player)  
+        local card_id = room:askForAG(player, card_ids, true, self:objectName())  
+        room:clearAG(player) 
+        if card_id == nil then return false end
+        local card = sgs.Sanguosha:getCard(card_id)
+        if card == nil then return false end
+
+        room:obtainCard(current,card_id)
+
+        for _,id in sgs.qlist(card_ids) do
+            if id~=card_id then
+                room:obtainCard(player,id)
+            end
+        end
+        return false  
+    end  
+}  
+  
+ShiduCard = sgs.CreateSkillCard{  
+    name = "ShiduCard",  
+    target_fixed = false,  
+    will_throw = true,  
+    filter = function(self, targets, to_select)  
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName() and to_select:getHandcardNum() > 0  
+    end,  
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+          
+        -- 进行拼点  
+        local success = source:pindian(target,"shidu")            
+        if success then  
+            -- 拼点成功，获得其所有手牌  
+            local target_cards = target:handCards()  
+            if not target_cards:isEmpty() then  
+                local card_ids = {}  
+                for _, id in sgs.qlist(target_cards) do  
+                    table.insert(card_ids, id)  
+                end  
+                  
+                -- 获得目标所有手牌  
+                for _, id in ipairs(card_ids) do  
+                    source:obtainCard(sgs.Sanguosha:getCard(id))  
+                end  
+                  
+                -- 交给其一半手牌（向下取整）  
+                local source_handcards = source:getHandcardNum()  
+                local give_num = math.floor(source_handcards / 2)  
+                  
+                if give_num > 0 then  
+                    local cards_to_give = room:askForExchange(source, "shidu", give_num, give_num, "@shidu-give", "", ".|.|.|hand")  
+                    if cards_to_give:length() > 0 then  
+                        for _, id in sgs.qlist(cards_to_give) do  
+                            target:obtainCard(sgs.Sanguosha:getCard(id))  
+                        end  
+                    end  
+                end  
+            end  
+        end  
+    end  
+}  
+  
+-- 识度视为技能  
+shidu = sgs.CreateZeroCardViewAsSkill{  
+    name = "shidu",  
+    view_as = function(self)  
+        local skill_card = ShiduCard:clone()  
+        skill_card:setSkillName(self:objectName())  
+        return skill_card  
+    end,  
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#ShiduCard") and player:getHandcardNum() > 0  
+    end  
+}
+xiahouhui:addSkill(yishi)
+xiahouhui:addSkill(shidu)
+
+sgs.LoadTranslationTable{
+["#xiahouhui"] = "明德皇后",  
+["xiahouhui"] = "夏侯徽",  
+["illustrator:xiahouhui"] = "画师名",  
+["yishi"] = "宜室",  
+[":yishi"] = "每回合限一次，当一名其他角色于其出牌阶段弃置手牌后，你可以令其获得其中一张，然后你获得其余的牌。",  
+["shidu"] = "识度",   
+[":shidu"] = "出牌阶段限一次，你可以与一名其他角色拼点，若你赢，你获得其所有手牌，然后你交给其你的一半（向下取整）手牌。",
+}
 simaliang = sgs.General(extension, "simaliang", "wei", 3)  
 gongzhi = sgs.CreateTriggerSkill{  
     name = "gongzhi",  
@@ -727,7 +863,7 @@ beiyu = sgs.CreateZeroCardViewAsSkill{
 
 duchi = sgs.CreateTriggerSkill{  
     name = "duchi",  
-    events = {sgs.TargetConfirmed}, --sgs.CardEffected
+    events = {sgs.TargetConfirming}, --sgs.CardEffected
     frequency = sgs.Skill_Frequent, 
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
@@ -738,12 +874,6 @@ duchi = sgs.CreateTriggerSkill{
         if use.from and use.from ~= player and use.to:contains(player) and not player:hasFlag("duchi_used") then  
             return self:objectName()  
         end  
-        --[[
-        local effect = data:toCardEffect()
-        if effect.from and effect.from:objectName() ~= player:objectName() and effect.to:objectName()==player:objectName() and not player:hasFlag("duchi_used") then  
-            return self:objectName()  
-        end 
-        ]] 
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
@@ -760,13 +890,13 @@ duchi = sgs.CreateTriggerSkill{
         if not bottom_cards:isEmpty() then  
             local bottom_card = bottom_cards:last()  
             player:obtainCard(sgs.Sanguosha:getCard(bottom_card))  
-            --room:getDrawPile().removeLast()  
         end  
           
         -- 展示所有手牌  
         room:showAllCards(player)  
           
         -- 检查颜色是否相同  
+        handcards = player:getHandcards()
         local first_color = handcards:first():getColor()  
         local same_color = true  
           
@@ -779,13 +909,9 @@ duchi = sgs.CreateTriggerSkill{
           
         -- 如果颜色相同，此牌对你无效  
         if same_color then  
-            local use = data:toCardUse()  
-            if use.to:length() == 1 then
-                return true
-            else 
-                use.to:removeOne(player)  
-                data:setValue(use)  
-            end
+            local use = data:toCardUse()    
+            sgs.Room_cancelTarget(use, player)
+            data:setValue(use)           
         end  
           
         return false  
@@ -793,7 +919,7 @@ duchi = sgs.CreateTriggerSkill{
 }  
   
 jin_simafu:addSkill(beiyu)
---jin_simafu:addSkill(duchi)
+jin_simafu:addSkill(duchi)
 sgs.LoadTranslationTable{
 ["#jin_simafu"] = "安平献王",  
 ["jin_simafu"] = "司马孚",  
@@ -1150,12 +1276,86 @@ Chengliu = sgs.CreateZeroCardViewAsSkill{
         return true  
     end  
 }
-wangrui:addSkill(Chengliu)
 
+chengfeng = sgs.CreateTriggerSkill{  
+    name = "chengfeng",  
+    events = {sgs.CardsMoveOneTime},  
+    frequency = sgs.Skill_Frequent,  
+      
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) then
+			local current = room:getCurrent()
+			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+                if player:objectName()==current:objectName() then return "" end
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+					--if reasonx ~= sgs.CardMoveReason_S_REASON_USE and reasonx ~= sgs.CardMoveReason_S_REASON_RESPONSE then
+					if reasonx == sgs.CardMoveReason_S_REASON_DISCARD then
+                        if move.from and move.from:isAlive() and move.from:objectName()~=player:objectName() then
+                            for _,card_id in sgs.qlist(move.card_ids) do
+                                local card = sgs.Sanguosha:getCard(card_id) 
+                                if card:isKindOf("EquipCard") then 
+                                    return self:objectName()
+                                end
+                            end 
+                        end
+					end
+				end
+			end
+		end     
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)            
+        return player:askForSkillInvoke(self:objectName(), data) 
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local move_datas = data:toList()
+        local equips = sgs.IntList()
+        for _, move_data in sgs.qlist(move_datas) do
+            local move = move_data:toMoveOneTime()
+            for _,card_id in sgs.qlist(move.card_ids) do
+                local card = sgs.Sanguosha:getCard(card_id)  
+                if card:isKindOf("EquipCard") then 
+                    equips:append(card_id)
+                end
+            end 
+        end
+
+        -- 检查牌堆是否为空  
+        if equips:length() == 0 then  
+            return false
+        end          
+        if room:askForDiscard(player,self:objectName(),1,1,true,true) then
+            -- 使用AG界面让玩家选择一张牌  
+            room:fillAG(equips, player)  
+            local card_id = room:askForAG(player, equips, true, self:objectName())  
+            room:clearAG(player) 
+            if card_id == nil then return false end
+            local equip = sgs.Sanguosha:getCard(card_id)
+            if equip == nil then return false end
+
+            room:obtainCard(player,card_id)
+            local choice = room:askForChoice(player,self:objectName(),"yes+no")
+            if choice == "yes" then
+                local card = player:getHandcards():last() --最后一张手牌
+                room:useCard(sgs.CardUseStruct(card, player, player), false)   
+            end
+        end
+        return false  
+    end  
+}  
+wangrui:addSkill(Chengliu)
+wangrui:addSkill(chengfeng)
 sgs.LoadTranslationTable{
     ["wangrui"] = "王睿",
     ["chengliu"] = "乘流",
-    [":chengliu"] = "出牌阶段限一次，你可以对装备区数小于你的角色造成1点伤害，然后你和该角色交换装备区，你可以重复这个操作。"
+    [":chengliu"] = "出牌阶段限一次，你可以对装备区数小于你的角色造成1点伤害，然后你和该角色交换装备区，你可以重复这个操作。",
+    ["chengfeng"] = "乘风",
+    [":chengfeng"] = "你的回合外，其他角色因弃置而失去装备牌时，你可以弃置1张牌，获得其中一张装备牌，然后你可以选择是否使用该装备牌"
 }
 
 wangxiang = sgs.General(extension, "wangxiang", "wei", 3)  
@@ -1204,15 +1404,13 @@ bingxin = sgs.CreateTriggerSkill{
         player:drawCards(1, self:objectName())  
           
         -- 视为使用一张基本牌  
-        local basic_cards = {"slash", "jink", "peach", "analeptic"}  
-        local choices = {}
-        
-        for _, card_name in ipairs(basic_cards) do  
-            local card = sgs.Sanguosha:cloneCard(card_name, sgs.Card_NoSuit, -1)  
-            if not player:isCardLimited(card, sgs.Card_MethodUse) then  
-                table.insert(choices, card_name)  
-            end  
-        end  
+        choices = {"analeptic"}
+        if sgs.Slash_IsAvailable(player) then
+            table.insert(choices, "slash")
+        end
+        if player:isWounded() then
+            table.insert(choices, "peach")
+        end
           
         if #choices > 0 then  
             local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"))  
@@ -1512,45 +1710,45 @@ qimei = sgs.CreateTriggerSkill{
         if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then  
             -- 准备阶段开始时可以发动  
             if player:hasSkill(self:objectName()) then
-                room:removeTag("qimei_source")  
-                room:removeTag("qimei_target")  
-                return self:objectName()  
+                for _,p in sgs.qlist(room:getAlivePlayers()) do
+                    if p:property("qimei_parterner"):toString() ~= "" then
+                        room:setPlayerProperty(p, "qimei_parterner", sgs.QVariant())  
+                    end
+                end
+                return self:objectName()
             end  
         elseif event == sgs.CardsMoveOneTime then  
-            --先找到齐眉关系的两个角色  
-            local target_name = room:getTag("qimei_target"):toString()  
-            local source_name = room:getTag("qimei_source"):toString()  
-            --是否有标记
-            if target_name ~= "" and source_name ~= "" then  
-                target = room:findPlayerByObjectName(target_name)  
-                source = room:findPlayerByObjectName(source_name)  
-            end
-
             local move = data:toMoveOneTime()  
-            if move.from ~= source and move.to ~= source and move.from ~= target and move.to ~= target then return "" end
-            if move.from_place ~= sgs.Player_PlaceHand and move.to_place ~= sgs.Player_PlaceHand then return "" end
+            local source = nil
+            local target_name = ""
+            if move.from:property("qimei_parterner"):toString() and move.from_place:contains(sgs.Player_PlaceHand) then
+                source = move.from
+                target_name = move.from:property("qimei_parterner"):toString()
+            end
+            if move.to:property("qimei_parterner"):toString() and move.to_place:contains(sgs.Player_PlaceHand) then 
+                source = move.to
+                target_name = move.to:property("qimei_parterner"):toString()                 
+            end
+            if target_name=="" then return "" end
+            local target = room:findPlayerByObjectName(target_name)
+            if target==nil then return "" end
             -- 检查手牌数是否相等  
             if target:getHandcardNum() == source:getHandcardNum() then  
                 return self:objectName()  
             end  
         elseif event == sgs.HpChanged then  
-            --先找到齐眉关系的两个角色  
-            local target_name = room:getTag("qimei_target"):toString()  
-            local source_name = room:getTag("qimei_source"):toString()  
-            --是否有标记
-            if target_name ~= "" and source_name ~= "" then  
-                target = room:findPlayerByObjectName(target_name)  
-                source = room:findPlayerByObjectName(source_name)  
-            end
             --获得体力变化的角色
             local change = data:toHpChange()  -- 获取体力变化结构  
             local who_changed = change.who    -- 获取体力发生变化的角色
             --体力变化的角色不是这两个人
-            if who_changed ~= target and who_changed ~= source then return "" end
-            --体力变化的角色是这两个人，检查体力值是否相等  
-            if source:getHp() == target:getHp() then  
-                return self:objectName()  
-            end  
+            if who_changed:property("qimei_parterner"):toString() then
+                parterner_name = who_changed:property("qimei_parterner"):toString()
+                parterner = room:findPlayerByObjectName(parterner_name)
+                --体力变化的角色是这两个人，检查体力值是否相等  
+                if who_changed:getHp() == parterner:getHp() then  
+                    return self:objectName()  
+                end  
+            end
         end  
         return ""  
     end,  
@@ -1563,9 +1761,9 @@ qimei = sgs.CreateTriggerSkill{
             if target then  
                 room:broadcastSkillInvoke(self:objectName(), player)  
                   
-                -- 设置双向Tag标记  
-                room:setTag("qimei_target", target:objectName())  
-                room:setTag("qimei_source", player:objectName())  
+                -- 设置双向标记  
+                room:setPlayerProperty(player,"qimei_parterner",sgs.QVariant(target:objectName()))
+                room:setPlayerProperty(target,"qimei_parterner",sgs.QVariant(player:objectName()))
                 return true  
             end  
         else  
@@ -1580,43 +1778,41 @@ qimei = sgs.CreateTriggerSkill{
             -- 准备阶段选择目标，效果已在on_cost中处理  
             return false  
         elseif event == sgs.CardsMoveOneTime then  
-            --先找到齐眉关系的两个角色  
-            local target_name = room:getTag("qimei_target"):toString()  
-            local source_name = room:getTag("qimei_source"):toString()  
-            --是否有标记
-            if target_name ~= "" and source_name ~= "" then  
-                target = room:findPlayerByObjectName(target_name)  
-                source = room:findPlayerByObjectName(source_name)  
-            end
-
             local move = data:toMoveOneTime()  
-            if move.from == source or move.to == source then
-                room:drawCards(target,1)
-            elseif move.from == target or move.to == target then
-                room:drawCards(source,1)
+            local source = nil
+            local target_name = ""
+            if move.from:property("qimei_parterner"):toString() and move.from_place:contains(sgs.Player_PlaceHand) then
+                source = move.from
+                target_name = move.from:property("qimei_parterner"):toString()
             end
+            if move.to:property("qimei_parterner"):toString() and move.to_place:contains(sgs.Player_PlaceHand) then 
+                source = move.to
+                target_name = move.to:property("qimei_parterner"):toString()                 
+            end
+            if target_name=="" then return false end
+            local target = room:findPlayerByObjectName(target_name)
+            if target==nil then return false end
+            -- 检查手牌数是否相等  
+            if target:getHandcardNum() == source:getHandcardNum() then  
+                target:drawCards(1,self:objectName())  
+            end  
         elseif event == sgs.HpChanged then  
-            --先找到齐眉关系的两个角色  
-            local target_name = room:getTag("qimei_target"):toString()  
-            local source_name = room:getTag("qimei_source"):toString()  
-            --是否有标记
-            if target_name ~= "" and source_name ~= "" then  
-                target = room:findPlayerByObjectName(target_name)  
-                source = room:findPlayerByObjectName(source_name)  
-            end
             --获得体力变化的角色
             local change = data:toHpChange()  -- 获取体力变化结构  
             local who_changed = change.who    -- 获取体力发生变化的角色
-            if who_changed == source then
-                room:drawCards(target,1)
-            elseif who_changed == target then
-                room:drawCards(source,1)
+            --体力变化的角色不是这两个人
+            if who_changed:property("qimei_parterner"):toString() then
+                parterner_name = who_changed:property("qimei_parterner"):toString()
+                parterner = room:findPlayerByObjectName(parterner_name)
+                --体力变化的角色是这两个人，检查体力值是否相等  
+                if who_changed:getHp() == parterner:getHp() then  
+                    parterner:drawCards(1,self:objectName())  
+                end  
             end
-        end  
+        end
         return false  
     end  
 }  
-  
 zhuiji1 = sgs.CreateTriggerSkill{  
     name = "zhuiji1",  
     events = {sgs.EventPhaseStart, sgs.EventPhaseEnd},  
@@ -1780,8 +1976,15 @@ yilieCard = sgs.CreateSkillCard{
     will_throw = true,  
       
     on_use = function(self, room, source, targets) 
-        room:setPlayerFlag(source, "yilie_used")
-        choice=room:askForChoice(source, self:objectName(), "slash+peach+analeptic")
+        --room:setPlayerFlag(source, "yilie_used")
+        choices = {"analeptic"}
+        if sgs.Slash_IsAvailable(source) then
+            table.insert(choices, "slash")
+        end
+        if source:isWounded() then
+            table.insert(choices, "peach")
+        end
+        choice=room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
         card = sgs.Sanguosha:cloneCard(choice)  
         card:setSkillName("yilie")
         if choice=="slash" then
@@ -1852,7 +2055,7 @@ yilie = sgs.CreateViewAsSkill{
         return nil  
     end,  
     enabled_at_play = function(self, player)  
-        return player:getHandcardNum() >= 2 and not player:hasFlag("yilie_used")
+        return player:getHandcardNum() >= 2 --and not player:hasFlag("yilie_used")
     end,  
     enabled_at_response = function(self, player, pattern)  
         if player:getHandcardNum() < 2 then return false end  
@@ -1872,6 +2075,6 @@ sgs.LoadTranslationTable{
 ["shanduan"] = "善断",  
 [":shanduan"] = "准备阶段，你可以令你本回合以下一项调整为你的体力值：1.本回合摸牌数；2.本回合攻击范围；3.本回合使用杀的次数。",  
 ["yilie"] = "义烈",  
-[":yilie"] = "出牌阶段限一次，回合外不限次。你可以将2张颜色相同的手牌当作一张基本牌使用或打出。",
+[":yilie"] = "你可以将2张颜色相同的手牌当作一张基本牌使用或打出。",
 }
 return {extension}
