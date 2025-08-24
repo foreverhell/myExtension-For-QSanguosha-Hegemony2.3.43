@@ -1,11 +1,13 @@
 
 -- 武将定义  
 extension = sgs.Package("jin", sgs.Package_GeneralPack)  
+--[[
 sgs.addNewKingdom("jin", "#ff35e4ff")  -- 使用橙红色作为火影势力的颜色
 sgs.LoadTranslationTable{
     ["jin"] = "晋"
 }
-xiahouhui = sgs.General(extension, "xiahouhui", "jin", 3, false)  
+]]
+xiahouhui = sgs.General(extension, "xiahouhui", "wei", 3, false)  
 
 yishi = sgs.CreateTriggerSkill{  
     name = "yishi",  
@@ -142,7 +144,7 @@ sgs.LoadTranslationTable{
 ["shidu"] = "识度",   
 [":shidu"] = "出牌阶段限一次，你可以与一名其他角色拼点，若你赢，你获得其所有手牌，然后你交给其你的一半（向下取整）手牌。",
 }
-simaliang = sgs.General(extension, "simaliang", "jin", 3)  
+simaliang = sgs.General(extension, "simaliang", "wei", 3)  
 gongzhi = sgs.CreateTriggerSkill{  
     name = "gongzhi",  
     view_as_skill = gongZhiVS,  
@@ -243,7 +245,7 @@ sgs.LoadTranslationTable{
 ["#shenju-recover"] = "慎惧[回复体力]",  
 ["#shenju-discard"] = "慎惧[弃置手牌]",
 }
-simalun = sgs.General(extension, "simalun", "jin", 3)  
+simalun = sgs.General(extension, "simalun", "wei", 3)  
 
 luanchang = sgs.CreateTriggerSkill{  
     name = "luanchang",  
@@ -384,7 +386,7 @@ sgs.LoadTranslationTable{
 }
 
 
-simazhou = sgs.General(extension, "simazhou", "jin", 3)  
+simazhou = sgs.General(extension, "simazhou", "wei", 3)  
 poJingCard = sgs.CreateSkillCard{  
     name = "poJingCard",  
     target_fixed = false,  
@@ -471,7 +473,7 @@ sgs.LoadTranslationTable{
     ["@pojing"] = "迫境：请选择执行的选项",  
     ["pojing_summon"] = "势力召唤：是否明置武将牌",
 }
-jiachong_ol = sgs.General(extension, "jiachong_ol", "jin", 3)  
+jiachong_ol = sgs.General(extension, "jiachong_ol", "wei", 3)  
   
 BeiniCard = sgs.CreateSkillCard{  
     name = "BeiniCard",  
@@ -644,7 +646,7 @@ sgs.LoadTranslationTable{
     ["#dingfa-clear"] = "定法",
 }
 
-jin_guohuai = sgs.General(extension, "jin_guohuai", "jin", 3, false)  
+jin_guohuai = sgs.General(extension, "jin_guohuai", "wei", 3, false)  
   
 zhefu = sgs.CreateTriggerSkill{  
     name = "zhefu",  
@@ -789,7 +791,7 @@ sgs.LoadTranslationTable{
     [":yidu"] = "你使用杀被闪避后，你可以展示目标2张手牌，若颜色相同，你弃置这两张牌。",  
 }
 
-jin_simafu = sgs.General(extension, "jin_simafu", "jin", 3)  
+jin_simafu = sgs.General(extension, "jin_simafu", "wei", 3)  
 
 BeiyuCard = sgs.CreateSkillCard{  
     name = "BeiyuCard",  
@@ -929,7 +931,7 @@ sgs.LoadTranslationTable{
 ["duchi"] = "督持",  
 [":duchi"] = "每回合限一次，当你成为其他角色使用牌的目标后，你可以从牌堆底摸一张牌并展示所有手牌，若颜色均相同，此牌对你无效。"
 }
-jin_simayi = sgs.General(extension, "jin_simayi", "jin", 3)  
+jin_simayi = sgs.General(extension, "jin_simayi", "wei", 3)  
   
 -- 技能1：鹰视  
 yingshi = sgs.CreateTriggerSkill{  
@@ -1038,7 +1040,7 @@ sgs.LoadTranslationTable{
     [":shunfu"] = "限定技，主动技。出牌阶段，你可令至多三名未确定势力角色各摸两张牌，然后你视为依次对它们使用一张无距离限制的【杀】。"
 }
 
-jin_wenyang = sgs.General(extension, "jin_wenyang", "jin", 4)  
+jin_wenyang = sgs.General(extension, "jin_wenyang", "wei", 4)  
 
 duanqiu = sgs.CreateTriggerSkill{  
     name = "duanqiu",  
@@ -1104,7 +1106,7 @@ sgs.LoadTranslationTable{
 ["duanqiu"] = "断虬",  
 [":duanqiu"] = "准备阶段，你可以选择一名其他势力角色，视为对该势力所有角色使用一张决斗。",
 }
-jin_zhangchunhua = sgs.General(extension, "jin_zhangchunhua", "jin", 3, false)  
+jin_zhangchunhua = sgs.General(extension, "jin_zhangchunhua", "wei", 3, false)  
 ejue = sgs.CreateTriggerSkill{  
     name = "ejue",  
     frequency = sgs.Skill_Compulsory,  
@@ -1189,7 +1191,7 @@ sgs.LoadTranslationTable{
     [":shangshiJin"] = "任意角色回合结束时，你可将手牌摸至已失去体力值"
 }
 
-wangrui = sgs.General(extension, "wangrui", "jin", 4)  
+wangrui = sgs.General(extension, "wangrui", "wei", 4)  
 
 ChengliuCard = sgs.CreateSkillCard{  
     name = "ChengliuCard",  
@@ -1358,7 +1360,7 @@ sgs.LoadTranslationTable{
     [":chengfeng"] = "你的回合外，其他角色因弃置而失去装备牌时，你可以弃置1张牌，获得其中一张装备牌，然后你可以选择是否使用该装备牌"
 }
 
-wangxiang = sgs.General(extension, "wangxiang", "jin", 3)  
+wangxiang = sgs.General(extension, "wangxiang", "wei", 3)  
 
 bingxin = sgs.CreateTriggerSkill{  
     name = "bingxin",  
@@ -1458,8 +1460,8 @@ sgs.LoadTranslationTable{
 ["bingxin"] = "冰心",  
 [":bingxin"] = "你手牌数或体力值变化时，若你的手牌数量等于体力值且颜色相同，你可以展示所有手牌并摸一张牌，视为使用一张基本牌。",
 }
-weiguan = sgs.General(extension, "weiguan", "jin", 3)  
-weiguan_ol = sgs.General(extension, "weiguan_ol", "jin", 3)  
+weiguan = sgs.General(extension, "weiguan", "wei", 3)  
+weiguan_ol = sgs.General(extension, "weiguan_ol", "wei", 3)  
   
 zhongyun = sgs.CreateTriggerSkill{  
     name = "zhongyun",  
@@ -1699,7 +1701,7 @@ sgs.LoadTranslationTable{
     [":jiantong"] = "你受到伤害后，你可以观看一名角色的所有手牌，然后你可以用装备区的1张牌和该角色至多2张手牌交换"
 }
 
-xuangongzhu = sgs.General(extension, "xuangongzhu", "jin", 3, false)  
+xuangongzhu = sgs.General(extension, "xuangongzhu", "wei", 3, false)  
 qimei = sgs.CreateTriggerSkill{  
     name = "qimei",  
     events = {sgs.EventPhaseStart, sgs.CardsMoveOneTime, sgs.HpChanged},  
@@ -1893,7 +1895,7 @@ sgs.LoadTranslationTable{
 ["zhuiji1"] = "追姬",  
 [":zhuiji1"] = "出牌阶段开始时，你可以选择：1.恢复1点体力，出牌阶段结束时弃置2张牌；2.摸2张牌，出牌阶段结束时失去1点体力。",
 }
-zhouchu = sgs.General(extension, "zhouchu", "jin", 4)  
+zhouchu = sgs.General(extension, "zhouchu", "wei", 4)  
 
 shanduan = sgs.CreateTriggerSkill{  
     name = "shanduan",  
@@ -2078,11 +2080,11 @@ sgs.LoadTranslationTable{
 [":yilie"] = "你可以将2张颜色相同的手牌当作一张基本牌使用或打出。",
 }
 
-
+--[[
 ------------------------------------------
 --沧海中修改为晋势力的武将------------------
 ------------------------------------------
-wenyang = sgs.General(extension, "wenyang", "jin", 3) -- 吴苋，蜀势力，3血，女性
+wenyang = sgs.General(extension, "wenyang", "wei", 3) -- 吴苋，蜀势力，3血，女性
 
 -- 齐力技能  
 qili = sgs.CreateTriggerSkill{  
@@ -2184,7 +2186,7 @@ sgs.LoadTranslationTable{
     ["draw_to_hp"] = "摸牌至体力值",  
     ["discard_recover"] = "弃置所有手牌并恢复体力"  
 }
-zhangchangpu = sgs.General(extension, "zhangchangpu", "jin", 3, false)  
+zhangchangpu = sgs.General(extension, "zhangchangpu", "wei", 3, false)  
 
 xingshen = sgs.CreateTriggerSkill{  
     name = "xingshen",  
@@ -2317,7 +2319,7 @@ sgs.LoadTranslationTable{
 }  
 
 -- 创建武将：
-zhonghui = sgs.General(extension, "zhonghui", "jin", 3)  -- 吴国，4血，男性  
+zhonghui = sgs.General(extension, "zhonghui", "wei", 3)  -- 吴国，4血，男性  
 
 fushuCard = sgs.CreateSkillCard{  
     name = "fushu",  
@@ -2393,7 +2395,7 @@ sgs.LoadTranslationTable{
 ------------------------------------------
 --军八中修改为晋势力的武将------------------
 ------------------------------------------
-caofang = sgs.General(extension, "caofang", "jin", 3)  -- 吴国，4血，男性  
+caofang = sgs.General(extension, "caofang", "wei", 3)  -- 吴国，4血，男性  
 
 zhimin_card = sgs.CreateSkillCard{  
     name = "zhimin_card",  
@@ -2465,7 +2467,7 @@ sgs.LoadTranslationTable{
     ["~caofang"] = "江山如此多娇...",  
 }  
 
-caoren_junba = sgs.General(extension, "caoren_junba", "jin", 3)  -- 吴国，4血，男性  
+caoren_junba = sgs.General(extension, "caoren_junba", "wei", 3)  -- 吴国，4血，男性  
 
 sujun = sgs.CreateTriggerSkill{  
     name = "sujun",  
@@ -2626,7 +2628,7 @@ sgs.LoadTranslationTable{
     ["pofeng"] = "破锋",
     [":pofeng"] = "每回合每种花色限一次。你可以使用1张牌当杀或无懈可击"
 } 
-jianshi = sgs.General(extension, "jianshi", "jin", 3, false)  -- 吴国，4血，男性  
+jianshi = sgs.General(extension, "jianshi", "wei", 3, false)  -- 吴国，4血，男性  
 
 jiusiCard = sgs.CreateSkillCard{  
     name = "jiusiCard",  
@@ -2762,7 +2764,7 @@ sgs.LoadTranslationTable{
     [":jiusi"] = "1. 每回合限一次，当你使用或打出基本牌时，你摸两张牌。2. 每回合限一次，当你需要使用或打出基本牌时，你可以视为使用之，然后你叠置。"
 }
 
-jikang = sgs.General(extension, "jikang", "jin", 3)  
+jikang = sgs.General(extension, "jikang", "wei", 3)  
 QingxianCard = sgs.CreateSkillCard{  
     name = "QingxianCard",  
     target_fixed = false,  
@@ -2890,7 +2892,7 @@ sgs.LoadTranslationTable{
 ["@juexiang-target"] = "你可以选择一名其他角色获得'清弦'",  
 ["@juexiang-club"] = "你可以弃置一张梅花牌获得'绝响'",
 }
-simaao = sgs.General(extension, "simaao", "jin", 3)  
+simaao = sgs.General(extension, "simaao", "wei", 3)  
 
 longfengTransferCard = sgs.CreateSkillCard{  
     name = "longfengTransferCard",  
@@ -3210,7 +3212,7 @@ sgs.LoadTranslationTable{
 [":yinshi"] = "锁定技。当你受到属性伤害或者锦囊的伤害时，若你装备区没有防具，你防止此伤害",
 }
 
-simafu = sgs.General(extension, "simafu", "jin", 3)  -- 吴国，4血，男性  
+simafu = sgs.General(extension, "simafu", "wei", 3)  -- 吴国，4血，男性  
 
 panxiang = sgs.CreateTriggerSkill{  
     name = "panxiang",  
@@ -3355,7 +3357,7 @@ sgs.LoadTranslationTable{
     
     ["~simafu"] = "忠义两难全...",  
 }
-zhangchunhua_junba = sgs.General(extension, "zhangchunhua_junba", "jin", 3, false)  -- 吴国，4血，男性  
+zhangchunhua_junba = sgs.General(extension, "zhangchunhua_junba", "wei", 3, false)  -- 吴国，4血，男性  
   
 -- 梁燕卡牌类  
 LiangyanCard = sgs.CreateSkillCard{  
@@ -3519,15 +3521,6 @@ minghui = sgs.CreateTriggerSkill{
             local target = room:askForPlayerChosen(zhangchunhua_junba, room:getOtherPlayers(zhangchunhua_junba), self:objectName(), "@minghui-slash")  
             if target then  
                 room:askForUseSlashTo(zhangchunhua_junba, target, "", false, false, false)  
-                --[[
-                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
-                slash:setSkillName(self:objectName())  
-                local use = sgs.CardUseStruct()  
-                use.card = slash  
-                use.from = zhangchunhua_junba  
-                use.to:append(target)  
-                room:useCard(use, false)  
-                ]]
             end  
               
         elseif zhangchunhua_junba_handcard == max_handcard then  
@@ -3573,4 +3566,5 @@ sgs.LoadTranslationTable{
     ["@minghui-slash"] = "明慧：选择一名角色，对其使用【杀】",  
     ["@minghui-recover"] = "明慧：选择一名角色令其回复1点体力"  
 }
+]]
 return {extension}
