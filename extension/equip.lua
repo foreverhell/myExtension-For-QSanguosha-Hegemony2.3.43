@@ -135,20 +135,21 @@ jinxiuzhengpao = sgs.CreateArmor{
       
     on_install = function(self, player)  
         local room = player:getRoom()  
-        room:acquireSkill(player, "jinxiuzhengpao_skill", true, true)  
+        room:acquireSkill(player, "jinxiuzhengpao", true, true)  
     end,  
       
     on_uninstall = function(self, player)  
         local room = player:getRoom()  
-        room:detachSkillFromPlayer(player, "jinxiuzhengpao_skill", true, false, true)  
+        room:detachSkillFromPlayer(player, "jinxiuzhengpao", true, false, true)  
     end  
 }
 jinxiuzhengpao_skill = sgs.CreateTriggerSkill{  
-    name = "jinxiuzhengpao_skill",  
+    name = "jinxiuzhengpao",  
     events = {sgs.DamageInflicted},  
     frequency = sgs.Skill_Frequent,  
       
     can_trigger = function(self, event, room, player, data)  
+        if not player:hasArmorEffect("jinxiuzhengpao") then return "" end
         local damage = data:toDamage()  
         local armor = damage.to:getArmor()
         if armor and armor:isKindOf("jinxiuzhengpao") and damage.card   
@@ -361,7 +362,7 @@ bileizhenSkill = sgs.CreateTriggerSkill{
         end
         ]]
         local owner = room:findPlayerBySkillName(self:objectName())
-        if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+        if not (owner and owner:isAlive() and owner:hasArmorEffect(self:objectName())) then return "" end
           
         local damage = data:toDamage()  
         if damage.nature == sgs.DamageStruct_Thunder then  
@@ -892,7 +893,7 @@ fantanjiaSkill = sgs.CreateTriggerSkill{
         if not (armor and armor:isKindOf("fantanjia")) then  
             return ""  
         end  
-        if player and player:isAlive() then  
+        if player and player:isAlive() and player:hasArmorEffect(self:objectName()) then  
             local damage = data:toDamage()  
             -- 只有当有伤害来源且伤害来源不是自己时才触发  
             if damage.from and damage.from ~= player and damage.from:isAlive() then  
