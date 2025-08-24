@@ -3220,8 +3220,8 @@ sgs.LoadTranslationTable{
     [":miji"] = "弃牌阶段结束后，你可以摸X张牌，X为你已损失的体力值。",  
     ["#mijiDraw"] = "%from 发动了【%arg2】，摸了 %arg 张牌",  
 }
---[[
-wenyang = sgs.General(extension, "wenyang", "jin", 3) -- 吴苋，蜀势力，3血，女性
+
+wenyang = sgs.General(extension, "wenyang", "wei", 3) -- 吴苋，蜀势力，3血，女性
 
 -- 齐力技能  
 qili = sgs.CreateTriggerSkill{  
@@ -3323,7 +3323,7 @@ sgs.LoadTranslationTable{
     ["draw_to_hp"] = "摸牌至体力值",  
     ["discard_recover"] = "弃置所有手牌并恢复体力"  
 }
-]]
+
 wuxian = sgs.General(extension, "wuxian", "shu", 3, false) -- 吴苋，蜀势力，3血，女性
 
 YirongCard = sgs.CreateSkillCard{  
@@ -3743,8 +3743,8 @@ sgs.LoadTranslationTable{
     ["luazongxuan#up"] = "放入弃牌堆",
     ["luazongxuan#down"] = "放入牌堆顶",
 }
---[[
-zhangchangpu = sgs.General(extension, "zhangchangpu", "jin", 3, false)  
+
+zhangchangpu = sgs.General(extension, "zhangchangpu", "wei", 3, false)  
 
 xingshen = sgs.CreateTriggerSkill{  
     name = "xingshen",  
@@ -3877,7 +3877,7 @@ sgs.LoadTranslationTable{
 }  
 
 -- 创建武将：
-zhonghui = sgs.General(extension, "zhonghui", "jin", 3)  -- 吴国，4血，男性  
+zhonghui = sgs.General(extension, "zhonghui", "wei", 3)  -- 吴国，4血，男性  
 
 fushuCard = sgs.CreateSkillCard{  
     name = "fushu",  
@@ -3950,5 +3950,5 @@ sgs.LoadTranslationTable{
     [":fushu"] = "出牌阶段限一次。你可以令一名角色视为使用一张远交近攻，然后其对你指定的另一名与其势力相同的角色造成一点伤害。",  
     ["@fushu-damage"] = "请选择一名与 %src 势力相同的角色，令 %src 对其造成一点伤害",
 }
-]]
+
 return {extension}
