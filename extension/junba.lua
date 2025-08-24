@@ -337,8 +337,8 @@ sgs.LoadTranslationTable{
     ["chengxiang"] = "称象",
     [":chengxiang"] = "当你受到伤害时，你可以查看牌堆顶的4张牌，并以任意顺序排列，然后依次展示，你获得点数和不大于13的所有牌，其余牌置入弃牌堆。若你获得牌的点数和等于13，你叠置。",
 }
-
-caofang = sgs.General(extension, "caofang", "wei", 3)  -- 吴国，4血，男性  
+--[[
+caofang = sgs.General(extension, "caofang", "jin", 3)  -- 吴国，4血，男性  
 
 zhimin_card = sgs.CreateSkillCard{  
     name = "zhimin_card",  
@@ -410,7 +410,7 @@ sgs.LoadTranslationTable{
     ["~caofang"] = "江山如此多娇...",  
 }  
 
-caoren_junba = sgs.General(extension, "caoren_junba", "wei", 3)  -- 吴国，4血，男性  
+caoren_junba = sgs.General(extension, "caoren_junba", "jin", 3)  -- 吴国，4血，男性  
 
 sujun = sgs.CreateTriggerSkill{  
     name = "sujun",  
@@ -571,7 +571,7 @@ sgs.LoadTranslationTable{
     ["pofeng"] = "破锋",
     [":pofeng"] = "每回合每种花色限一次。你可以使用1张牌当杀或无懈可击"
 }  
-
+]]
 caozhi = sgs.General(extension, "caozhi", "wei", 3)  
 
 -- 羽化技能  
@@ -1220,8 +1220,8 @@ sgs.LoadTranslationTable{
     ["FuxieCard"] = "伏械",  
     ["@fuxie"] = "伏械：选择一张武器牌弃置"  
 }
-
-jianshi = sgs.General(extension, "jianshi", "wei", 3, false)  -- 吴国，4血，男性  
+--[[
+jianshi = sgs.General(extension, "jianshi", "jin", 3, false)  -- 吴国，4血，男性  
 
 jiusiCard = sgs.CreateSkillCard{  
     name = "jiusiCard",  
@@ -1357,7 +1357,7 @@ sgs.LoadTranslationTable{
     [":jiusi"] = "1. 每回合限一次，当你使用或打出基本牌时，你摸两张牌。2. 每回合限一次，当你需要使用或打出基本牌时，你可以视为使用之，然后你叠置。"
 }
 
-jikang = sgs.General(extension, "jikang", "wei", 3)  
+jikang = sgs.General(extension, "jikang", "jin", 3)  
 QingxianCard = sgs.CreateSkillCard{  
     name = "QingxianCard",  
     target_fixed = false,  
@@ -1425,12 +1425,6 @@ Juexiang = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         local death = data:toDeath()
-        --[[
-        local dead_player = death.who
-        if not (dead_player and dead_player:hasSkill(self:objectName())) then  
-            return ""  
-        end
-        ]]
         if not (player and player:hasSkill(self:objectName())) then  
             return ""  
         end
@@ -1491,7 +1485,7 @@ sgs.LoadTranslationTable{
 ["@juexiang-target"] = "你可以选择一名其他角色获得'清弦'",  
 ["@juexiang-club"] = "你可以弃置一张梅花牌获得'绝响'",
 }
-
+]]
 jun_liuxie = sgs.General(extension, "jun_liuxie", "qun", 3)  -- 吴国，4血，男性  
 zhanban_card = sgs.CreateSkillCard{  
     name = "ZhanbanCard",  
@@ -2058,8 +2052,8 @@ sgs.LoadTranslationTable{
     ["#juelie_damage"] = "%from 的'%arg'被触发，伤害+1"  
 }
 
-
-simaao = sgs.General(extension, "simaao", "wei", 3)  
+--[[
+simaao = sgs.General(extension, "simaao", "jin", 3)  
 
 longfengTransferCard = sgs.CreateSkillCard{  
     name = "longfengTransferCard",  
@@ -2379,7 +2373,7 @@ sgs.LoadTranslationTable{
 [":yinshi"] = "锁定技。当你受到属性伤害或者锦囊的伤害时，若你装备区没有防具，你防止此伤害",
 }
 
-simafu = sgs.General(extension, "simafu", "wei", 3)  -- 吴国，4血，男性  
+simafu = sgs.General(extension, "simafu", "jin", 3)  -- 吴国，4血，男性  
 
 panxiang = sgs.CreateTriggerSkill{  
     name = "panxiang",  
@@ -2524,7 +2518,7 @@ sgs.LoadTranslationTable{
     
     ["~simafu"] = "忠义两难全...",  
 }
-
+]]
 sunru = sgs.General(extension, "sunru", "wu", 3, false)  -- 吴国，4血，男性  
 chishi = sgs.CreateTriggerSkill{
 	name = "chishi",
@@ -3121,7 +3115,7 @@ sgs.LoadTranslationTable{
 ["@zhongjie"] = "忠节"
 }  
 
-zhangchunhua_junba = sgs.General(extension, "zhangchunhua_junba", "wei", 3, false)  -- 吴国，4血，男性  
+--zhangchunhua_junba = sgs.General(extension, "zhangchunhua_junba", "jin", 3, false)  -- 吴国，4血，男性  
   
 -- 梁燕卡牌类  
 LiangyanCard = sgs.CreateSkillCard{  
@@ -3318,8 +3312,8 @@ minghui = sgs.CreateTriggerSkill{
 }  
   
 -- 添加技能到武将  
-zhangchunhua_junba:addSkill(liangyan)  
-zhangchunhua_junba:addSkill(minghui)  
+--zhangchunhua_junba:addSkill(liangyan)  
+--zhangchunhua_junba:addSkill(minghui)  
   
 -- 翻译表  
 sgs.LoadTranslationTable{  
