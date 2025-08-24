@@ -1033,7 +1033,57 @@ sgs.LoadTranslationTable{
     ["fengliao:yang"] = "获得阳标记"  
 }
 
+shen_lvmeng = sgs.General(extension, "shen_lvmeng", "wu", 3)  
+GongxinCard = sgs.CreateSkillCard{  
+    name = "GongxinCard",  
+    target_fixed = false,  
+    will_throw = false,  
+    filter = function(self, targets, to_select)  
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName() and not to_select:isKongcheng()  
+    end,  
+    feasible = function(self, targets)  
+        return #targets == 1  
+    end,  
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+        local handcards = target:getHandcards()  
+        local card_id = room:askForCardChosen(source, target, "h", self:objectName(), true)
+        local card = sgs.Sanguosha:getCard(card_id)  
+        if card:getSuit() == sgs.Card_Heart then   
+            -- 询问是弃置还是置于牌堆顶  
+            local choice = room:askForChoice(source, self:objectName(), "top+to_discard")  
+            if choice == "top" then  
+                room:moveCardTo(card, nil, sgs.Player_DrawPile, true)   
+            else
+                --room:moveCardTo(card, nil, sgs.Player_DiscardPile, true)   
+                room:throwCard(card_id, target, player)  
+            end  
+        end
+    end  
+}  
+  
+-- 攻心视为技  
+Gongxin = sgs.CreateZeroCardViewAsSkill{  
+    name = "gongxin",  
+    view_as = function(self)  
+        local card = GongxinCard:clone()  
+        card:setSkillName("gongxin")  
+        card:setShowSkill("gongxin")  
+        return card  
+    end,  
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#GongxinCard")  
+    end  
+}  
+  
+shen_lvmeng:addSkill("shelie")
+shen_lvmeng:addSkill(Gongxin)
 
+sgs.LoadTranslationTable{
+["shen_lvmeng"] = "神吕蒙",
+["gongxin"] = "攻心",
+[":gongxin"] = "出牌阶段限一次。你可以观看一名其他角色所有手牌，然后你可以选择其中一张红桃牌，并选择弃置此牌或将此牌置于牌堆顶。"
+}
 shen_machao = sgs.General(extension, "shen_machao", "shu", 4)  -- 吴国，4血，男性  
 
 shouma = sgs.CreateTriggerSkill{  
@@ -1128,7 +1178,7 @@ hengwu = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end  
-          
+        if player:hasFlag("hengwu_used") then return "" end
         local card = nil  
         if event == sgs.CardUsed then  
             local use = data:toCardUse()  
@@ -1181,6 +1231,7 @@ hengwu = sgs.CreateTriggerSkill{
         _data:setValue(card)  
           
         if player:askForSkillInvoke(self:objectName(), _data) then  
+            room:setPlayerFlag(player,"hengwu_used")
             room:broadcastSkillInvoke(self:objectName())  
             return true  
         end  
@@ -1225,7 +1276,7 @@ sgs.LoadTranslationTable{
     ["shouma"] = "狩马",
     [":shouma"] = "锁定技，当你明置此武将牌时，你从摸牌堆中检索所有进攻马和防御马，令所有没有装备进攻马和防御马的角色随机获得并使用一张。",
     ["hengwu"] = "横骛",
-    [":hengwu"] = "你使用或打出牌时，若你手牌中没有与该牌花色相同的牌，你可以摸X张牌，X为场上与该牌花色相同的装备数量。"
+    [":hengwu"] = "每回合限一次。你使用或打出牌时，若你手牌中没有与该牌花色相同的牌，你可以摸X张牌，X为场上与该牌花色相同的装备数量。"
 }  
 
 shen_mazhong = sgs.General(extension, "shen_mazhong", "shu", 3)  -- 吴国，4血，男性  
