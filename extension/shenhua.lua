@@ -654,7 +654,8 @@ LuaJunlue = sgs.CreateTriggerSkill{
 -- 摧克技能  
 LuaCuike = sgs.CreateTriggerSkill{  
     name = "LuaCuike",  
-    events = {sgs.EventPhaseStart},  
+    events = {sgs.EventPhaseStart},
+    --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end  
         if player:getPhase() == sgs.Player_Play and player:getMark("@junlue") > 0 then  
@@ -1373,7 +1374,8 @@ shen_zhaoyun = sgs.General(extension, "shen_zhaoyun", "shu", 4)
 
 juejing = sgs.CreateTriggerSkill{  
     name = "juejing",  
-    events = {sgs.EventPhaseStart, sgs.CardUsed, sgs.CardResponded, sgs.CardsMoveOneTime},  
+    events = {sgs.EventPhaseStart, sgs.CardUsed, sgs.CardResponded, sgs.CardsMoveOneTime},
+    frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data) 
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
         if player:getPhase() == sgs.Player_Start then  
@@ -1577,7 +1579,8 @@ sgs.LoadTranslationTable{
 shen_zhouyu = sgs.General(extension, "shen_zhouyu", "wu", 3)  -- 吴国，4血，男性 
 LuaQinyin = sgs.CreateTriggerSkill{  
     name = "LuaQinyin",  
-    events = {sgs.EventPhaseStart,sgs.EventPhaseEnd},  
+    events = {sgs.EventPhaseStart,sgs.EventPhaseEnd},
+    --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end  
         if player:getPhase() == sgs.Player_Discard then  
