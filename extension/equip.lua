@@ -1,4 +1,5 @@
 extension = sgs.Package("equip", sgs.Package_CardPack)  
+local skills = sgs.SkillList()
 
 qiankundai = sgs.CreateArmor{  
     name = "qiankundai",  
@@ -1359,6 +1360,67 @@ QiyiShouhu:setParent(extension)
 --xinlingganying:setParent(extension) --用的不多
 --ZhiyuZhijian:setParent(extension) --用的不多
 
+if not sgs.Sanguosha:getSkill("qiankundai_maxcards") then
+    skills:append(qiankundai_maxcards)
+end
+if not sgs.Sanguosha:getSkill("shixuejian_recover") then
+    skills:append(shixuejian_skill)
+end
+if not sgs.Sanguosha:getSkill("anshajian_loseHp") then
+    skills:append(anshajian_skill)
+end
+if not sgs.Sanguosha:getSkill("jinxiuzhengpao") then
+    skills:append(jinxiuzhengpao_skill)
+end
+if not sgs.Sanguosha:getSkill("Bileizhen") then
+    skills:append(bileizhenSkill)
+end
+if not sgs.Sanguosha:getSkill("XiuliQiankun") then
+    skills:append(xiuliQiankunSkill)
+end
+if not sgs.Sanguosha:getSkill("YinLeiJian") then
+    skills:append(yinleijianSkill)
+end
+if not sgs.Sanguosha:getSkill("yuansuzhiren") then
+    skills:append(yuansuzhirenSkill)
+end
+if not sgs.Sanguosha:getSkill("shengfan") then
+    skills:append(shengfanSkill)
+end
+if not sgs.Sanguosha:getSkill("fantanjia") then
+    skills:append(fantanjiaSkill)
+end
+if not sgs.Sanguosha:getSkill("kuangzhanshi") then
+    skills:append(kuangzhanshiSkill)
+end
+if not sgs.Sanguosha:getSkill("QiyiShouhu") then
+    skills:append(QiyiShouhuSkill)
+end
+sgs.Sanguosha:addSkills(skills)
+--[[
+skills:append(qiankundai_maxcards)
+skills:append(shixuejian_skill)
+skills:append(anshajian_skill)
+skills:append(jinxiuzhengpao_skill)
+skills:append(bileizhenSkill)
+skills:append(xiuliQiankunSkill)
+--skills:append(zhenkongzhaoSkill)
+skills:append(yinleijianSkill)
+--skills:append(baibaoxiang)
+--skills:append(baibaoxiangTrigger)
+skills:append(yuansuzhirenSkill)
+skills:append(shengfanSkill)
+skills:append(fantanjiaSkill)
+skills:append(kuangzhanshiSkill)
+--skills:append(axiuluoSkill)
+--skills:append(shenmishouhuSkill)
+skills:append(QiyiShouhuSkill)
+--skills:append(xinlingganyingSkill)
+--skills:append(ZhiyuZhijianSkill)
+
+sgs.Sanguosha:addSkills(skills)
+]]
+--[[
 --用来绑定装备技能的临时武将。extension是个卡牌包，不是武将包
 equip_tmp = sgs.General(extension,"equip_tmp","god",4)
 equip_tmp:addSkill(qiankundai_maxcards)
@@ -1383,7 +1445,7 @@ equip_tmp:addSkill(kuangzhanshiSkill)
 equip_tmp:addSkill(QiyiShouhuSkill)
 --equip_tmp:addSkill(xinlingganyingSkill)
 --equip_tmp:addSkill(ZhiyuZhijianSkill)
-
+]]
 -- 添加翻译  
 sgs.LoadTranslationTable{  
     ["equip"] = "装备",  
