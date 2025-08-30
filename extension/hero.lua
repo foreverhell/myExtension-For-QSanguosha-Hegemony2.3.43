@@ -1,7 +1,7 @@
 -- 创建一个武将包  
 extension = sgs.Package("hero", sgs.Package_GeneralPack)  
 
-baiqi = sgs.General(extension, "baiqi", "qun", 4)  
+baiqi = sgs.General(extension, "baiqi", "wu", 4)  
   
 -- 技能1：歼灭  
 jianmie = sgs.CreateTriggerSkill{  
@@ -105,7 +105,7 @@ sgs.LoadTranslationTable{
   
 
 -- 创建武将：褒姒  
-baosi = sgs.General(extension, "baosi", "qun", 3, false)  -- 群雄，3血  
+baosi = sgs.General(extension, "baosi", "wu", 3, false)  -- 群雄，3血  
   
 -- 技能：烽火 - 将装备牌视为南蛮入侵  
 fenghuo = sgs.CreateOneCardViewAsSkill{  
@@ -361,7 +361,7 @@ sgs.LoadTranslationTable{
 }  
 
 -- 创建伯乐武将  
-Bole = sgs.General(extension, "bole", "shu", 4)  
+bole = sgs.General(extension, "bole", "shu", 4)  
 -- 创建相马技能卡  
 xiangmaCard = sgs.CreateSkillCard{  
     name = "xiangmaCard",  
@@ -462,8 +462,8 @@ function sgs.CreatejumaSkill(name) --创建拒马技能，在CreateDistanceSkill
 end
 juma = sgs.CreatejumaSkill("juma") 
 
-Bole:addSkill(xiangma)  
-Bole:addSkill(juma)  --或者直接使用飞影
+bole:addSkill(xiangma)  
+bole:addSkill(juma)  --或者直接使用飞影
 
 -- 添加翻译  
 sgs.LoadTranslationTable{  
@@ -823,7 +823,7 @@ sgs.LoadTranslationTable{
     ["@shixin-draw"] = "请选择一名角色，令其从牌堆获得一张红桃牌" 
 }
 
-dayu = sgs.General(extension, "dayu", "shu", 3)  
+dayu = sgs.General(extension, "dayu", "wu", 3)  
   
 zhuding = sgs.CreateTriggerSkill{  
     name = "zhuding",  
@@ -1040,7 +1040,7 @@ sgs.LoadTranslationTable{
     [":lijianSlash"] = "出牌阶段限1次。你可以将所有手牌交给一名其他男性角色，令其与另一名男性角色拼点，赢的角色视为对输的角色使用1张杀"
 }
 
-direnjie = sgs.General(extension, "direnjie", "shu", 3)  -- 吴国，4血，男性  
+direnjie = sgs.General(extension, "direnjie", "qun", 3)  -- 吴国，4血，男性  
 
 jujianSnatchCard = sgs.CreateSkillCard{
     name = "jujianSnatchCard",
@@ -2278,7 +2278,7 @@ sgs.LoadTranslationTable{
     --[":bianzhuang"] = "每次装备离开你的装备区时，你摸2张牌",
 }  
 ]]
-huangdi = sgs.General(extension, "huangdi", "qun", 4)  -- 吴国，4血，男性  
+huangdi = sgs.General(extension, "huangdi", "wu", 4)  -- 吴国，4血，男性  
   
 renzu = sgs.CreateDrawCardsSkill{  
     name = "renzu",  
@@ -2979,7 +2979,7 @@ sgs.LoadTranslationTable{
 }  
   
 -- 创建武将：唐伯虎  
-kongzi = sgs.General(extension, "kongzi", "wu", 3)  -- 吴国，4血，男性  
+kongzi = sgs.General(extension, "kongzi", "qun", 3)  -- 吴国，4血，男性  
 
 shouli_card = sgs.CreateSkillCard{  
     name = "shouli",  
@@ -3305,7 +3305,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：唐伯虎  
-linxiangru = sgs.General(extension, "linxiangru", "qun", 3)  -- 吴国，4血，男性  
+linxiangru = sgs.General(extension, "linxiangru", "wu", 3)  -- 吴国，4血，男性  
 
 wanbiCard = sgs.CreateSkillCard{  
     name = "wanbi",  
@@ -5652,7 +5652,7 @@ sgs.LoadTranslationTable{
     ["yingxi_immune"] = "影袭免疫",  
 }  
 
-panan = sgs.General(extension, "panan", "qun", 4)  -- 群雄，4血  
+panan = sgs.General(extension, "panan", "wu", 4)  -- 群雄，4血  
 panan:addSkill("fangquan")
 panan:addSkill("xingshang")
 sgs.LoadTranslationTable{  
@@ -7955,7 +7955,7 @@ sgs.LoadTranslationTable{
     ["@tianfa-choose"] = "天罚：选择两名角色进行判定",
 }
 
-xiaohe = sgs.General(extension, "xiaohe", "shu", 3)  
+xiaohe = sgs.General(extension, "xiaohe", "qun", 3)  
 
 yuefa = sgs.CreateTriggerSkill{
 	name = "yuefa",
@@ -9730,7 +9730,7 @@ sgs.LoadTranslationTable{
     ["@jiandie-target"] = "鹣鲽：选择一名角色交换手牌"  
 }  
   
-zhaokuo = sgs.General(extension, "zhaokuo", "qun")  -- 吴国，4血，男性  
+zhaokuo = sgs.General(extension, "zhaokuo", "qun", 4)  -- 吴国，4血，男性  
 
 zhishangtanbing = sgs.CreateTriggerSkill{  
     name = "zhishangtanbing",  
@@ -10153,7 +10153,7 @@ sgs.LoadTranslationTable{
     ["~zhuyuanzhang"] = "国运，完了"  
 }  
 
-zuchongzhi = sgs.General(extension, "zuchongzhi", "qun", 3)  
+zuchongzhi = sgs.General(extension, "zuchongzhi", "wei", 3)  
 
 YuanzhouCard = sgs.CreateSkillCard{  
     name = "YuanzhouCard",  
@@ -10320,19 +10320,35 @@ sgs.LoadTranslationTable{
 --添加珠联璧合
 --人物关系联动
 lvzhi:addCompanion("lvbuwei")
+direnjie:addCompanion("wuzetian")
+kongzi:addCompanion("mozi")
+kongzi:addCompanion("xunzi")
+kongzi:addCompanion("zhuangzhou")
+mozi:addCompanion("xunzi")
+mozi:addCompanion("zhuangzhou")
+xunzi:addCompanion("zhuangzhou")
 --技能联动
+bole:addCompanion("guiguzi")
 dongfangshuo:addCompanion("simaxiangru")
 dongfangshuo:addCompanion("shangguanwaner")
 goujian:addCompanion("liqingzhao")
 goujian:addCompanion("wangzhaojun")
 goujian:addCompanion("zhangsunhuanghou")
+guanzhong:addCompanion("qihuangong")
+guanxing:addCompanion("shangguanwaner")
+guanzhong:addCompanion("wuzetian")
+qihuangong:addCompanion("shangguanwaner")
+qihuangong:addCompanion("wuzetian")
+jiangziya:addCompanion("wangyangming")
 simaxiangru:addCompanion("wuzetian")
 wangzhaojun:addCompanion("zhangsunhuanghou")
 xuxiake:addCompanion("zhangsunhuanghou")
 --都联动
 daji:addCompanion("shangzhou")
 dufu:addCompanion("libai")
+gaojianli:addCompanion("jingke")
 moxi:addCompanion("xiajie")
+qinqiong:addCompanion("yuchigong")
 shangguanwaner:addCompanion("wuzetian")
 simaxiangru:addCompanion("zhuowenjun")
 menghuo_hero:addCompanion("menghuo")
