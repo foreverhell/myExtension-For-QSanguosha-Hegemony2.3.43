@@ -1655,10 +1655,7 @@ ChengliuCard = sgs.CreateSkillCard{
                 end 
                 if targets:isEmpty() then break end
                 target = room:askForPlayerChosen(source, targets, self:objectName(), "@chengliu")  
-            end
-            -- 造成1点伤害  
-            local damage = sgs.DamageStruct("chengliu", source, target, 1, sgs.DamageStruct_Normal)  
-            room:damage(damage)  
+            end 
             
             -- 交换装备区  
             if source:isAlive() and target:isAlive() then  
@@ -1698,6 +1695,9 @@ ChengliuCard = sgs.CreateSkillCard{
                 
                 room:moveCardsAtomic(moves, true)
             end
+            -- 造成1点伤害  
+            local damage = sgs.DamageStruct("chengliu", source, target, 1, sgs.DamageStruct_Normal)  
+            room:damage(damage) 
         end
     end  
 }  
@@ -1790,7 +1790,7 @@ wangrui:addSkill(chengfeng)
 sgs.LoadTranslationTable{
     ["wangrui"] = "王睿",
     ["chengliu"] = "乘流",
-    [":chengliu"] = "出牌阶段限一次，你可以对装备区数小于你的角色造成1点伤害，然后你和该角色交换装备区，你可以重复这个操作。",
+    [":chengliu"] = "出牌阶段限一次，你可以选择装备区数小于你的一名角色，你和该角色交换装备区，然后你对其造成1点伤害，你可以重复这个操作。",
     ["chengfeng"] = "乘风",
     [":chengfeng"] = "你的回合外，其他角色因弃置而失去装备牌时，你可以弃置1张牌，获得其中一张装备牌，然后你可以选择是否使用该装备牌"
 }
