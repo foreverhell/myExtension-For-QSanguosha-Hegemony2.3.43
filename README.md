@@ -6,11 +6,13 @@
 
 canghai.lua。沧海包中的部分武将；
 
-ziqidonglai.lua。紫气东来中的部分武将；
+jin.lua。各个途径的晋势力武将，包括但不限于紫气东来、紫印金绶、应变等；注意：若将势力改为晋，游戏开始后会卡死；
 
-shenhuazailin.lua。神话再临中的神将；
+jiangshanrugu.lua。江山如故中的部分武将
 
-junba.lua。身份局中的部分武将；
+junba.lua。军争身份局中的部分武将；
+
+shenhua.lua。神话再临中的神将；
 
 hero.lua。英雄杀中的武将，以小程序版为主，少量为端游版，少量为小程序和端游糅合版；
 
