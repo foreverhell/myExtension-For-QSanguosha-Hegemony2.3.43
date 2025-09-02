@@ -478,9 +478,9 @@ sgs.ai_skill_choice.jieyicheng = "yes"
 
 --于吉
 sgs.ai_skill_invoke.qianhuan = function(self, data)
-	if not (self:willShowForAttack() or self:willShowForDefence() or self:willShowForMasochism() ) then
+	--[[if not (self:willShowForAttack() or self:willShowForDefence() or self:willShowForMasochism() ) then
 		return false
-	end
+	end]]
 	return true
 end
 
