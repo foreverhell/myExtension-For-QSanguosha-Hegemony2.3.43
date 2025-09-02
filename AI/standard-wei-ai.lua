@@ -28,6 +28,7 @@ sgs.ai_skill_invoke.jianxiong = function(self, data)
 	if not self:willShowForMasochism() then return false end
 	if self.get_AOE_subcard then self.get_AOE_subcard = nil return true end
 	return not self:needKongcheng(self.player, true)
+	--return false
 end
 
 --司马懿
@@ -511,7 +512,7 @@ function sgs.ai_slash_prohibit.tiandu(self, from, to)
 end
 
 sgs.ai_skill_invoke.yiji = function(self)
-	local mode = self.room:getMode()
+	--[[local mode = self.room:getMode()
 	--local damage = data:toDamage()
 	local damage = self.room:getTag("CurrentDamageStruct"):toDamage()
 	if damage.damage > 1 then return true end
@@ -520,7 +521,7 @@ sgs.ai_skill_invoke.yiji = function(self)
 	if not self:willShowForMasochism() then return false end
 	for _, friend in ipairs(self.friends) do
 		if not self:needKongcheng(friend, true) then return true end
-	end
+	end]]
 	return true
 end
 
@@ -590,9 +591,9 @@ end
 
 sgs.ai_skill_invoke.luoshen = function(self, data)
 
-	if not self:willShowForAttack() and not self:willShowForDefence() and not self.player:hasSkill("fangzhu") then
+	--[[if not self:willShowForAttack() and not self:willShowForDefence() and not self.player:hasSkill("fangzhu") then
 		return false
-	end
+	end]]
 	if self:willSkipPlayPhase() then
 		local erzhang = sgs.findPlayerByShownSkillName("guzheng")
 		if erzhang and self:isEnemy(erzhang) then return false end
