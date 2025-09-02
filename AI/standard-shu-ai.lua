@@ -757,7 +757,7 @@ end
 
 --黄月英
 sgs.ai_skill_invoke.jizhi = function(self, data)
-	if not ( self:willShowForAttack() or self:willShowForDefence() or self:getCardsNum("TrickCard") > 1 ) then return false end
+	if not (self:willShowForAttack() or self:willShowForDefence() or self:getCardsNum("TrickCard") > 1 ) then return false end
 	return true
 end
 
@@ -826,7 +826,7 @@ sgs.ai_skill_choice.liegong = function(self, choices, data)
 	if self.player:hasWeapon("Axe") and self.player:getCardCount(true) > 4 then
 		low_defense = true
 	end
-	if self.player:hasSkill("wanglie") and self.player:getMark("##wanglie") > 0 then--已发动wanglie
+	if self.player:hasSkill("tieqi|tieqi_xh") or (self.player:hasSkill("wanglie") and self.player:getMark("##wanglie") > 0) then--已发动wanglie
 		low_defense = true
 	end
 	if low_defense then
@@ -949,14 +949,19 @@ sgs.ai_skill_invoke.niepan = function(self, data)
 	local need_peaches = 1 - dying.who:getHp()
 	local self_recovers = (self:getCardsNum("Peach") + self:getCardsNum("Analeptic"))
 	if need_peaches > self_recovers then return true end
-	local value = 3 - self.player:getCardCount(true) + self:getLeastHandcardNum()
+	--[[local value = 3 - self.player:getCardCount(true) + self:getLeastHandcardNum()
 	if self:needToThrowArmor() then value = value + 2 end
 	if not self.player:faceUp() then value = value + 3 end
 	local peach_marks = (self.player:getMark("@companion") + self.player:getMark("@careerist"))
 	if self_recovers - peach_marks <= need_peaches then--尽量保标记
 		value = value + 2*(need_peaches - self_recovers + peach_marks)
 	end
-	return value > 0
+	return value > 0]]
+	local peach_marks = (self.player:getMark("@companion") + self.player:getMark("@careerist"))
+	if self_recovers - peach_marks <= need_peaches then--尽量保标记
+		return false
+	end
+	return false
 end
 
 sgs.ai_suit_priority.lianhuan= "club|diamond|heart|spade"
@@ -1364,6 +1369,8 @@ sgs.ai_skill_invoke.shushen = true
 
 sgs.ai_skill_playerchosen.shushen = function(self, targets)
 	if #self.friends_noself == 0 then return nil end
+	local yuanshu = sgs.findPlayerByShownSkillName("weidi")
+	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then return false end
 	return self:findPlayerToDraw(false, 1)
 end
 
