@@ -446,7 +446,9 @@ end
 
 sgs.ai_skill_invoke.zhiyu = function(self, data)
 	if not self:willShowForMasochism() then return false end
-	local damage = data:toDamage()
+	local yuanshu = sgs.findPlayerByShownSkillName("weidi")
+	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() ~= sgs.Player_NotActive then return false end
+	--[[local damage = data:toDamage()
 	local from = damage.from
 	local cards = self.player:getHandcards()
 	cards = sgs.QList2Table(cards)
@@ -466,7 +468,7 @@ sgs.ai_skill_invoke.zhiyu = function(self, data)
 			if self:doNotDiscard(from, "h") and not from:isKongcheng() then return false end
 			return true
 		end
-	end
+	end]]
 	return true
 end
 
@@ -661,7 +663,7 @@ sgs.ai_card_intention.XiongsuanCard = -40
 sgs.ai_use_priority.XiongsuanCard = 6.8--复制的苦肉优先度
 
 --左慈
---[[旧技能
+--旧技能
 sgs.ai_skill_invoke.huashen = function(self, data)
 	local huashens = self.player:getTag("Huashens"):toList()
 	if huashens:length() < 2 then return true end
@@ -687,13 +689,13 @@ sgs.ai_skill_choice.huashen = function(self, choice, data)
 	for _, name1 in ipairs(names) do
 		local g1 = sgs.Sanguosha:getGeneral(name1)
 		if not g1 then continue end
-		--[[
+		
 		for _, skill in sgs.qlist(g1:getVisibleSkillList(true, head)) do
 			if skill:getFrequency() == sgs.Skill_Limited and skill:getLimitMark() ~= "" and self.player:getMark(skill:getLimitMark()) == 0 and self.player:hasSkill(skill:objectName()) then
 				ajust1 = ajust1 - 1
 			end
 		end
-		--
+		
 		for _, name2 in ipairs(names) do
 			local g2 = sgs.Sanguosha:getGeneral(name2)
 			if not g2 or g1:getKingdom() ~= g2:getKingdom() or name1 == name2 then continue end
@@ -803,8 +805,8 @@ end
 sgs.ai_skill_choice.xinsheng = function(self, choice, data)
 	return sgs.ai_skill_choice["huashen"](self, choice, data)
 end
---]]
-local yigui_skill = {}
+
+--[[local yigui_skill = {}
 yigui_skill.name = "yigui"
 table.insert(sgs.ai_skills, yigui_skill)
 yigui_skill.getTurnUseCard = function(self)
@@ -822,7 +824,7 @@ yigui_skill.getTurnUseCard = function(self)
 	铁索连环,以逸待劳,五谷丰登,勠力同心,调虎离山,敕令,
 	借刀杀人,知己知彼,火攻,挟天子以令诸侯}
 ]]--按锦囊价值排序
-	local trickcards = {"alliance_feast","burning_camps","god_salvation","savage_assault","archery_attack",--群体锦囊
+	--[[local trickcards = {"alliance_feast","burning_camps","god_salvation","savage_assault","archery_attack",--群体锦囊
 	"befriend_attacking","ex_nihilo","duel","snatch","dismantlement","drowning",--单体锦囊
 	"iron_chain","await_exhausted","amazing_grace","fight_together","lure_tiger","imperial_order",--几乎不会用到的群体锦囊
 	"collateral","known_both","fire_attack","threaten_emperor"}--几乎不会用到的单体锦囊
@@ -947,9 +949,9 @@ yigui_skill.getTurnUseCard = function(self)
 		for _, name in ipairs(yigui_kingdom["double"]) do
 			local general = sgs.Sanguosha:getGeneral(name)
 			local double_kingdoms = general:getKingdoms()
-			if kingdoms[double_kingdoms[1]] >= 0 and kingdoms[double_kingdoms[2]] >= 0
-			and kingdoms[double_kingdoms[1]] + kingdoms[double_kingdoms[2]] >= kingdoms[max_enemy_kingdom] then
-				if not self.player:hasFlag("Yigui_ArcheryAttack") then
+			if kingdoms[double_kingdoms[1]] -->= 0 and kingdoms[double_kingdoms[2]] >= 0
+			--and kingdoms[double_kingdoms[1]] + kingdoms[double_kingdoms[2]] >= kingdoms[max_enemy_kingdom] then
+				--[[if not self.player:hasFlag("Yigui_ArcheryAttack") then
 					class_string = "archery_attack"
 					if getYiguiAoeValue(class_string,double_kingdoms[1],double_kingdoms[2]) >0 then
 						soul_name = name
@@ -969,9 +971,9 @@ yigui_skill.getTurnUseCard = function(self)
 			if table.contains(double_kingdoms,self.player:getKingdom()) then
 				table.removeOne(double_kingdoms,self.player:getKingdom())
 				if not self.player:hasFlag("Yigui_AllianceFeast") and
-					((math.abs(kingdoms[double_kingdoms[1]]) >= self.player:getLostHp() and self.player:getLostHp() > 1)
-					or (kingdoms[double_kingdoms[1]] < 0 and self.player:isWounded())) then
-						local to = getYiguiTargetByKingdom(double_kingdoms[1], "handcard")
+					((math.abs(kingdoms[double_kingdoms[1]]--) >= self.player:getLostHp() and self.player:getLostHp() > 1)
+					--or (kingdoms[double_kingdoms[1]] < 0 and self.player:isWounded())) then
+						--[[ocal to = getYiguiTargetByKingdom(double_kingdoms[1], "handcard")
 						if to then
 							self.yigui_to = sgs.SPlayerList()
 							self.yigui_to:append(to)
@@ -1163,7 +1165,7 @@ function sgs.ai_cardsview.yigui(self, class_name, player)
 	end
 end
 
-sgs.ai_skill_invoke.jihun = true
+sgs.ai_skill_invoke.jihun = true]]
 
 --沙摩柯
 sgs.ai_skill_invoke.jili = function(self, data)
@@ -1832,7 +1834,7 @@ end
 
 sgs.ai_skill_choice["transform_diancai"] = function(self, choices)
 	--Global_room:writeToConsole("典财变更选择")
-	local importantsklii = {"xiaoji", "xuanlue", "tianxiang", "guose", "yingzi_zhouyu", "zhukou"}--还有哪些？
+	local importantsklii = {"xiaoji", "xuanlue", "tianxiang", "guose", "yingzi_zhouyu", "zhukou", "jieyicheng", "keshou"}--还有哪些？
 	local skills = sgs.QList2Table(self.player:getDeputySkillList(true,true,false))
 	for _, skill in ipairs(skills) do
 		if table.contains(importantsklii, skill:objectName()) then--重要技能
@@ -2257,7 +2259,7 @@ sgs.ai_skill_movecards.shelie = function(self, upcards, downcards, min_num, max_
 end
 
 --度势
-local duoshi_flamemap_skill = {}
+--[[local duoshi_flamemap_skill = {}
 duoshi_flamemap_skill.name = "duoshi_flamemap"
 table.insert(sgs.ai_skills, duoshi_flamemap_skill)
 duoshi_flamemap_skill.getTurnUseCard = function(self, inclusive)
@@ -2361,7 +2363,7 @@ duoshi_flamemap_skill.getTurnUseCard = function(self, inclusive)
 		assert(await)
 		return await
 	end
-end
+end]]
 
 
 --夜明珠
