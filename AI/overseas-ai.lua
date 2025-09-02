@@ -521,7 +521,7 @@ sgs.ai_skill_playerchosen.qinzhong = function(self, targets)
 			end
 			if g2name == "zhoutai" and p:getPile("scars"):length() > 3 and p:getHp() + peach_num >= 2 then target = p break end
 			if g2name == "lusu" and sgs.ai_skill_invoke.haoshi(self) and self.haoshi_target then target = p break end
-			if g2name == "chenpu" and huxun_maxhp > p:getMaxHp() and not self:isWeak() then target = p break end
+			if g2name == "chengpu" and huxun_maxhp > p:getMaxHp() and not self:isWeak() then target = p break end
 			for name, value in pairs(sgs.general_pair_value) do
 				if g1name .. "+" .. g2name == name or g2name .. "+" .. g1name == name then
 					current_value = value
@@ -949,7 +949,7 @@ end
 
 sgs.ai_skill_invoke.jilei = function(self, data)
 	local damage = data:toDamage()
-	return not self:isFriend(damage.from)
+	return not self:isFriend(damage.from) or not self.player:willBeFriendWith(damage.from)
 end
 
 sgs.ai_skill_choice.jilei = function(self, choices, data)
@@ -957,12 +957,16 @@ sgs.ai_skill_choice.jilei = function(self, choices, data)
     local b_limited = dfrom:getMark("##jilei+BasicCard") > 0
     local t_limited = dfrom:getMark("##jilei+TrickCard") > 0
     local e_limited = dfrom:getMark("##jilei+EquipCard") > 0
-    if b_limited and t_limited then
+	if b_limited and t_limited then
         return "EquipCard"
     elseif b_limited and e_limited then
         return "TrickCard"
     elseif t_limited and e_limited then
         return "BasicCard"
+	elseif t_limited then
+		return "BasicCard"
+	elseif b_limited then
+		return "TrickCard"
     end
     --[[if self:slashIsAvailable(dfrom) and not b_limited then
         for _, p in ipairs(self.friends) do
@@ -1334,6 +1338,7 @@ sgs.ai_skill_invoke.naman = function(self, data)
 			Global_room:writeToConsole("NamanUsedata:"..tostring("data"))
 		end
 	end
+	if use and use.card:isKindOf("FightTogether") and use.to:contains(self.player) and self.player:isChained() then return false end
 	return true
 end
 
@@ -1399,7 +1404,7 @@ sgs.ai_skill_playerchosen["naman_target"] = function(self, targets)
     elseif card:isKindOf("IronChain") then
         self:sort(tos, "defenseSlash")
         for _, p in ipairs(tos) do
-            if self:isFriend(p) and self:trickIsEffective(card, p, from) and p:isChained() then
+            if self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isChained() then
                 return p
             end
         end
@@ -1468,7 +1473,7 @@ sgs.ai_skill_invoke.guojue = function(self, data)
     return not self:isFriend(target)
 end
 
-sgs.ai_skill_use["@@shangshi"] = function(self, prompt, method)
+--[[sgs.ai_skill_use["@@shangshigive"] = function(self, prompt)
 	local lose_hp = self.player:getLostHp()
 	local current = self.room:getCurrent()
 	local cards = self.player:getCards("h")
@@ -1492,7 +1497,7 @@ sgs.ai_skill_use["@@shangshi"] = function(self, prompt, method)
 		end
 		local acard, afriend = self:getCardNeedPlayer(cards, self.friends_noself)
 		if lose_hp == 1 then
-			if acard and afriend then return "@ShangshiCard=".. acard:getEffectiveId() .. "&shangshi->" .. afriend:objectName() end
+			if acard and afriend then return "#shangshiCard:".. acard:getEffectiveId() .. "->" .. afriend:objectName() end
 		else
 			local target = nil
 			local to_give = {}
@@ -1517,13 +1522,27 @@ sgs.ai_skill_use["@@shangshi"] = function(self, prompt, method)
 				end
 			end
 			if target and #to_give == lose_hp then
-				return "@ShangshiCard=" .. table.concat(to_give, "+") .. "&shangshi->" .. target:objectName()
+				return "#shangshiCard:" .. table.concat(to_give, "+") .. "->" .. target:objectName()
 			end
 		end
 	end
-	Global_room:writeToConsole("伤逝弃牌")
+	--[[Global_room:writeToConsole("伤逝弃牌")
 	local card_ids = self:askForDiscard("dummy_reason", 1, 1, false, true)
-	return "@ShangshiCard=".. card_ids[1]
+	return "#shangshiCard:".. card_ids[1] .. ":"]]
+	--return ""
+--end
+
+sgs.ai_skill_choice.shangshi = function(self, choices)
+	if #self.friends_noself <= 0 or self.player:getHandcardNum() < self.player:getLostHp() then
+		return "discard"
+	end
+	return "discard"
+	--return "givecard"
+end
+
+sgs.ai_skill_discard.shangshi = function(self, discard_num, min_num, optional, include_equip)
+	Global_room:writeToConsole("伤逝弃牌")
+	return self:askForDiscard("dummy_reason", discard_num, min_num, false, true)
 end
 
 sgs.ai_need_damaged.shangshi = function (self, attacker, player)
@@ -1592,6 +1611,8 @@ end
 sgs.ai_skill_choice.shigong_skill = function(self, choices, data)
     Global_room:writeToConsole("示恭技能:"..choices)
     choices = choices:split("+")
+	local dying = data:toDying()
+	if self:isFriend(dying.who) then return choices[1] end
     for _, skill in ipairs(choices) do
         if string.find(sgs.priority_skill, skill) then
             return skill
@@ -1671,7 +1692,7 @@ sgs.ai_skill_invoke.kangrui = function(self, data)
     if self:isWeak(target) and table.contains(damagecard, prompt[4]) then
         return false
     end
-    if friend:getMaxHp() - friend:getHandcardNum() > (table.contains(lowvaluecard, prompt[4]) and 1 or 2) then--根据牌价值考虑摸2?
+    if friend:getHp() - friend:getHandcardNum() > (table.contains(lowvaluecard, prompt[4]) and 1 or 2) then--根据牌价值考虑摸2?
         return true
     end
     if self:isEnemy(target) and self:isWeak(target) then
@@ -2155,15 +2176,16 @@ local lifu_skill = {}
 lifu_skill.name = "lifu"
 table.insert(sgs.ai_skills, lifu_skill)
 lifu_skill.getTurnUseCard = function(self)
-	if self.player:hasUsed("LifuCard") or not self:willShowForAttack() then return end
-	return sgs.Card_Parse("@LifuCard=.&lifu")
+	if self.player:hasUsed("#lifuCard") then return end
+	return sgs.Card_Parse("#lifuCard:.:&lifu")
 end
 
-sgs.ai_skill_use_func.LifuCard = function(card, use, self)
+sgs.ai_skill_use_func["#lifuCard"] = function(card, use, self)
 	self:sort(self.enemies, "handcard")
 	for _, enemy in ipairs(self.enemies) do
-		if enemy:getHandcardNum() <= 4 and not enemy:isNude() and not enemy:isRemoved() and not (enemy:hasSkill("lirang") and #self.enemies > 1) then
-			use.card = sgs.Card_Parse("@LifuCard=.&lifu")
+		if enemy:getHandcardNum() <= 4 and not enemy:isNude() and not enemy:isRemoved() and not (enemy:hasSkill("lirang") 
+		and #self.enemies > 1) then
+			use.card = card
 			if use.to then use.to:append(enemy) end
 			return
 		end
@@ -2171,7 +2193,7 @@ sgs.ai_skill_use_func.LifuCard = function(card, use, self)
 	self:sort(self.friends_noself, "handcard")
 	for _, friend in ipairs(self.friends_noself) do
 		if friend:isNude() then
-			use.card = sgs.Card_Parse("@LifuCard=.&lifu")
+			use.card = card
 			if use.to then use.to:append(friend) end
 			return
 		end
@@ -2183,12 +2205,13 @@ sgs.ai_skill_invoke.lifu_view = function(self, data)
 	if card then
 		Global_room:writeToConsole("lifu_view:"..tostring(card:getClassName()))
 	end
-	--[[
+	
 	local flag = string.format("%s_%s_%s", "visible", self.player:objectName(), target2:objectName())
 	if not cards[1]:hasFlag("visible") then cards[1]:setFlags(flag) end--记录方便后续言中
-	--]]
+	
 end
-sgs.ai_card_intention.LifuCard = 40
+sgs.ai_card_intention.lifuCard = 40
+sgs.ai_use_priority.lifuCard = 6.2
 
 sgs.ai_skill_invoke.yanzhong = function(self, data)
 	if not self:willShowForAttack() then return false end
@@ -2664,7 +2687,7 @@ sgs.ai_skill_cardask["@qianxue-select"] = function(self, data, pattern, target, 
 	--pattern = @@qianxueselect
 	--local num = tonumber(arg)
 	
-	--return "@ShangshiCard=".. card_ids[1]
+	--return "@shangshiCard=".. card_ids[1]
 	return "."
 end
 
