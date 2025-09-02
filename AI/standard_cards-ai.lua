@@ -2740,31 +2740,46 @@ sgs.ai_choicemade_filter.cardChosen.snatch = function(self, player, promptlist)
 		local id = tonumber(promptlist[3])
 		local place = self.room:getCardPlace(id)
 		local card = sgs.Sanguosha:getCard(id)
-		local intention = 70
+		local intention = -70
 		if place == sgs.Player_PlaceDelayedTrick then
-			if not card:isKindOf("Disaster") then intention = -intention else intention = 0 end
+			if not card:isKindOf("Disaster") and self.player:isFriendWith(to) then intention = -intention else intention = 0 end
 		elseif place == sgs.Player_PlaceEquip then
-			if card:isKindOf("Armor") and self:evaluateArmor(card, to) <= -2 then intention = 0 end
+			if card:isKindOf("Armor") then
+				if self:evaluateArmor(card, to) <= -2 then 
+					intention = 0
+				elseif to:hasShownSkill("bazhen") or to:hasShownSkill("taidan") then
+					intention = 0
+				end
+			end
 			if card:isKindOf("SilverLion") then
-				if to:getLostHp() > 1 then
-					if to:hasShownSkills(sgs.use_lion_skill) then
-						intention = self:willSkipPlayPhase(to) and -intention or 0
-					else
+				local lvfan = sgs.findPlayerByShownSkillName("jiediaodu")
+				if lvfan and to:isFriendWith(lvfan) and not self:isFriend(to) then
+					intention = -intention
+				elseif to:getLostHp() > 1 then
+					if to:hasShownSkills(sgs.use_lion_skill) and self.player:isFriendWith(to) then
+						--intention = self:willSkipPlayPhase(to) and -intention or 0
+					--else
 						intention = self:isWeak(to) and -intention or 0
+					else
+						intention = 0
 					end
 				else
 					intention = 0
 				end
 			elseif to:hasShownSkills(sgs.lose_equip_skill) then
-				if self:isWeak(to) and (card:isKindOf("DefensiveHorse") or card:isKindOf("Armor")) then
+				if (card:isKindOf("DefensiveHorse") or card:isKindOf("Armor")) and not self.player:isFriendWith(to) then
+					intention = math.abs(intention)
+				elseif self:isFriendWith(to) and (card:isKindOf("Weapon") or card:isKindOf("OffensiveHorse")) then
 					intention = math.abs(intention)
 				else
 					intention = 0
 				end
+			elseif card:isKindOf("Axe") or card:isKindOf("DragonPhoenix") then
+				intention = math.abs(intention)
 			end
 		elseif place == sgs.Player_PlaceHand then
 			if self:needKongcheng(to, true) and to:getHandcardNum() == 1 then
-				intention = 0
+				intention = 20
 			end
 		end
 		sgs.updateIntention(from, to, intention)
