@@ -109,9 +109,9 @@ end
 
 --马岱
 sgs.ai_skill_invoke.qianxi = function(self, data)
-	if not self:willShowForAttack() then
+	--[[if not self:willShowForAttack() then
 		return false
-	end
+	end]]
 	return true
 end
 

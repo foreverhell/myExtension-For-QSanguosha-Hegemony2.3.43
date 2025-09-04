@@ -77,7 +77,7 @@ sgs.ai_skill_invoke.xibing =  function(self, data)
       end
     end
   end
-  if target:hasShownSkill("buqu") and target:getPile("scars"):length() > 4 and self:isFriend(target) and eachother_shown then
+  if target:hasShownSkill("buqu") and target:getPile("scars"):length() > 4 and self.player:isFriendWith(target) and eachother_shown then
     self.xibing_skill = "buqu"
     return true
   end
@@ -403,7 +403,10 @@ sgs.ai_skill_invoke.shejian = function(self, data)
 		end
 		return false
 	elseif self:canAttack(target) or self:needKongcheng() then
-		if self:hasCrossbowEffect(target) and sgs.Slash_IsAvailable(target) and getCardsNum("Slash", target, self.player) > 1 then
+    if target:getHp() == 1 or (self.player:hasSkill("congjian") and target:getHp() <= 2) then
+      self.shejianchoice = "damage"
+      return true
+		elseif self:hasCrossbowEffect(target) and sgs.Slash_IsAvailable(target) and getCardsNum("Slash", target, self.player) > 1 then
 			if getCardsNum("Slash", target, self.player) > self:getCardsNum("Jink","h") or self:canHit(self.player, target) then
 				self.shejianchoice = "discard"
 				return true
@@ -649,9 +652,9 @@ end
 sgs.ai_use_priority.WeimengCard = 5
 
 sgs.ai_skill_choice.weimeng_num = function(self, choices, data)--简单考虑只取最大值
-  --choices = choices:split("+")
+  choices = choices:split("+")
   --return choices[#choices]
-  return choices[self.player:getHp()]
+  return #choices
 end
 
 sgs.ai_skill_exchange["weimeng_giveback"] = function(self,pattern,max_num,min_num,expand_pile)
@@ -839,7 +842,7 @@ end
 
 function sgs.ai_skill_pindian.fenglve(minusecard, self, requestor)
   local max_card = self:getMaxNumberCard()
-  if not self:isFriend(requestor) and self.player:getCardCount(true) < 5 then
+  if not self:isEnemy(requestor) and self.player:getCardCount(true) < 5 then
     local max_point = max_card:getNumber()
     for _, card in sgs.qlist(self.player:getHandcards()) do
 			local point = card:getNumber()
@@ -849,7 +852,7 @@ function sgs.ai_skill_pindian.fenglve(minusecard, self, requestor)
 			end
 		end
   end
-  if self:isFriend(requestor) and (self.player:getJudgingArea():length() > 0 or self:needToThrowArmor()) then
+  if self:isFriend(requestor) or self.player:willBeFriendWith(requestor) then--and (self.player:getJudgingArea():length() > 0 or self:needToThrowArmor()) then
     return self:getMinNumberCard()
   end
 	return max_card

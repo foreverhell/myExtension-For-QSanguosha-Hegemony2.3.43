@@ -251,6 +251,11 @@ end
 sgs.ai_skill_playerchosen.gongxiu_discard = function(self, targets, max_num, min_num)
 	local result = {}
 	local targetlist = sgs.QList2Table(targets)
+	for i = 1, #targetlist do
+		if self:isFriend(targetlist[i]) then
+			table.remove(targetlist, i)
+		end
+	end
 	self:sort(targetlist, "handcard")
 	for _, target in ipairs(targetlist) do
 		if target:isNude() or table.contains(result, target) then continue end

@@ -987,6 +987,15 @@ sgs.ai_skill_use["@@liuli"] = function(self, prompt, method)
 
 	local nature = sgs.Slash_Natures[slash:getClassName()]
 
+	for _, p in sgs.qlist(use.to) do --去掉【杀】的目标，不能流离给成为【杀】的目标
+		for i = 1, #others do
+			if others[i]:objectName() == p:objectName() then
+				table.remove(others, i)
+				break
+			end
+		end
+	end
+
 	if ((not self:willShowForDefence() and self:getCardsNum("Jink") > 1) or (not self:willShowForMasochism() and self:getCardsNum("Jink") == 0))
 		and source:getMark("drank") == 0 then
 			return "."
@@ -1378,15 +1387,20 @@ sgs.ai_skill_use_func.JieyinCard = function(card, use, self)
 	table.removeOne(arr1, self.player)
 	table.removeOne(arr2, self.player)
 	local target = nil
+	local num = 1
 
-	local num = 0
 	repeat
-		if #arr1 > 0 and (self:isWeak(arr1[1]) or self:isWeak() or self:getOverflow() >= 1) then
-			target = arr1[1]
+		if #arr1 > 0 and (self:isWeak(arr1[num]) or self:isWeak() or self:getOverflow() >= 1) and 
+		self.player:isFriendWith(arr1[num]) then
+			target = arr1[num]
+			break
+		end
+		if #arr1 > 0 and (self:isWeak(arr1[num]) or self:isWeak() or self:getOverflow() >= 1) then
+			target = arr1[num]
 			break
 		end
 		if #arr2 > 0 and self:isWeak() then
-			target = arr2[1]
+			target = arr2[num]
 			break
 		end
 		num = num + 1
@@ -1422,9 +1436,11 @@ end
 sgs.dynamic_value.benefit.JieyinCard = true
 
 sgs.ai_skill_invoke.xiaoji = function(self, data)
-	if not (self:willShowForAttack() or self:willShowForDefence()) then
+	--[[if not (self:willShowForAttack() or self:willShowForDefence()) then
 		return false
-	end
+	end]]
+	local yuanshu = sgs.findPlayerByShownSkillName("weidi")
+	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() ~= sgs.Player_NotActive then return false end
 	return true
 end
 
@@ -2061,7 +2077,8 @@ function sgs.ai_skill_pindian.tianyi(minusecard, self, requestor)
 		return cards[1]
 	end
 	local maxcard = self:getMaxNumberCard()
-	return self:isFriend(requestor) and self:getMinNumberCard() or (maxcard:getNumber() < 6 and minusecard or maxcard)
+	return (self:isFriend(requestor) or self.player:willBeFriendWith(requestor)) and 
+	self:getMinNumberCard() or (maxcard:getNumber() < 6 and minusecard or maxcard)
 end
 
 sgs.ai_cardneed.tianyi = function(to, card, self)

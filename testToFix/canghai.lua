@@ -4,17 +4,17 @@ sgs.LoadTranslationTable{["canghai"] = "沧海篇",}
 
 --建立武将
 --魏势力
-luawangling = sgs.General(canghai, "luawangling", "wei")
+luawangling = sgs.General(canghai, "luawangling", "wei", 4, true, false, true)
 
 --蜀势力
 --luaqinmi = sgs.General(canghai,"luaqinmi", "shu", 3)
 
 --吴势力
-luayufan = sgs.General(canghai, "luayufan", "wu", 3)
-lualuotong = sgs.General(canghai, "lualuotong", "wu")
+luayufan = sgs.General(canghai, "luayufan", "wu", 3, true, false, true)
+lualuotong = sgs.General(canghai, "lualuotong", "wu", 4, true, false, true)
 
 --群势力
-luajushou = sgs.General(canghai, "luajushou", "qun", 3)
+luajushou = sgs.General(canghai, "luajushou", "qun", 3, true, false, true)
 
 
 local skills = sgs.SkillList()
@@ -99,10 +99,15 @@ end
 
 luaxuyuan_tag = sgs.CreateTriggerSkill{
     name = "#luaxuyuan_tag",
-    events = {sgs.CardUsed},
-    frequency = sgs.Skill_Compulsory,
+    events = {sgs.CardUsed, sgs.EventPhaseStart},
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         if player and player:isAlive() then
+            if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_RoundStart then
+                room:setPlayerMark(player, "luaxuyuan_noTarget", 1)
+                room:setPlayerMark(player, "luaxuyuan_fail", 0)
+                return false
+            end
             local skill_owners = room:findPlayersBySkillName("luaxuyuan")
             local skill_list = {}
             local name_list = {}
@@ -116,22 +121,21 @@ luaxuyuan_tag = sgs.CreateTriggerSkill{
             if #name_list <= 0 then return false end
             if event == sgs.CardUsed then
                 local use = data:toCardUse()
+                local current = room:getCurrent()
+                if use.from ~= current then return false end
                 for i = 1, #name_list do
                     local skill_owner = name_list[i]
-                    if skill_owner:getTag("luaxuyuan_fail"):toPlayer() ~= skill_owner and use.card:getTypeId() ~= sgs.Card_TypeSkill then
-                        room:setPlayerFlag(skill_owner, "NoTarget")
+                    if current:getMark("luaxuyuan_fail") == 0 and use.card:getTypeId() ~= sgs.Card_TypeSkill then
                         for _, p in sgs.qlist(use.to) do
+                            if current:getMark("luaxuyuan_fail") > 0 then return false end
                             local if_sameTarget = player:getTag("luaxuyuan_sameTarget"):toPlayer()
-                            if skill_owner:getTag("luaxuyuan_fail"):toPlayer() == skill_owner then return false end
-                            if skill_owner:hasFlag("NoTarget") or p == if_sameTarget then
+                            if current:getMark("luaxuyuan_noTarget") > 0 or p == if_sameTarget then
                                 local d = sgs.QVariant()
                                 d:setValue(p)
                                 player:setTag("luaxuyuan_sameTarget", d)
-                                room:setPlayerFlag(skill_owner, ".")
+                                room:setPlayerMark(current, "luaxuyuan_noTarget", 0)
                             else
-                                local d = sgs.QVariant()
-                                d:setValue(skill_owner)
-                                skill_owner:setTag("luaxuyuan_fail", d)
+                                room:setPlayerMark(current, "luaxuyuan_fail", 1)
                                 player:removeTag("luaxuyuan_sameTarget")
                                 return false
                             end
@@ -155,22 +159,14 @@ luaxuyuan = sgs.CreateTriggerSkill{
             if skill_owners:isEmpty() then return false end
             for _, p in sgs.qlist(skill_owners) do
                 if skillTriggerable(p, "luaxuyuan") and player:isFriendWith(p) then
-                    table.insert(skill_list, self:objectName())
-                    table.insert(name_list, p)
+                    if player:getMark("luaxuyuan_fail") == 0 and player:getTag("luaxuyuan_sameTarget"):toPlayer() ~= "" then
+                        player:removeTag("luaxuyuan_sameTarget")
+                        table.insert(skill_list, self:objectName())
+                        table.insert(name_list, p)
+                    end
 				end
 			end
-            if #name_list <= 0 then return false end
-            for i = 1, #name_list do
-                local skill_owner = name_list[i]
-                if skill_owner:getTag("luaxuyuan_fail"):toPlayer() ~= skill_owner and player:getTag("luaxuyuan_sameTarget"):toPlayer() then
-                    player:removeTag("luaxuyuan_sameTarget")
-                    skill_owner:removeTag("luaxuyuan_fail")
-                    return table.concat(skill_list,"|"), table.concat(name_list,"|")
-                else
-                    player:removeTag("luaxuyuan_sameTarget")
-                    skill_owner:removeTag("luaxuyuan_fail")
-                end
-            end
+            return table.concat(skill_list,"|"), table.concat(name_list,"|")
         end
         return false
     end,
@@ -199,7 +195,7 @@ luaxuyuan = sgs.CreateTriggerSkill{
             phases:append(sgs.Player_NotActive)
             player:play(phases)
         elseif choice == "luaxuyuan_both" then
-            room:detachSkillFromPlayer(skill_owner, "luaxuyuan", false, false, false)
+            room:detachSkillFromPlayer(skill_owner, "luaxuyuan")
             local phases = sgs.PhaseList()
             phases:append(sgs.Player_Draw)
             phases:append(sgs.Player_Play)
@@ -650,10 +646,12 @@ luamibei = sgs.CreateTriggerSkill{
                 room:showCard(player, card:getId())
                 if card:isKindOf("Jink") or card:isKindOf("DelayedTrick") then return false end
                 card:setTag("luamibeiRecord", sgs.QVariant(1))
-                --room:setPlayerFlag("luamibeiNoCommand")
+                room:setPlayerFlag(player, "luamibeiNoCommand")
             else
-                if selfHandNum >= 5 then return false end
-                player:drawCards(math.min(maxnum - selfHandNum, 5 - selfHandNum), self:objectName())
+                local actualHandNum_player = player:getHandcardNum()
+                local actualHandNum_target = target:getHandcardNum()
+                if actualHandNum_player >= 5 then return false end
+                player:drawCards(math.min(actualHandNum_target - actualHandNum_player, 5 - actualHandNum_player), self:objectName())
             end
         end
         return false
@@ -665,12 +663,18 @@ luamibei_cardUsed = sgs.CreateTriggerSkill{
     events = {sgs.CardUsed,sgs.TurnStart,sgs.EventPhaseStart},
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
-        if skillTriggerable(player, self:objectName()) and event == sgs.CardUsed and player:getPhase() ~= sgs.Player_NotActive then
+        if player:hasFlag("luamibeiNoCommand") and event == sgs.CardUsed and player:getPhase() ~= sgs.Player_NotActive then
             local use = data:toCardUse()
             if use.card:getTag("luamibeiRecord"):toInt() == 1 and not player:isKongcheng() then
                 room:askForDiscard(player, self:objectName(), 1, 1, false, false, "@luamibei_discard")
                 use.card:removeTag("luamibeiRecord")
                 room:useCard(sgs.CardUseStruct(use.card, use.from, use.to), false)
+                local msg = sgs.LogMessage()
+                msg.type = "#luamibeiExtra"
+                msg.from = player
+                msg.arg = use.card
+                msg.arg2 = self:objectName()
+                room:sendLog(msg)
             end
         elseif player:getPhase() == sgs.TurnStart and event == sgs.EventPhaseStart then
             local skill_owners = room:findPlayersBySkillName("luamibei")
@@ -700,6 +704,7 @@ sgs.LoadTranslationTable{
     "摸至五张）；若你不执行，你展示一张手牌，本回合你使用此牌时弃置一张手牌，然后令此牌额外结算一次（不包括延时类锦囊、闪）。",
     ["@luamibei_command"] = "秘备：选择一名手牌数最多的其他角色对你发起军令",
     ["@luamibei_discard"] = "秘备：弃置一张手牌",
+    ["#luamibeiExtra"] = "%from 发动了“%arg2”令 %arg1 额外结算一次。",
 }
 
 --[[luatianbian = sgs.CreateTriggerSkill{

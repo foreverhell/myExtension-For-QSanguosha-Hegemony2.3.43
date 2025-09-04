@@ -1291,10 +1291,10 @@ sgs.ai_skill_choice.duanchang = function(self, choices, data)
 		if who:getHeadSkillList():length() >= who:getDeputySkillList():length() then
 			return "deputy_general"
 		end
-	else
+	--[[else
 		if who:getHeadSkillList():length() >= who:getDeputySkillList():length() then
 			return "head_general"
-		end
+		end]]
 	end
 
 	local skills = (sgs.priority_skill .. "|" .. sgs.masochism_skill .. "|" .. sgs.recover_skill .. "|"

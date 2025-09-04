@@ -322,7 +322,7 @@ jianglve_skill.name = "jianglve"
 table.insert(sgs.ai_skills, jianglve_skill)
 jianglve_skill.getTurnUseCard = function(self, inclusive)
 	if self.player:getMark("@strategy") < 1 then return end
-	---[[--将略召唤效果没了
+	--[[--将略召唤效果没了
 	local jianglve_value = 0
 	local evaluate_value = 0
 	local evaluate_friend = false
@@ -352,7 +352,7 @@ sgs.ai_skill_use_func.JianglveCard= function(card, use, self)
 end
 
 sgs.ai_card_intention.JianglveCard = -120
-sgs.ai_use_priority.JianglveCard = 9.15
+sgs.ai_use_priority.JianglveCard = 6.15
 
 sgs.ai_skill_choice["startcommand_jianglve"] = function(self, choices)
   Global_room:writeToConsole(choices)
@@ -1323,7 +1323,7 @@ sgs.ai_skill_invoke.keshou = function(self, data)
 end
 
 sgs.ai_skill_cardask["@keshou"] = function(self, data, pattern, target, target2)
-	if self.player:getHandcardNum() < 2 then--缺手牌
+	if self.player:getCardCount(true) < 2 then--缺牌
     return "."
   end
 
@@ -1361,15 +1361,20 @@ sgs.ai_skill_cardask["@keshou"] = function(self, data, pattern, target, target2)
   end
 
   local cards = self.player:getHandcards() -- 获得所有手牌
-  cards=sgs.QList2Table(cards) -- 将列表转换为表
+  local cards_equip = self.player:getEquips() --获得所有装备
+  cards = sgs.QList2Table(cards) -- 将列表转换为表
+  cards_equip =sgs.QList2Table(cards_equip)
+  for _, c in pairs(cards_equip) do
+    table.insert(cards, c)
+  end
   local keshou_cards = {}
-  if self.player:getHandcardNum() == 2  then--两张手牌的情况
+  if self.player:getCardCount(true) == 2  then--两张牌的情况
     if cards[1]:sameColorWith(cards[2]) and canKeshouDiscard(cards[1]) and canKeshouDiscard(cards[2]) then
       table.insert(keshou_cards, cards[1]:getId())
       table.insert(keshou_cards, cards[2]:getId())
       return "$" .. table.concat(keshou_cards, "+")
     end
-  else--三张及以上手牌
+  else--三张及以上牌
     self:sortByKeepValue(cards) -- 按保留值排序
     if cards[1]:sameColorWith(cards[2]) and canKeshouDiscard(cards[1]) and canKeshouDiscard(cards[2]) then
       table.insert(keshou_cards, cards[1]:getId())
