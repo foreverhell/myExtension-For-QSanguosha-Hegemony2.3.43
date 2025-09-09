@@ -1470,7 +1470,7 @@ sgs.LoadTranslationTable{
     [":longhun"] = "你的红桃牌可以视为桃，方块牌可以视为火杀，梅花牌可以视为闪，黑桃牌可以视为无懈可击"
 }
 
-shen_zhenji = sgs.General(extension, "shen_zhenji", "wei", 3, false)  -- 吴国，4血，男性  
+shen_zhenji = sgs.General(extension, "shen_zhenji", "jin", 3, false)  -- 吴国，4血，男性  
 
 shenfu_skill = sgs.CreateTriggerSkill{  
     name = "shenfu",  
