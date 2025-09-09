@@ -51,7 +51,7 @@ shixuejian = sgs.CreateWeapon{
 shixuejian_skill = sgs.CreateTriggerSkill{  
     name = "shixuejian_recover",  
     events = {sgs.Damage},  
-    frequency = sgs.Skill_Frequent,
+    frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)
         if not (player and player:isAlive() and player:hasWeapon() and player:getWeapon():isKindOf("ShiXueJian")) then   
             return ""   
@@ -63,7 +63,7 @@ shixuejian_skill = sgs.CreateTriggerSkill{
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(), data) -- 自动触发，无需消耗  
+        return true--player:askForSkillInvoke(self:objectName(), data) -- 自动触发，无需消耗  
     end,  
     on_effect = function(self, event, room, player, data)  
         local damage = data:toDamage()
@@ -822,7 +822,7 @@ shengfan = sgs.CreateArmor{
 shengfanSkill = sgs.CreateTriggerSkill{  
     name = "shengfan",  
     events = {sgs.EventPhaseStart},  
-    frequency = sgs.Skill_Compulsory,  
+    frequency = sgs.Skill_Frequent,  
       
     can_trigger = function(self, event, room, player, data)  
         local armor = player:getArmor()
@@ -840,13 +840,13 @@ shengfanSkill = sgs.CreateTriggerSkill{
       
     on_cost = function(self, event, room, player, data)  
         -- 锁定技，无需询问  
-        return true  
+        return player:askForSkillInvoke(self:objectName(),data)  
     end,  
       
     on_effect = function(self, event, room, player, data)  
         room:notifySkillInvoked(player, self:objectName())  
         --弃一张牌
-        local is_discard = room:askForDiscard(player,self:objectName(),1,1,false,true)
+        local is_discard = room:askForDiscard(player,self:objectName(),1,1,true,true)
         if not is_discard then return false end
         -- 回复1点体力  
         local recover = sgs.RecoverStruct()  
@@ -1472,7 +1472,7 @@ sgs.LoadTranslationTable{
     ["#JinxiuZhengpaoNullify"] = "%from 的【%arg】效果被触发，免疫了此次伤害",
 
     ["XiuliQiankun"] = "袖里乾坤",  
-    [":XiuliQiankun"] = "装备牌·防具\n\n技能：锁定技，你不会成为延时锦囊的目标。你不能被叠置。",
+    [":XiuliQiankun"] = "装备牌·防具\n\n技能：锁定技，你不会成为延时锦囊的目标；当延时性锦囊生效时，取消之；当你你被叠置时，你平置。",
 
     ["Bileizhen"] = "避雷针",  
     [":Bileizhen"] = "装备牌·防具\n\n技能：\
