@@ -1,7 +1,7 @@
 -- 创建一个武将包  
 extension = sgs.Package("hero", sgs.Package_GeneralPack)  
 
-baiqi = sgs.General(extension, "baiqi", "wu", 4)  
+baiqi = sgs.General(extension, "baiqi", "wei", 4)  --wei,wu
   
 -- 技能1：歼灭  
 jianmie = sgs.CreateTriggerSkill{  
@@ -105,7 +105,7 @@ sgs.LoadTranslationTable{
   
 
 -- 创建武将：褒姒  
-baosi = sgs.General(extension, "baosi", "wu", 3, false)  -- 群雄，3血  
+baosi = sgs.General(extension, "baosi", "wei", 3, false)  --wei,wu,qun
   
 -- 技能：烽火 - 将装备牌视为南蛮入侵  
 fenghuo = sgs.CreateOneCardViewAsSkill{  
@@ -140,7 +140,7 @@ sgs.LoadTranslationTable{
 }  
 
 -- 创建武将：
-baozhen = sgs.General(extension, "baozhen", "wei", 3)  -- 群雄，3血  
+baozhen = sgs.General(extension, "baozhen", "wei", 3)  --wei 
 
 
 -- 技能1： - 血量变化时摸一张牌 
@@ -614,7 +614,7 @@ sgs.LoadTranslationTable{
     [":guigu"] = "出牌阶段限1次。你可以将任意数量的杀给另一名角色，然后摸等量的牌",  
 }
 
-change = sgs.General(extension, "change", "qun", 3, false) -- 名字，势力，体力，性别(false=女)  
+change = sgs.General(extension, "change", "wu", 3, false) --wu,qun  
   
 -- 技能1：奔月 - 出牌阶段限一次，将装备牌视为无中生有 
 -- 为了限制次数，必须写成技能卡
@@ -1873,7 +1873,7 @@ sgs.LoadTranslationTable{
 }  
 
 
-goujian = sgs.General(extension, "goujian", "wu", 3)  --wu.liqingzhao的珠联璧合
+goujian = sgs.General(extension, "goujian", "wu", 3)  --wu
 
 -- 创建隐忍触发技能  
 yinren = sgs.CreateTriggerSkill{  
@@ -2192,7 +2192,7 @@ sgs.LoadTranslationTable{
     [":bingxian"] = "每当你一次性获得两张或以上牌时，你可以摸一张牌。"  
 }
 ]]
---[[
+
 huamulan = sgs.General(extension, "huamulan", "wu", 3, false)  
   
 -- 变装技能实现  
@@ -2202,12 +2202,12 @@ yi4rong = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)  
         local owner = room:findPlayerBySkillName(self:objectName())
         if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
-        local death = data:toDamage()  
+        local death = data:toDeath()  
         local dead = death.who  
-        return self:objectName(), owner:objectName()
+        return self:objectName() .. "->" .. dead:objectName()
     end,  
     on_cost = function(self, event, room, player, data, ask_who)  
-        local death = data:toDamage()  
+        local death = data:toDeath()  
         local dead = death.who  
         local _data = sgs.QVariant()  
         _data:setValue(dead)  
@@ -2219,46 +2219,28 @@ yi4rong = sgs.CreateTriggerSkill{
         return false  
     end,  
     on_effect = function(self, event, room, player, data, ask_who)  
-        local death = data:toDamage()  
+        -- 失去变装技能  
+        room:detachSkillFromPlayer(ask_who, self:objectName(), true, false, true)  
+
+        local death = data:toDeath()  
         local dead = death.who  
           
         -- 选择获得主将还是副将的技能  
-        local choice = "head_general"  
-        local generals = {}  
-          
-        if dead:getGeneral() and not dead:getGeneral():objectName():contains("sujiang") then  
-            table.insert(generals, "head_general")  
-        end  
-          
-        if dead:getGeneral2() and not dead:getGeneral2():objectName():contains("sujiang") then  
-            table.insert(generals, "deputy_general")  
-        end  
-          
-        if #generals > 1 then  
-            choice = room:askForChoice(ask_who, self:objectName(), table.concat(generals, "+"))  
-        elseif #generals == 1 then  
-            choice = generals[1]  
-        else  
-            return false  
-        end  
-          
+        local choice = room:askForChoice(ask_who, self:objectName(), "head+deputy+cancel")  
+        if choice == "cancel" then return false end
         -- 获得技能  
-        local skills = {}  
-        if choice == "head_general" then  
-            skills = dead:getActualGeneral1():getVisibleSkillList()  
-        else  
-            skills = dead:getActualGeneral2():getVisibleSkillList()  
+        local skills = nil
+        if choice == "head" then  
+            skills = dead:getHeadSkillList()  
+        elseif choice == "deputy" then
+            skills = dead:getDeputySkillList()  
         end  
           
         for _, skill in sgs.qlist(skills) do  
             if not skill:isAttachedLordSkill() then  
                 room:attachSkillToPlayer(ask_who, skill:objectName())  
             end  
-        end  
-          
-        -- 失去变装技能  
-        room:detachSkillFromPlayer(ask_who, self:objectName())  
-          
+        end            
         return false  
     end  
 }  
@@ -2277,8 +2259,8 @@ sgs.LoadTranslationTable{
     --["bianzhuang"] = "变装",  
     --[":bianzhuang"] = "每次装备离开你的装备区时，你摸2张牌",
 }  
-]]
-huangdi = sgs.General(extension, "huangdi", "wu", 4)  -- 吴国，4血，男性  
+
+huangdi = sgs.General(extension, "huangdi", "wu", 4)  --wu,qun  
   
 renzu = sgs.CreateDrawCardsSkill{  
     name = "renzu",  
@@ -2626,7 +2608,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：
-jifa = sgs.General(extension, "jifa", "wei", 4)  -- 吴国，4血，男性  
+jifa = sgs.General(extension, "jifa", "wei", 4)  --wei,jin  
 
 -- 创建讨伐技能卡  
 TaofaCard = sgs.CreateSkillCard{  
@@ -3568,7 +3550,7 @@ sgs.LoadTranslationTable{
     ["~liqingzhao"] = "生当作人杰，死亦为鬼雄。"  
 }  
 
-liubei_hero = sgs.General(extension, "liubei_hero", "shu", 3)  -- 吴国，4血，男性  
+liubei_hero = sgs.General(extension, "liubei_hero", "shu", 3)  --shu,jin  
 
 jieyi1 = sgs.CreateTriggerSkill{  
     name = "jieyi1",  
@@ -3760,7 +3742,7 @@ sgs.LoadTranslationTable{
     [":jieyi2"] = "每回合限一次。当其他角色回复体力时，你可以弃置一张手牌，回复等量体力；当你回复体力时，你可以弃置一张手牌，选择一名其他角色回复等量体力。",
 }  
 
-lishishi = sgs.General(extension, "lishishi", "wu", 3, false)  
+lishishi = sgs.General(extension, "lishishi", "wu", 3, false)  --wu,jin
 
 manwu = sgs.CreateTriggerSkill{  
     name = "manwu",  
@@ -4121,7 +4103,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：
-luzhishen = sgs.General(extension, "luzhishen", "wei", 4)  -- 吴国，4血，男性  
+luzhishen = sgs.General(extension, "luzhishen", "wei", 4)  --wei,jin  
 
 dili = sgs.CreateDrawCardsSkill{  
     name = "dili",  
@@ -4461,7 +4443,7 @@ sgs.LoadTranslationTable{
     [":xumou"] = "回合结束时，你可以摸三张牌，然后进入叠置状态。",  
 }
 
-maosui = sgs.General(extension, "maosui", "qun", 3)  
+maosui = sgs.General(extension, "maosui", "qun", 3)  --jin,qun
   
 zijian = sgs.CreateTriggerSkill{  
     name = "zijian",  
@@ -4978,7 +4960,7 @@ sgs.LoadTranslationTable{
 }  
 
 -- 创建武将：
-miyue = sgs.General(extension, "miyue", "qun", 3, false)  -- 吴国，4血，男性  
+miyue = sgs.General(extension, "miyue", "qun", 3, false)  --qun,jin  
 YuumieCard = sgs.CreateSkillCard{  
     name = "YuumieCard",  
     target_fixed = false,  
@@ -5652,7 +5634,7 @@ sgs.LoadTranslationTable{
     ["yingxi_immune"] = "影袭免疫",  
 }  
 
-panan = sgs.General(extension, "panan", "wu", 4)  -- 群雄，4血  
+panan = sgs.General(extension, "panan", "qun", 4)  -- 群雄，4血  
 panan:addSkill("fangquan")
 panan:addSkill("xingshang")
 sgs.LoadTranslationTable{  
@@ -5967,7 +5949,7 @@ sgs.LoadTranslationTable{
     ["LangqiangCard"] = "狼羌"  
 }
 
-qinqiong = sgs.General(extension, "qinqiong", "shu", 5)  -- 吴国，4血，男性  
+qinqiong = sgs.General(extension, "qinqiong", "wei", 5)  --shu  
 
 -- 创建补刀触发技能  
 fanji = sgs.CreateTriggerSkill{  
@@ -6510,7 +6492,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将  
-simayi_hero = sgs.General(extension, "simayi_hero", "wei", 3)  
+simayi_hero = sgs.General(extension, "simayi_hero", "wei", 3)  --wei,jin
   
 -- 技能1：鬼才  
 zhuolue = sgs.CreateViewAsSkill{  
@@ -6800,7 +6782,7 @@ sgs.LoadTranslationTable{
 
 
 -- 创建武将：
-sunwu = sgs.General(extension, "sunwu", "wei", 3)  -- 吴国，4血，男性  
+sunwu = sgs.General(extension, "sunwu", "wei", 3)  --wei,jin  
 
 -- 创建强行技能卡  
 qijiCard = sgs.CreateSkillCard{  
@@ -6882,7 +6864,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：唐伯虎  
-tangbohu = sgs.General(extension, "tangbohu", "wei", 3)  -- 吴国，4血，男性  
+tangbohu = sgs.General(extension, "tangbohu", "wei", 3)  --wei,jin  
   
 -- 技能1：风流 - 摸牌阶段开始时，场上每多一名女性角色，你的摸牌数＋1  
 fengliu = sgs.CreateDrawCardsSkill{  
@@ -8785,7 +8767,7 @@ sgs.LoadTranslationTable{
     [":xiuhua"] = "锁定技，当你的手牌数小于失去的体力时，你摸一张牌。",
 }  
 
-yuanshitianzun = sgs.General(extension, "yuanshitianzun", "wei", 3)  
+yuanshitianzun = sgs.General(extension, "yuanshitianzun", "wei", 3)  --wei,jin
 
 yuanshiCard = sgs.CreateSkillCard{  
     name = "yuanshiCard",  
@@ -8857,7 +8839,7 @@ sgs.LoadTranslationTable{
     ["tianzunCard"] = "天尊"  
 }
 
-yuchigong = sgs.General(extension, "yuchigong", "shu", 4)  
+yuchigong = sgs.General(extension, "yuchigong", "wei", 4)  --wei,shu
 huwei = sgs.CreateTriggerSkill{  
     name = "huwei",  
     events = {sgs.DamageInflicted},  
@@ -9215,7 +9197,7 @@ sgs.LoadTranslationTable{
     ["~yuwenhuaji"] = "篡逆之心，终遭天谴……"    
 }  
 
-yuxuanji = sgs.General(extension, "yuxuanji", "wei", 3, false)  
+yuxuanji = sgs.General(extension, "yuxuanji", "wei", 3, false)  --wei,jin
 -- 折柳技能实现 - 准备阶段和结束阶段的体力变化  
 zheliu = sgs.CreateTriggerSkill{  
     name = "zheliu",  
@@ -9980,7 +9962,7 @@ sgs.LoadTranslationTable{
     ["@xiangshou-give"] = "你可以交给 %src 一张手牌发动'慰心'"  
 }
 
-zhuangzhou = sgs.General(extension, "zhuangzhou", "qun", 3) -- 蜀势力，4血，男性（默认）  
+zhuangzhou = sgs.General(extension, "zhuangzhou", "qun", 3) --qun,jin  
 
 mengdie = sgs.CreateTriggerSkill{  
     name = "mengdie",  
@@ -10105,7 +10087,71 @@ sgs.LoadTranslationTable{
 ["xiaoyao"] = "逍遥",  
 [":xiaoyao"] = "锁定技，你的'蝶'牌不计入手牌上限；若你的'蝶'牌数大于等于3，你使用牌无距离和次数限制。",
 }
-  
+zhubajie = sgs.General(extension, "zhubajie", "wu", 3) --wu,jin  
+
+tianpeng = sgs.CreateTriggerSkill{  
+    name = "tianpeng",  
+    events = {sgs.CardUsed, sgs.CardResponded},  
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)  
+        local source = room:findPlayerBySkillName(self:objectName())  
+        if not (source and source:isAlive() and source:hasSkill(self:objectName())) then  
+            return ""  
+        end  
+          
+        -- 检查是否在自己回合外  
+        if source:getPhase() ~= sgs.Player_NotActive then  
+            return ""  
+        end  
+          
+        -- 检查是否是其他角色  
+        if player:objectName() == source:objectName() then  
+            return ""  
+        end  
+          
+        local card = nil  
+        if event == sgs.CardUsed then  
+            local use = data:toCardUse()  
+            card = use.card  
+        else  
+            local response = data:toCardResponse()  
+            card = response.m_card  
+        end  
+          
+        -- 检查是否是杀  
+        if card and card:isKindOf("Slash") then  
+            return self:objectName(), source:objectName()
+        end  
+          
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        --local source = room:findPlayerBySkillName(self:objectName())  
+        if ask_who:hasShownSkill(self:objectName()) or ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:notifySkillInvoked(ask_who, self:objectName())  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        --local source = room:findPlayerBySkillName(self:objectName())  
+        ask_who:drawCards(1, self:objectName())  
+        return false  
+    end  
+}
+
+zhubajie:addSkill(tianpeng)
+zhubajie:addCompanion("change_duan")
+zhubajie:addCompanion("xuanzang")
+sgs.LoadTranslationTable{
+    ["zhubajie"] = "猪八戒",  
+    ["#zhubajie"] = "天蓬元帅",  
+    ["tianpeng"] = "天蓬",  
+    [":tianpeng"] = "你的回合外，其他角色使用或打出【杀】时，你摸一张牌。",  
+}  
 -- 创建武将：朱元璋
 zhuyuanzhang = sgs.General(extension, "zhuyuanzhang", "wu", 4)  -- 群雄，3血  
 
@@ -10153,7 +10199,7 @@ sgs.LoadTranslationTable{
     ["~zhuyuanzhang"] = "国运，完了"  
 }  
 
-zuchongzhi = sgs.General(extension, "zuchongzhi", "wei", 3)  
+zuchongzhi = sgs.General(extension, "zuchongzhi", "wei", 3)  --wei,jin
 
 YuanzhouCard = sgs.CreateSkillCard{  
     name = "YuanzhouCard",  
@@ -10327,6 +10373,8 @@ kongzi:addCompanion("zhuangzhou")
 mozi:addCompanion("xunzi")
 mozi:addCompanion("zhuangzhou")
 xunzi:addCompanion("zhuangzhou")
+zhubajie:addCompanion("change")
+zhubajie:addCompanion("xuanzang")
 --技能联动
 bole:addCompanion("guiguzi")
 dongfangshuo:addCompanion("simaxiangru")
