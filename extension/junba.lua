@@ -410,7 +410,7 @@ sgs.LoadTranslationTable{
     ["~caofang"] = "江山如此多娇...",  
 }  
 
-xing_caoren = sgs.General(extension, "xing_caoren", "wei", 3)  -- 吴国，4血，男性  
+xing_caoren = sgs.General(extension, "xing_caoren", "jin", 3)  -- 吴国，4血，男性  
 
 sujun = sgs.CreateTriggerSkill{  
     name = "sujun",  
@@ -2431,7 +2431,7 @@ chenjie = sgs.CreateTriggerSkill{
         local skill_owner = room:findPlayerBySkillName(self:objectName())  
         if skill_owner and skill_owner:isAlive() and not skill_owner:hasFlag("chenjie_" .. dead_player:objectName()) then  
             room:setPlayerFlag(skill_owner, "chenjie_" .. dead_player:objectName())  
-            return self:objectName(), skill_owner:objectName()  
+            return self:objectName() .. "->" .. dead_player:objectName()  
         end  
         return ""  
     end,  
@@ -2818,8 +2818,8 @@ moshou = sgs.CreateTriggerSkill{
         local gui_mark = player:getMark("@gui")  
         if gui_mark == 0 then  
             -- 初始化'规'标记为体力上限  
-            gui_mark = player:getMaxHp()  
-            room:setPlayerMark(player, "@gui", 3)  
+            gui_mark = 3
+            room:setPlayerMark(player, "@gui", gui_mark)  
         end  
           
         if gui_mark > 0 then  
@@ -2852,7 +2852,7 @@ yunshu = sgs.CreateTriggerSkill{
         local yuanyin = room:findPlayerBySkillName(self:objectName())  
         if yuanyin and yuanyin:isAlive() and not yuanyin:hasFlag("yunshu" .. dead_player:objectName()) then  
             room:setPlayerFlag(yuanyin, "yunshu" .. dead_player:objectName()) 
-            return self:objectName(), yuanyin:objectName()
+            return self:objectName() .. "->" .. dead_player:objectName()
         end  
         return ""  
     end,  
@@ -2899,17 +2899,26 @@ yunshu = sgs.CreateTriggerSkill{
             move.to_place = sgs.Player_PlaceHand  
             move.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GOTCARD, target:objectName(), self:objectName(), "")  
             room:moveCardsAtomic(move, true)  
-                
-            -- 加一点体力上限 
-            ask_who:setMaxHp(ask_who:getMaxHp()+1) 
-            room:broadcastProperty(ask_who,"maxhp")
-            --room:setPlayerProperty(ask_who, "maxhp", ask_who:getMaxHp() + 1)  
-                
-            -- 回复一点体力  
-            local recover = sgs.RecoverStruct()  
-            recover.who = ask_who  
-            recover.recover = 1  
-            room:recover(ask_who, recover)  
+            
+            local has_max = false
+            for _,p in sgs.qlist(room:getOtherPlayers(ask_who)) do
+                if p:getMaxHp() >= ask_who:getMaxHp() then
+                    has_max = true
+                    break
+                end
+            end
+            if has_max then
+                -- 加一点体力上限 
+                ask_who:setMaxHp(ask_who:getMaxHp()+1) 
+                room:broadcastProperty(ask_who,"maxhp")
+                --room:setPlayerProperty(ask_who, "maxhp", ask_who:getMaxHp() + 1)  
+                    
+                -- 回复一点体力  
+                local recover = sgs.RecoverStruct()  
+                recover.who = ask_who  
+                recover.recover = 1  
+                room:recover(ask_who, recover)
+            end
         end  
           
         return false  
@@ -2931,7 +2940,7 @@ sgs.LoadTranslationTable{
     ["gui"] = '规',  
       
     ["yunshu"] = "运枢",  
-    [":yunshu"] = "当任意一名角色死亡时，你可以将该角色死亡时弃置的所有牌交给一名其他角色，然后你加一点体力上限，并回复一点体力。",  
+    [":yunshu"] = "当任意一名角色死亡时，你可以将该角色死亡时弃置的所有牌交给一名其他角色；然后若你体力上限不为全场唯一最大，你加一点体力上限，并回复一点体力。",  
     ["@yunshu-give"] = "请选择一名角色获得死亡角色的所有牌",  
       
     ["$moshou1"] = "墨守成规，固若金汤。",  
@@ -3649,8 +3658,12 @@ XiongmouYinCard = sgs.CreateSkillCard{
                 if card:isKindOf("Slash") then  
                     slashes:append(card_id)
                 elseif card:isKindOf("TrickCard") and   
-                       (card:isKindOf("Duel") or card:isKindOf("ArcheryAttack") or   
-                        card:isKindOf("SavageAssault") or card:isKindOf("FireAttack")) then  
+                       (card:isKindOf("Duel") or 
+                        card:isKindOf("ArcheryAttack") or   
+                        card:isKindOf("SavageAssault") or 
+                        card:isKindOf("FireAttack") or 
+                        card:isKindOf("BurningCamps") or  
+                        card:isKindOf("FloodingSevenArmies")) then  
                     damage_tricks:append(card_id) 
                 end  
             end  
