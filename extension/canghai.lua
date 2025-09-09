@@ -2534,7 +2534,7 @@ qianya = sgs.CreateTriggerSkill{
             end
         elseif event == sgs.EventPhaseStart then  
             -- 准备阶段失去技能。这部分有问题
-            room:detachSkillFromPlayer(player, self:objectName())
+            room:detachSkillFromPlayer(player, self:objectName(), true, false, true)
         end  
           
         return false  
@@ -3039,8 +3039,9 @@ luamibei = sgs.CreateTriggerSkill{
                 card:setTag("luamibeiRecord", sgs.QVariant(1))
                 --room:setPlayerFlag("luamibeiNoCommand")
             else
-                if selfHandNum >= 5 then return false end
-                player:drawCards(math.min(maxnum - selfHandNum, 5 - selfHandNum), self:objectName())
+                local nowHandNum = player:getHandcardNum()
+                if nowHandNum >= 5 then return false end
+                player:drawCards(math.min(maxnum - nowHandNum, 5 - nowHandNum), self:objectName())
             end
         end
         return false
