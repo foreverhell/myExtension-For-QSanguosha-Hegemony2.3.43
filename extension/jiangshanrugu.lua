@@ -1,7 +1,7 @@
 extension = sgs.Package("jiangshanrugu", sgs.Package_GeneralPack)  
 local skills = sgs.SkillList()
 
-qi_liubei = sgs.General(extension, "qi_liubei", "shu", 4) -- 蜀势力，4血，男性（默认）  
+qi_liubei = sgs.General(extension, "qi_liubei", "wei", 4) -- 蜀势力，4血，男性（默认）  
 
 jishan = sgs.CreateTriggerSkill{  
     name = "jishan",  
@@ -85,7 +85,7 @@ jishan = sgs.CreateTriggerSkill{
         return false  
     end  
 }  
-
+qi_liubei:addSkill(jishan)
 -- 翻译表  
 sgs.LoadTranslationTable{        
 ["#qi_liubei"] = "仁德之君",  
@@ -241,7 +241,7 @@ sgs.LoadTranslationTable{
 ["@xuanhua-recover"] = "宣化：选择一名角色恢复1点体力",  
 ["@xuanhua-damage"] = "宣化：选择一名角色造成1点雷电伤害",
 }  
-qi_sunjian = sgs.General(extension, "qi_sunjian", "wu", 3)  
+qi_sunjian = sgs.General(extension, "qi_sunjian", "qun", 3)  
 
 pingtaoCard = sgs.CreateSkillCard{  
     name = "pingtaoCard",  
@@ -425,7 +425,7 @@ sgs.LoadTranslationTable{
     ["@juelie-discard"] = "绝烈：你可以弃置任意张牌",  
     ["#juelie_damage"] = "%from 的'%arg'被触发，伤害+1"  
 }
-cheng_chendeng = sgs.General(extension, "cheng_chendeng", "wu", 3) -- 蜀势力，4血，男性（默认）  
+cheng_chendeng = sgs.General(extension, "cheng_chendeng", "qun", 3) -- 蜀势力，4血，男性（默认）  
 
 LunshiCard = sgs.CreateSkillCard{  
     name = "LunshiCard",  
@@ -964,7 +964,7 @@ sgs.LoadTranslationTable{
 [":zhengdan"] = "你可以将手牌中的非基本牌当杀使用或打出。",  
 ["@longlin-discard"] = "你可以弃置一张牌发动龙临"
 }  
-xing_simaliang = sgs.General(extension, "xing_simaliang", "wei", 3) -- 蜀势力，4血，男性（默认）  
+xing_simaliang = sgs.General(extension, "xing_simaliang", "jin", 3) -- 蜀势力，4血，男性（默认）  
 
 sheju = sgs.CreateTriggerSkill{  
     name = "sheju",  
