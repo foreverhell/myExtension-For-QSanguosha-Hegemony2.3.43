@@ -144,79 +144,30 @@ sgs.LoadTranslationTable{
 
 cuifei = sgs.General(extension, "cuifei", "wei", 3, false) -- 蜀势力，4血，男性（默认）  
 
-yiyong = sgs.CreateTriggerSkill{  
-    name = "yiyong",  
-    events = {sgs.CardsMoveOneTime},  
-    can_trigger = function(self, event, room, player, data)  
-        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
-            return ""  
-        end  
-          
-        local move = data:toMoveOneTime()  
-        if move.to == player and move.to_place == sgs.Player_PlaceHand then  
-            -- 检查是否获得了装备牌  
-            for _, card_id in sgs.qlist(move.card_ids) do  
-                local card = sgs.Sanguosha:getCard(card_id)  
-                if card:isKindOf("EquipCard") then  
-                    return self:objectName()  
-                end  
-            end  
-        end  
-        return ""  
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        local move = data:toMoveOneTime()  
-        local equip_cards = {}  
-          
-        -- 收集所有获得的装备牌  
-        for _, card_id in sgs.qlist(move.card_ids) do  
-            local card = sgs.Sanguosha:getCard(card_id)  
-            if card:isKindOf("EquipCard") and player:hasHandCard(card) then  
-                table.insert(equip_cards, card_id)  
-            end  
-        end  
-          
-        if #equip_cards > 0 then  
-            -- 询问是否发动技能  
-            if player:askForSkillInvoke(self:objectName(), data) then  
-                player:setTag("yiyong_cards", sgs.IntList2VariantList(equip_cards))  
-                room:broadcastSkillInvoke(self:objectName(), player)  
-                return true  
-            end  
-        end  
-        return false  
-    end,  
-      
-    on_effect = function(self, event, room, player, data)  
-        local equip_card_ids = sgs.VariantList2IntList(player:getTag("yiyong_cards"):toList())  
-        player:removeTag("yiyong_cards")  
-          
-        local used_count = 0  
-          
-        -- 处理每张装备牌  
-        for _, card_id in ipairs(equip_card_ids) do  
-            local card = sgs.Sanguosha:getCard(card_id)  
-            if card and player:hasHandCard(card) then  
-                -- 展示装备牌  
-                room:showCard(player, card_id)  
-                  
-                -- 使用装备牌  
-                if not player:isCardLimited(card, sgs.Card_MethodUse) then  
-                    local use = sgs.CardUseStruct(card, player, {})  
-                    room:useCard(use)  
-                    used_count = used_count + 1  
-                end  
-            end  
-        end  
-          
-        -- 摸等量张牌  
-        if used_count > 0 and player:isAlive() then  
-            player:drawCards(used_count, self:objectName())  
-        end  
-          
-        return false  
-    end,  
+yiyong = sgs.CreateTriggerSkill{
+	name = "yiyong",
+	events = {sgs.CardUsed},
+	can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) then
+			local use = data:toCardUse()
+			if use.card:isKindOf("EquipCard") and use.from == player then
+				return self:objectName()
+			end
+		end
+		return false
+	end,
+
+	on_cost = function(self, event, room, player, data)
+        if player:askForSkillInvoke(self:objectName(), data) then
+            return true
+        end
+		return false
+	end,
+
+	on_effect = function(self, event, room, player, data)
+        player:drawCards(1, self:objectName())
+		return false
+	end
 }
 
 yashang = sgs.CreateMasochismSkill{  
@@ -276,13 +227,13 @@ yashang = sgs.CreateMasochismSkill{
         end  
     end,  
 }
---cuifei:addSkill(yiyong)
+cuifei:addSkill(yiyong)
 cuifei:addSkill(yashang)
 sgs.LoadTranslationTable{
 ["#cuifei"] = "魏宫贵妃",  
 ["cuifei"] = "崔妃",   
 ["yiyong"] = "衣镛",  
-[":yiyong"] = "当你获得装备牌后，你可以展示并使用之，然后摸等量张牌。",  
+[":yiyong"] = "当你使用装备牌后，你可以摸1张牌。",  
 ["yashang"] = "雅殇",  
 [":yashang"] = "锁定技，当你受到伤害后，若伤害来源与你势力不同，其须将手牌弃至X张，若其未弃牌，你将手牌摸至X张；若伤害来源与你势力相同，你须将手牌弃至X张，若你未弃牌，伤害来源将手牌摸至X张。X为你空置装备栏数。",
 }
