@@ -2220,8 +2220,11 @@ yi4rong = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data, ask_who)  
         -- 失去变装技能  
-        room:detachSkillFromPlayer(ask_who, self:objectName(), true, false, true)  
-
+        if ask_who:inHeadSkills(self:objectName()) then
+            room:detachSkillFromPlayer(ask_who, self:objectName(), false, false, true)--第三个参数表示该技能的位置是否在主将上，默认true，位置不对移除不了
+        else
+            room:detachSkillFromPlayer(ask_who, self:objectName(), false, false, false)--第三个参数表示该技能的位置是否在主将上，默认true，位置不对移除不了
+        end
         local death = data:toDeath()  
         local dead = death.who  
           
@@ -2260,7 +2263,7 @@ sgs.LoadTranslationTable{
     --[":bianzhuang"] = "每次装备离开你的装备区时，你摸2张牌",
 }  
 
-huangdi = sgs.General(extension, "huangdi", "wu", 4)  --wu,qun  
+huangdi = sgs.General(extension, "huangdi", "wu", 3)  --wu,qun  
   
 renzu = sgs.CreateDrawCardsSkill{  
     name = "renzu",  
@@ -5949,7 +5952,7 @@ sgs.LoadTranslationTable{
     ["LangqiangCard"] = "狼羌"  
 }
 
-qinqiong = sgs.General(extension, "qinqiong", "wei", 5)  --shu  
+qinqiong = sgs.General(extension, "qinqiong", "wei", 4)  --shu  
 
 -- 创建补刀触发技能  
 fanji = sgs.CreateTriggerSkill{  
@@ -7188,7 +7191,7 @@ sgs.LoadTranslationTable{
 }  
 
 -- 创建武将：唐伯虎  
-wangyangming = sgs.General(extension, "wangyangming", "wu", 4)  -- 吴国，4血，男性  
+wangyangming = sgs.General(extension, "wangyangming", "wu", 3)  -- 吴国，4血，男性  
 
 gewu = sgs.CreateTriggerSkill{  
     name = "gewu",  
