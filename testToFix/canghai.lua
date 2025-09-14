@@ -4,17 +4,18 @@ sgs.LoadTranslationTable{["canghai"] = "沧海篇",}
 
 --建立武将
 --魏势力
-luawangling = sgs.General(canghai, "luawangling", "wei", 4, true, false, true)
+luawangling = sgs.General(canghai, "luawangling", "wei", 4)
+luacaozhi = sgs.General(canghai, "luacaozhi", "wei", 3)
 
 --蜀势力
 --luaqinmi = sgs.General(canghai,"luaqinmi", "shu", 3)
 
 --吴势力
-luayufan = sgs.General(canghai, "luayufan", "wu", 3, true, false, true)
-lualuotong = sgs.General(canghai, "lualuotong", "wu", 4, true, false, true)
+luayufan = sgs.General(canghai, "luayufan", "wu", 3)
+lualuotong = sgs.General(canghai, "lualuotong", "wu", 4)
 
 --群势力
-luajushou = sgs.General(canghai, "luajushou", "qun", 3, true, false, true)
+luajushou = sgs.General(canghai, "luajushou", "qun", 3)
 
 
 local skills = sgs.SkillList()
@@ -298,6 +299,9 @@ sgs.LoadTranslationTable{
     ["luaxuyuan_choice:luaxuyuan_both"] = "失去该技能，两个阶段均执行",
     ["luashibei_get"] = "获得伤害来源的坐骑牌",
 	["luashibei_discard"] = "弃置一张坐骑牌并回复1点体力",
+    ["$luaxuyuan1"] = "宁侍庸主，不媚汉贼。",
+    ["$luashibei1"] = "主公在北，吾心亦在北！",
+	["$luashibei2"] = "矢志于北，尽忠于国！",
 }
 
 luazhiyan = sgs.CreateTriggerSkill{
@@ -448,6 +452,10 @@ sgs.LoadTranslationTable{
     ["@luazongxuan"] = "底部为放入牌堆顶",
     ["luazongxuan#up"] = "放入弃牌堆",
     ["luazongxuan#down"] = "放入牌堆顶",
+    ["$luazongxuan1"] = "近日之事，吾心里有谱。",
+    ["$luazongxuan2"] = "我来为将军算上一卦。",
+    ["$luazhiyan1"] = "此事，将军请听我一言！",
+	["$luazhiyan2"] = "还望主公多斟酌一番！",
 }
 
 
@@ -535,6 +543,7 @@ luaqinzheng = sgs.CreateTriggerSkill{
                 return false
             end
         end
+        room:broadcastSkillInvoke(self:objectName(), player)
         return true
     end,
 
@@ -547,7 +556,7 @@ luaqinzheng = sgs.CreateTriggerSkill{
             room:broadcastSkillInvoke(self:objectName(), player)
             room:addPlayerMark(player, "luaqinzheng_typeUsed", 1)
             local Analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
-			Analeptic:setSkillName("_luaqinzheng")
+			Analeptic:setSkillName("luaqinzheng")
 			room:useCard(sgs.CardUseStruct(Analeptic, player, player), false)
         elseif (player:getMark("luaqinzheng_color") == 3 or player:getMark("luaqinzheng_color") > 4) and 
         player:getMark("luaqinzheng_colorUsed") == 0 then
@@ -564,7 +573,7 @@ luaqinzheng = sgs.CreateTriggerSkill{
                 "@luaqinzheng_slashChoose", true, true)
                 if target_player then
                     local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
-                    slash:setSkillName("_luaqinzheng")
+                    slash:setSkillName("luaqinzheng")
                     room:useCard(sgs.CardUseStruct(slash, player, target_player), false)
                 end
             end
@@ -572,7 +581,7 @@ luaqinzheng = sgs.CreateTriggerSkill{
         player:getMark(suit_heart) == 1 and player:getMark("luaqinzheng_suitUsed") == 0 then
             room:addPlayerMark(player, "luaqinzheng_suitUsed", 1)
             local ex_nihilo = sgs.Sanguosha:cloneCard("ex_nihilo", sgs.Card_NoSuit, 0)
-            ex_nihilo:setSkillName("_luaqinzheng")
+            ex_nihilo:setSkillName("luaqinzheng")
             room:useCard(sgs.CardUseStruct(ex_nihilo, player, player), false)
         end
         return false
@@ -589,6 +598,8 @@ sgs.LoadTranslationTable{
     "三种不同类别的手牌后，你视为使用一张不计入次数的【酒】；\n 3.四种不同花色的牌后，你视为使用一张【无中生有】。（若1、2同时触发" ..
     "则按2、1的顺序发动）",
     ["@luaqinzheng_slashChoose"] = "勤政：选择一名角色对其出【杀】",
+    ["$luaqinzheng1"] = "为官一任，当造福一方。",
+	["$luaqinzheng2"] = "仁政如水，可润万物。",
 }
 
 luamibei = sgs.CreateTriggerSkill{
@@ -620,6 +631,7 @@ luamibei = sgs.CreateTriggerSkill{
                 return false
             end
         end
+        room:broadcastSkillInvoke(self:objectName(), player)
         return true
     end,
 
@@ -705,18 +717,21 @@ sgs.LoadTranslationTable{
     ["@luamibei_command"] = "秘备：选择一名手牌数最多的其他角色对你发起军令",
     ["@luamibei_discard"] = "秘备：弃置一张手牌",
     ["#luamibeiExtra"] = "%from 发动了“%arg2”令 %arg1 额外结算一次。",
+    ["$luamibei1"] = "密为之备，不可有失。",
+	["$luamibei2"] = "事以密成，语以泄败！",
 }
 
---[[luatianbian = sgs.CreateTriggerSkill{
+--[[uatianbian = sgs.CreateTriggerSkill{
     name = "luatianbian",
-    events = {sgs.TargetConfirmed},
+    events = {sgs.CardUsed, sgs.TargetConfirming},
     can_trigger = function(self, event, room, player, data)
-        if skillTriggerable(player, self:objectName()) and event = sgs.TargetConfirmed then
+        if skillTriggerable(player, self:objectName()) and (event == sgs.TargetConfirming or event == sgs.CardUsed) then
             local use = data:toCardUse()
-            if use.card:isKindOf("Slash") then
-                if use.to and use.to:contains(player) and not player:isKongcheng() and not use.from:isKongcheng() then
+            if use and use.card and use.card:isKindOf("Slash") then
+                if event == sgs.TargetConfirming and use.to and use.to:contains(player) and not player:isKongcheng() and not 
+                use.from:isKongcheng() then
                     return self:objectName()
-                elseif use.from and use.from == player and use.to then
+                elseif event == sgs.CardUsed and use.from and use.from == player and use.to and not player:isKongcheng() then
                     for _, target in sgs.qlist(use.to) do
                         if not target:isKongcheng() then
                             return self:objectName()
@@ -738,16 +753,8 @@ sgs.LoadTranslationTable{
                 return true
             end
         elseif use.from and use.from == player and use.to then
-            local target_to = sgs.SPlayerList()
-            for _, p in sgs.qlist(use.to) do
-                if not p:isKongcheng() then
-                    target_to:append(p)
-                end
-            end
-            if not target_to:isEmpty() then
-                if player:askForSkillInvoke(self:objectName(), data) then
-                    return true
-                end
+            if player:askForSkillInvoke(self:objectName(), data) then
+                return true
             end
         end
         return false
@@ -755,8 +762,9 @@ sgs.LoadTranslationTable{
 
     on_effect = function(self, event, room, player, data)
         local use = data:toCardUse()
+        local pdTarget = nil
         if use.to and use.to:contains(player) then
-            room:setPlayerFlag(player, "toluazhuandui")
+            pdTarget = use.from
         elseif use.from and use.from == player then
             local target_to = sgs.SPlayerList()
             for _, p in sgs.qlist(use.to) do
@@ -767,8 +775,22 @@ sgs.LoadTranslationTable{
             if not target_to:isEmpty() then
                 local target = room:askForPlayerChosen(player, target_to, self:objectName(), "@luatianbian_choose", true, true)
                 if target then
-                    room:setPlayerFlag(player, "toluazhuandui")
+                    room:broadcastSkillInvoke("luatianbian", player)
+                    pdTarget = target
                 end
+            end
+        end
+        if pdTarget then
+            --local d = sgs.QVariant()
+            --d:setValue(use)
+            player:setTag("luatianbianData", data)
+            if player:askForSkillInvoke("luazhuandui", data) then
+                local card_id = room:drawCard()
+                --room:setPlayerMark(player, "luatianbian_pdCard", card_id)
+                local pd = player:pindianSelect(pdTarget, "luatianbian", sgs.Sanguosha:getCard(card_id))
+                player:pindian(pd, 1)
+            else
+                player:pindian(pdTarget, "luatianbian")
             end
         end
         return false
@@ -781,13 +803,10 @@ luatianbian_verify = sgs.CreateTriggerSkill{
     events = {sgs.PindianVerifying},
     can_trigger = function(self, event, room, player, data)
         if skillTriggerable(player, self:objectName()) and event == sgs.PindianVerifying then
-            local use = data:toCardUse()
-            if use.card:isKindOf("Slash") then
-                local pd = data:toPindian()
-                if pd.from_card:getSuitString() == "heart" then
-                    pd.from_number = 13
-                    data:setValue(pd)
-                end
+            local pd = data:toPindian()
+            if pd.reason == "luatianbian" and pd.from_card:getSuitString() == "heart" then
+                pd.from_number = 13
+                data:setValue(pd)
             end
         end
         return false
@@ -802,14 +821,27 @@ luatianbian_effect = sgs.CreateTriggerSkill{
         if skillTriggerable(player, self:objectName()) and event == sgs.Pindian then
             local pd = data:toPindian()
             if pd.reason == "luatianbian" then
-                if pd.from_number <= pd.to_number then
-                    return false
-                else
-                    local use = data:toCardUse()
-                    if use.to and use.to:contains(player) then
+                if pd.success then
+                    local use = player:getTag("luatianbianData"):toCardUse()
+                    player:removeTag("luatianbianData")
+                    if use and use.to and use.to:contains(player) then
+                        local log = sgs.LogMessage()
+		log.type = "why3"
+		log.from = player
+		log.to:append(player)
+		room:sendLog(log)
                         room:cancelTarget(use, player)
-                    elseif use.from and use.from == player then
-
+                        data:setValue(use)
+                    elseif use and use.from and use.from == player then
+                        local nullified_list = {}
+                        table.insert(nullified_list, pd.to:objectName())
+                        use.nullified_list = nullified_list
+                        data:setValue(use)
+                        local log = sgs.LogMessage()
+		log.type = "why4"
+		log.from = player
+		log.to:append(player)
+		room:sendLog(log)
                     end
                 end
             end
@@ -820,19 +852,194 @@ luatianbian_effect = sgs.CreateTriggerSkill{
 
 luazhuandui = sgs.CreateTriggerSkill{
     name = "luazhuandui",
-    events = {},
 }
+
+luaqinmi:addSkill(luatianbian)
+luaqinmi:addSkill(luazhuandui)
+luaqinmi:addSkill(luatianbian_verify)
+luaqinmi:addSkill(luatianbian_effect)
+canghai:insertRelatedSkills("luatianbian", "#luatianbian_verify")
+canghai:insertRelatedSkills("luatianbian", "#luatianbian_effect")
 
 -- 加载翻译表
 sgs.LoadTranslationTable{
     ["luaqinmi"] = "秦宓",
     ["luatianbian"] = "天辩",
-	[":luatianbian"] = "当你成为【杀】的目标后，你可以与使用者拼点，若你赢，此牌对你无效；当你使用【杀】指定目标后，你可以与其中一个目标" ..
+	[":luatianbian"] = "当你成为【杀】的目标时，你可以与使用者拼点，若你赢，此牌对你无效；当你使用【杀】指定目标后，你可以与其中一个目标" ..
     "拼点，若你赢，其不能响应此【杀】。",
     ["luazhuandui"] = "专对",
 	[":luazhuandui"] = "当你拼点时，可以改为亮出牌堆顶的一张牌拼点；当你的拼点牌亮出后，若此牌的花色为红桃，则点数视为K。",
     ["@luatianbian_choose"] = "天辩：选择一名角色进行拼点",
-}]]--
+}]]
+
+lualuoying = sgs.CreateTriggerSkill{
+    name = "lualuoying",
+    events = {sgs.CardsMoveOneTime, sgs.FinishJudge},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) then
+            local move_datas = data:toList()
+            for _, move_data in sgs.qlist(move_datas) do
+                local move = move_data:toMoveOneTime()
+                local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+                if move.from and move.from:objectName() == player:objectName() then return "" end
+                if reasonx == sgs.CardMoveReason_S_REASON_DISCARD then
+                    if move.to_place == sgs.Player_DiscardPile then
+                        for _, card_id in sgs.qlist(move.card_ids) do
+                            if sgs.Sanguosha:getCard(card_id):getSuitString() == "club" and room:getCardPlace(card_id) == 
+                            sgs.Player_DiscardPile then
+                                return self:objectName()
+                            end
+                        end
+                    end
+                elseif reasonx == sgs.CardMoveReason_S_REASON_PUT then
+                    local card_id = player:getTag("lualuoyingJudge_club"):toInt()
+                    if card_id ~= 0 and room:getCardPlace(card_id) == sgs.Player_DiscardPile then
+                        return self:objectName()
+                    else
+                        player:removeTag("lualuoyingJudge_club")
+                    end
+                end
+            end
+        elseif player and player:isAlive() and event == sgs.FinishJudge then
+            local judge = data:toJudge()
+            local skill_owners = room:findPlayersBySkillName(self:objectName())
+            if skill_owners:isEmpty() then return false end
+            for _, skill_owner in sgs.qlist(skill_owners) do
+                if judge.card:getSuitString() == "club" and judge.who:objectName() ~= skill_owner:objectName() then
+                    local d = sgs.QVariant()
+                    d:setValue(judge.card:getEffectiveId())
+                    skill_owner:setTag("lualuoyingJudge_club", d)
+                end
+            end
+        end
+        return false
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        if player:askForSkillInvoke(self:objectName(), data) then
+            room:broadcastSkillInvoke(self:objectName(), player)
+            return true
+        else
+            player:removeTag("lualuoyingJudge_club")
+        end
+        return false
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        local move_datas = data:toList()
+        for _, move_data in sgs.qlist(move_datas) do
+            local move = move_data:toMoveOneTime()
+            local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+            if reasonx == sgs.CardMoveReason_S_REASON_DISCARD then
+                for _, card_id in sgs.qlist(move.card_ids) do
+                    if sgs.Sanguosha:getCard(card_id):getSuitString() == "club" then
+                        room:obtainCard(player, card_id, true)
+                    end
+                end
+            elseif reasonx == sgs.CardMoveReason_S_REASON_PUT then
+                room:obtainCard(player, player:getTag("lualuoyingJudge_club"):toInt(), true)
+                player:removeTag("lualuoyingJudge_club")
+            end
+        end
+        return false
+    end
+}
+
+luajiushiCard = sgs.CreateSkillCard{
+    name = "luajiushiCard",
+    skill_name = "luajiushi",
+    target_fixed = true,
+    on_use = function(self, room, source)
+        local analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
+        room:useCard(sgs.CardUseStruct(analeptic, source, source), true)
+        analeptic:deleteLater()
+        room:addPlayerMark(source, "##luajiushi")
+    end,
+}
+
+luajiushi = sgs.CreateZeroCardViewAsSkill{
+    name = "luajiushi",
+    view_as = function(self)
+		--[[local analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
+		analeptic:setSkillName(self:objectName())
+		return analeptic]]
+        local card = luajiushiCard:clone()  
+        card:setSkillName(self:objectName())
+        return card  
+	end,
+    enabled_at_play = function(self, player)
+		return not player:hasUsed("#luajiushiCard") and player:hasShownAllGenerals() and not player:hasUsed("Analeptic")
+	end,
+    enabled_at_response = function(self, player, pattern)
+        return player:hasShownAllGenerals() and string.find(pattern, "analeptic")
+    end
+}
+
+luajiushiDamaged = sgs.CreateTriggerSkill{
+    name = "#luajiushiDamaged",
+    events = {sgs.DamageInflicted, sgs.CardUsed, sgs.EventPhaseStart},
+    frequency = sgs.Skill_Compulsory,
+    on_record = function(self, event, room, player, data)
+		if event == sgs.EventPhaseStart and player:getPhase() == sgs.TurnStart then
+            local skill_owners = room:findPlayersBySkillName(self:objectName())
+            if skill_owners:isEmpty() then return false end
+            for _, skill_owner in sgs.qlist(skill_owners) do
+                room:setPlayerMark(skill_owner, "##luajiushi", 0)
+            end
+		end
+	end,
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) then
+            if player:hasFlag("luajiushiUsed") and event == sgs.DamageInflicted then
+                local isHead
+                if player:getActualGeneral2Name() == "luacaozhi" then
+                    isHead = false
+                elseif player:getActualGeneral1Name() == "luacaozhi" then
+                    isHead = true
+                end
+                if isHead ~= nil then --防止“化身”移除武将
+                    player:removeGeneral(isHead)
+                end
+            elseif event == sgs.CardUsed then
+                local use = data:toCardUse()
+                if use and use.card:getSkillName() == "luajiushi" then  
+                    room:setPlayerFlag(player, "luajiushiUsed")
+                    --room:addPlayerHistory(player, "Analeptic", 1)
+                    local isHead
+                    if player:getActualGeneral2Name() == "luacaozhi" then
+                        isHead = false
+                    elseif player:getActualGeneral1Name() == "luacaozhi" then
+                        isHead = true
+                    end
+                    if isHead ~= nil then
+                        player:hideGeneral(isHead)
+                    end
+                end
+            end
+        end
+        return false
+    end,
+}
+
+-- 加载翻译表
+sgs.LoadTranslationTable{
+    ["luacaozhi"] = "曹植",
+    ["lualuoying"] = "落英",
+	[":lualuoying"] = "当其他角色的♣牌因弃置或判定而进入弃牌堆时，你可以获得之。",
+    ["luajiushi"] = "酒诗",
+	[":luajiushi"] = "每回合限一次，当你需要使用【酒】时，若你武将牌均明置，你可以暗置此武将牌并视为使用之，然后当你本回合下次受到伤害时，"..
+    "移除此武将牌。",
+    ["$lualuoying1"] = "这些都是我的。",
+	["$lualuoying2"] = "别着急扔，给我就好。",
+    ["$luajiushi1"] = "置酒高殿上，亲友从我游。",
+	["$luajiushi2"] = "走马行酒醴，驱车布鱼肉。",
+}
+
+luacaozhi:addSkill(luajiushi)
+luacaozhi:addSkill(lualuoying)
+luacaozhi:addSkill(luajiushiDamaged)
+canghai:insertRelatedSkills("luajiushi", "#luajiushiDamaged")
 
 sgs.Sanguosha:addSkills(skills)
 

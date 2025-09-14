@@ -31,11 +31,50 @@ sgs.ai_skill_use_func["#jiejianglveCard"] = function(card, use, self)
     use.card = card
 end
 
-sgs.ai_use_priority.jiejianglveCard = 6.2
+sgs.ai_use_priority.jiejianglveCard = 10
 
 --潘淑
 sgs.ai_skill_choice.jiezhiren = function(self, choices, data)
+    for _, p in pairs(self.enemies) do
+        if p:isFemale() then
+            if p:getTreasure() or p:getArmor() then
+                if p:getArmor() then
+                    local armor = p:getArmor()
+                    if armor:objectName() == "PeaceSpell" and p:getHp() <= 1 then
+                        continue
+                    elseif armor:objectName() == "SilverLion" and p:getLostHp() >= 1 then
+                        continue
+                    elseif p:hasShownSkill("bazhen") or p:hasShownSkill("taidan") then
+                        continue
+                    end
+                end
+                return "discardEquip"
+            end
+        end
+    end
     return "guanxing"
+end
+
+sgs.ai_skill_playerchosen.jiezhiren = function(self, targets)
+    for _, p in pairs(self.enemies) do
+        if p:isFemale() then
+            if p:getTreasure() or p:getArmor() then
+                return p
+            end
+        end
+    end
+    return ""
+end
+
+sgs.ai_skill_cardchosen.jiezhiren = function(self, who, flags, method, disable_list)
+    local armor = who:getArmor()
+    local treasure = who:getTreasure()
+    if treasure then
+        return treasure:getEffectiveId()
+    elseif armor then
+        return armor:getEffectiveId()
+    end
+    return self:askForCardChosen(who, flags, "jiezhiren", method, disable_list)
 end
 
 --关羽
@@ -62,21 +101,91 @@ jiejinghe_skill.getTurnUseCard = function(self, inclusive)
     if self.player:hasUsed("#jiejingheCard") then return false end
     return sgs.Card_Parse("#jiejingheCard:.:&jiejinghe")
 end
-
 sgs.ai_skill_use_func["#jiejingheCard"] = function(card, use, self)
     use.card = card
-    for _, p in pairs(self.friends) do
+    --[[for _, p in pairs(self.friends) do
         if p:objectName() == self.player:objectName() and use.to then
             use.to:append(p)
             break
         end
+    end]]
+end
+sgs.ai_skill_playerchosen.jiejingheCard = function(self, targets)
+    local skill_list = {"lundao", "guanyue", "yanzheng", "leiji_tianshu", "yinbing", "huoqi", "guizhu", "xianshou"}
+    if self.player:getMark("jiejinghe_Acquire") > 0 then
+        local skill_number = self.player:getMark("jiejinghe_Acquire")
+        if skill_number == 3 then
+            local maybeResult1, maybeResult2 = {}
+            local friendsByAction = sgs.SPlayerList()
+            friendsByAction = self.room:getAlivePlayers()
+            room:sortByActionOrder(friendsByAction)
+            for _, p in sgs.qlist(friendsByAction) do
+                if p:objectName() ~= self.player:objectName() and self.player:isFriendWith(p) and p:getHandcardNum() >= 3 then
+                    if not p:getJudgingArea():isEmpty() then
+                        table.insert(maybeResult1, p)
+                    elseif p:hasShownSkill("lirang") then
+                        table.insert(maybeResult1, p)
+                    else
+                        table.insert(maybeResult2, p)
+                    end
+                end
+            end
+            if #maybeResult1 > 0 then
+                return maybeResult1[1]
+            elseif #maybeResult2 > 0 then
+                return maybeResult2[1]
+            end
+        elseif skill_number == 5 then
+            local miheng = sgs.findPlayerByShownSkillName("kuangcai")
+            local lvbu = sgs.findPlayerByShownSkillName("wushuang")
+            local lvlingqi = sgs.findPlayerByShownSkillName("zhuangrong")
+            if miheng and self.player:isFriendWith(miheng) and not self:willSkipPlayPhase(miheng) then
+                return miheng
+            elseif lvlingqi and self.player:isFriendWith(lvlingqi) and not self:willSkipPlayPhase(lvlingqi) then
+                return lvlingqi
+            elseif lvbu and self.player:isFriendWith(lvbu) and not self:willSkipPlayPhase(lvbu) then
+                return lvbu
+            end
+        elseif skill_number == 7 then
+            local miheng = sgs.findPlayerByShownSkillName("kuangcai")
+            local huatuo = sgs.findPlayerByShownSkillName("jijiu")
+            local lvlingqi = sgs.findPlayerByShownSkillName("zhuangrong")
+            local hetaihou = sgs.findPlayerByShownSkillName("zhendu")
+            local yuanshao = sgs.findPlayerByShownSkillName("luanji")
+            local beimihu = sgs.findPlayerByShownSkillName("guishu")
+            if huatuo and self.player:isFriendWith(huatuo) then
+                return huatuo
+            elseif miheng and self.player:isFriendWith(miheng) and not self:willSkipPlayPhase(miheng) then
+                return miheng
+            elseif lvlingqi and self.player:isFriendWith(lvlingqi) and not self:willSkipPlayPhase(lvlingqi) then
+                return lvlingqi
+            elseif beimihu and self.player:isFriendWith(beimihu) and not self:willSkipPlayPhase(beimihu) then
+                return beimihu
+            elseif hetaihou and self.player:isFriendWith(hetaihou) then
+                return hetaihou
+            elseif yuanshao and self.player:isFriendWith(yuanshao) and not self:willSkipPlayPhase(yuanshao) then
+                return yuanshao
+            end
+        end
     end
+    for _, p in pairs(self.friends) do
+        if self.player:objectName() == p:objectName() then
+            return p
+        end
+    end
+    return ""
+end
+sgs.ai_skill_invoke.guizhu = function(self, data)
+    local yuanshu = sgs.findPlayerByShownSkillName("weidi")
+	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then return false end
+    return true
 end
 
-sgs.ai_use_priority.jiejingheCard = 6.2
+sgs.ai_use_priority.jiejingheCard = 8.2
 
 --祖茂
 sgs.ai_skill_invoke.jieyinbing = function(self, data)
+    if self.player:hasSkill("huashen") then return false end
 	return true
 end
 --[[sgs.ai_skill_playerchosen.jieyinbing = function(self, choices, data)
@@ -130,7 +239,7 @@ jiezhengbing_skill.name = "jiezhengbing"
 table.insert(sgs.ai_skills, jiezhengbing_skill)
 jiezhengbing_skill.getTurnUseCard = function(self, inclusive)
     if self.player:hasUsed("#jiezhengbingCard") then return false end
-    --[[local unpreferedCards = {}
+    local unpreferedCards = {}
 	local cards = sgs.QList2Table(self.player:getHandcards())
     if self:getCardsNum("Slash") > 1 then
 		self:sortByKeepValue(cards)
@@ -138,7 +247,7 @@ jiezhengbing_skill.getTurnUseCard = function(self, inclusive)
 			if card:isKindOf("Slash") then table.insert(unpreferedCards, card:getEffectiveId()) end
 		end
 		table.remove(unpreferedCards, 1)
-        if (#cards - 2) >= self.player:gethp() then 
+        if (#cards - 2) >= self.player:getHp() then 
             return sgs.Card_Parse("#jiezhengbingCard:" .. unpreferedCards[1] .. ":&jiezhengbing")
         end
 	end
@@ -171,7 +280,7 @@ jiezhengbing_skill.getTurnUseCard = function(self, inclusive)
 		if not self.player:isJilei(sgs.Sanguosha:getCard(unpreferedCards[index])) then 
             return sgs.Card_Parse("#jiezhengbingCard:" .. unpreferedCards[index] .. ":&jiezhengbing")
         end
-	end]]
+	end
     local card_id = self:askForDiscard("dummyreason", 1, 1, false, true)
     return sgs.Card_Parse("#jiezhengbingCard:" .. card_id[1] .. ":&jiezhengbing" )
 end
@@ -187,38 +296,40 @@ jiexiechan_skill.name = "jiexiechan"
 table.insert(sgs.ai_skills, jiexiechan_skill)
 jiexiechan_skill.getTurnUseCard = function(self, inclusive)
     if self.player:getMark("@jiexiechan") < 1 or not self.player:hasFlag("luoyi") then return false end
-    local cards = sgs.QList2Table(self.player:getHandcards())
+    --local cards = sgs.QList2Table(self.player:getHandcards())
     if self:getCardsNum("Slash") == 0 then return false end
-    for _, enemy in sgs.qlist(self.enemies) do
-        if enemy:getHandcardNum() <= 4 and not enemy:isRemoved() and not (enemy:hasShownSkill("gongqing") and 
-        self:getAttackRange() < 3) and not enemy:hasArmorEffect("SilverLion") then
-            if enemy:hasShownSkill("wushuang") and self:getCardsNum("Slash") < 2 then
+    --[[for _, enemy in sgs.pairs(self.enemies) do
+        if enemy:getHandcardNum() <= 3 and not enemy:isKongcheng() and not enemy:isRemoved() and not (enemy:hasShownSkill("gongqing") 
+        and self:getAttackRange() < 3) and not enemy:hasArmorEffect("SilverLion") and not enemy:hasShownSkill("buqu") then
+            if (enemy:hasShownSkill("wusheng") and enemy:getHandcardNum() > 1) or (enemy:hasShownSkill("wushuang") and 
+            self:getCardsNum("Slash") < 2) then
                 continue
             end
             return sgs.Card_Parse("#jiexiechanCard:.:&jiexiechan")
         end
     end
-    return false
+    return false]]
+    return sgs.Card_Parse("#jiexiechanCard:.:&jiexiechan")
 end
 
 sgs.ai_skill_use_func["#jiexiechanCard"] = function(card, use, self)
-    use.card = card
-    for _, enemy in sgs.qlist(self.enemies) do
+    for _, enemy in pairs(self.enemies) do
         if enemy:getHandcardNum() <= 3 and not enemy:isKongcheng() and not enemy:isRemoved() and not (enemy:hasShownSkill("gongqing") 
         and self:getAttackRange() < 3) and not enemy:hasArmorEffect("SilverLion") and not enemy:hasShownSkill("buqu") then
-            if (enemy:hasShownSkill("wusheng") and enemy:getHandcardNum() == 1) or (enemy:hasShownSkill("wushuang") and 
+            if (enemy:hasShownSkill("wusheng") and enemy:getHandcardNum() > 1) or (enemy:hasShownSkill("wushuang") and 
             self:getCardsNum("Slash") < 2) then
                 continue
             end
+            use.card = card
             if use.to then
                 use.to:append(enemy)
+                break
             end
-            break
         end
     end
 end
 
-sgs.ai_use_priority.jiexiechanCard = 4.2
+sgs.ai_use_priority.jiexiechanCard = 7.2
 
 --甘宁
 sgs.ai_skill_invoke.jiefenwei = function(self, data)
@@ -295,7 +406,7 @@ sgs.ai_skill_invoke.jiefenwei = function(self, data)
         end
     else --队友最多两名时帮助盟军
         if card:isKindOf("ArcheryAttack") or card:isKindOf("SavageAssault") then
-            if self.player:isRemoved() and self:isFriendWith(use.from) then
+            if self.player:isRemoved() or self:isFriendWith(use.from) then
                 return false
             else
                 for _, p in pairs(tos) do
@@ -363,23 +474,14 @@ sgs.ai_skill_playerchosen.jiefenwei = function(self, targets)
     local card = use.card
     local tos = sgs.QList2Table(use.to)
     local result = {}
-    if not use or not card or not use.from then return false end
     local jiefenwei_value = 0
-	local evaluate_value = 0
 	for _,p in sgs.qlist(self.room:getAlivePlayers()) do
-		if sgs.isAnjiang(p) then
-            evaluate_value = evaluate_value + 1
-		elseif self.player:isFriendWith(p) then
+		if self.player:isFriendWith(p) then
 			jiefenwei_value = jiefenwei_value + 1
-			--if self:isWeak(p) then jiefenwei_value = jiefenwei_value + 1 end
 		end
 	end
-    if use and card:isKindOf("IronChain") then return false end
-    if evaluate_value >= 3 then --暗将较多，局势明朗再发动
-        return false
-    elseif jiefenwei_value >= 3 then --队友至少3名时
+    if jiefenwei_value >= 3 then --队友至少3名时
         if card:isKindOf("ArcheryAttack") or card:isKindOf("SavageAssault") then
-            if self.player:isRemoved() then return false end
             for _, p in pairs(tos) do
                 if (self:isFriendWith(p) or self.player:isFriendWith(p)) and not p:isRemoved() then
                     table.insert(result, p)
@@ -432,13 +534,9 @@ sgs.ai_skill_playerchosen.jiefenwei = function(self, targets)
         end
     else --队友最多两名时帮助盟军
         if card:isKindOf("ArcheryAttack") or card:isKindOf("SavageAssault") then
-            if self.player:isRemoved() and self:isFriendWith(use.from) then
-                return false
-            else
-                for _, p in pairs(tos) do
-                    if self:isFriend(p) then
-                        table.insert(result, p)
-                    end
+            for _, p in pairs(tos) do
+                if self:isFriend(p) then
+                    table.insert(result, p)
                 end
             end
         elseif card:isKindOf("FightTogether") and use.to:contains(self.player) then
@@ -448,13 +546,9 @@ sgs.ai_skill_playerchosen.jiefenwei = function(self, targets)
                 end
             end
         elseif card:isKindOf("Duel") and use.from:hasSkill("luoyi|wushuang|wushuang_lvlingqi") then
-            if self:isFriend(use.from) then
-                return false
-            else
-                for _, p in pairs(tos) do
-                    if self:isFriend(p) then
-                        table.insert(result, p)
-                    end
+            for _, p in pairs(tos) do
+                if self:isFriend(p) then
+                    table.insert(result, p)
                 end
             end
         elseif (card:isKindOf("AwaitExhausted") and #self.enemies >= 3 and use.to:contains(self.enemies[1])) or
@@ -492,3 +586,120 @@ sgs.ai_skill_playerchosen.jiefenwei = function(self, targets)
     end
     return result
 end
+
+--吕范
+sgs.ai_skill_invoke.jiediaoduDrawCard = function(self, data)
+	return true
+end
+
+sgs.ai_skill_invoke.jiediaodu = function(self, data)
+	return true
+end
+
+sgs.ai_skill_playerchosen.jiediaodu = function(self, targets)
+    if not self.player:hasFlag("jiediaodu_takeEquip") then
+        if targets:length() > 1 then
+            for _, hcard in sgs.qlist(self.player:getCards("h")) do
+                if hcard:isKindOf("EquipCard") and self:getSameEquip(hcard) then--重复先拿自己
+                    self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
+                    return self.room:getCurrent()
+                end
+            end
+            for _,p in sgs.qlist(targets) do
+                if p:hasSkills(sgs.lose_equip_skill) then
+                    self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
+                    return p
+                end
+            end
+        end
+        for _,p in sgs.qlist(targets) do
+            if self:needToThrowArmor(p) then
+                self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
+                return p
+            end
+        end
+        if self.player:getEquips():length() == 1 and self.player:hasTreasure("WoodenOx") and 
+        self.player:getPile("wooden_ox"):length() > 0 then
+            return {}
+        end
+        return {}
+    elseif self.player:hasFlag("jiediaodu_takeEquip") then
+        local diaodu_card
+        if self.diaodu_id then
+            diaodu_card = sgs.Sanguosha:getCard(self.diaodu_id)
+        end
+        for _,p in sgs.qlist(targets) do
+            if p:hasSkills(sgs.lose_equip_skill) and self:isFriend(p) and not self:willSkipPlayPhase(p) then
+                return p
+            end
+        end
+        local AssistTarget = self:AssistTarget()
+        if AssistTarget and targets:contains(AssistTarget) and not self:willSkipPlayPhase(AssistTarget) and 
+        self:isFriendWith(AssistTarget) then
+            return AssistTarget
+        end
+        if diaodu_card then
+            if diaodu_card:isKindOf("EquipCard") and self:getSameEquip(diaodu_card) then--重复装备
+                for _,p in sgs.qlist(targets) do
+                    if self:isFriendWith(p) and not self:willSkipPlayPhase(p) and not self:getSameEquip(diaodu_card, p)
+                    and self:playerGetRound(p, self.player) < self.room:alivePlayerCount() / 2 then
+                        return p
+                    end
+                end
+            end
+            --[[
+            local c, friend = self:getCardNeedPlayer({diaodu_card})--这样给装备是否合适？
+            if c and friend and self:isFriendWith(friend) and self:isFriendWith(friend) and targets:contains(friend) then
+            return friend
+            end]]
+        end
+        return self.room:getCurrent()
+    end
+    return self.room:getCurrent()
+end
+
+sgs.ai_skill_cardchosen.jiediaodu = function(self, who, flags, method, disable_list)
+	self.diaodu_id = nil
+	if who:objectName() == self.player:objectName() then--指针是可以判定等于的，severplayer类型，但是who是否会是player类型？
+		for _, hcard in sgs.qlist(self.player:getCards("h")) do
+			if hcard:isKindOf("EquipCard") and self:getSameEquip(hcard) then
+				self.diaodu_id = self:getSameEquip(hcard):getEffectiveId()
+				return self.diaodu_id
+			end
+		end
+	end
+	self.diaodu_id = self:askForCardChosen(who, flags, "diaodu_snatch", method, disable_list)
+	return self.diaodu_id
+end
+
+sgs.ai_skill_choice["@jiediaodu_obtainEquip"] = function(self, choices, data)
+	return "yes"
+end
+sgs.ai_skill_invoke.jiediaoduDrawCard = function(self, data)
+	return true
+end
+
+--[[sgs.ai_skill_choice["@jiediaodu_exchangeToEquip"] = function(self, choices, data)
+	return "yes"
+end]]
+
+--夏侯惇
+sgs.ai_skill_cardchosen.ganglie = sgs.ai_skill_cardchosen.jianchu
+sgs.ai_skill_invoke.jieqingjian = function(self, data)
+    if #self.friends_noself <= 0 then return false end 
+	return true
+end
+sgs.ai_skill_askforyiji.jieqingjian = sgs.ai_skill_askforyiji.yiji
+
+--臧霸
+function sgs.ai_skill_invoke.jiehengjiang(self, data)
+	local current = self.room:getCurrent()
+	if self:isFriend(current) then
+		return false
+	else
+		return true
+	end
+end
+
+--祝融
+sgs.ai_skill_cardchosen.jielierenPindian = sgs.ai_skill_cardchosen.jianchu

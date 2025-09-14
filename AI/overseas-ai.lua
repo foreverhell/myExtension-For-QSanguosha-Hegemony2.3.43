@@ -1246,7 +1246,7 @@ sgs.ai_skill_use["@@jiansu"] = function(self, prompt, method)
     local money_cards = {}
     local str_ids = self.player:property("jiansu_record"):toString():split("+")
     for _, str_id in ipairs(str_ids) do
-      table.insert(money_cards, sgs.Sanguosha:getCard(tonumber(str_id)))
+      	table.insert(money_cards, sgs.Sanguosha:getCard(tonumber(str_id)))
     end
     self:sortByUseValue(money_cards, true)
 
@@ -1261,7 +1261,8 @@ sgs.ai_skill_use["@@jiansu"] = function(self, prompt, method)
     end
     self:sort(self.friends, "hp")
     for _, p in ipairs(self.friends) do
-        if p:getHp() <= num and self.player:isFriendWith(p) and p:canRecover() then
+        --if p:getHp() <= num and self.player:isFriendWith(p) and p:canRecover() then
+		if p:getHp() <= #money_cards and self.player:isFriendWith(p) and p:canRecover() then
             local discards = {}
             for i = 1, p:getHp(), 1 do
                 table.insert(discards, money_cards[i]:getEffectiveId())
@@ -1270,7 +1271,8 @@ sgs.ai_skill_use["@@jiansu"] = function(self, prompt, method)
         end
     end
     for _, p in ipairs(self.friends) do
-        if p:getHp() <= num and self:isFriend(p) and self:isWeak(p) and p:canRecover() then
+        --if p:getHp() <= num and self:isFriend(p) and self:isWeak(p) and p:canRecover() then
+		if p:getHp() <= #money_cards and self:isFriend(p) and self:isWeak(p) and p:canRecover() then
             local discards = {}
             for i = 1, p:getHp(), 1 do
                 table.insert(discards, money_cards[i]:getEffectiveId())
@@ -1339,6 +1341,7 @@ sgs.ai_skill_invoke.naman = function(self, data)
 		end
 	end
 	if use and use.card:isKindOf("FightTogether") and use.to:contains(self.player) and self.player:isChained() then return false end
+	if use and use.card:isKindOf("BurningCamps") and not use.to:contains(self.player) then return false end
 	return true
 end
 
@@ -1426,9 +1429,45 @@ sgs.ai_skill_playerchosen["naman_target"] = function(self, targets)
                 return p
             end
         end
+	elseif card:isKindOf("Slash") then
+		self:sort(tos, "hp")
+		for _, p in ipairs(tos) do
+            if self:isFriend(p) and self:slashIsEffective(card, p, from) then
+                return p
+            end
+        end
+		for _, p in ipairs(targetlist) do
+            if not table.contains(tos, p) and not self:isFriend(p) and self:slashIsEffective(card, p, from) then
+                return p
+            end
+        end
+	elseif card:isKindOf("Duel") then
+		self:sort(tos, "hp")
+		for _, p in ipairs(tos) do
+            if self:isFriend(p) and self:trickIsEffective(card, p, from) then
+                return p
+            end
+        end
+		for _, p in ipairs(targetlist) do
+            if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) then
+                return p
+            end
+        end
+	elseif card:isKindOf("Snatch") or card:isKindOf("Dismantlement") then
+		self:sort(tos, "handcard")
+		for _, p in ipairs(tos) do
+            if self:isFriend(p) and self:trickIsEffective(card, p, from) and not self:isFriendWith(from) then
+                return p
+            end
+        end
+		for _, p in ipairs(targetlist) do
+            if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isNude() then
+                return p
+            end
+        end
     end
 
-    if is_friend then--调虎离山、联军等等，考虑使用和目标敌我，太复杂。暂时简单考虑
+    --[[if is_friend then--调虎离山、联军等等，考虑使用和目标敌我，太复杂。暂时简单考虑
         for _, p in ipairs(targetlist) do
             if not table.contains(tos, p)
             and ((card:isKindOf("TrickCard") and self:trickIsEffective(card, p, from))
@@ -1451,7 +1490,7 @@ sgs.ai_skill_playerchosen["naman_target"] = function(self, targets)
                     return p
             end
         end
-    end
+    end]]
     return {}
 end
 
@@ -1473,7 +1512,7 @@ sgs.ai_skill_invoke.guojue = function(self, data)
     return not self:isFriend(target)
 end
 
---[[sgs.ai_skill_use["@@shangshigive"] = function(self, prompt)
+sgs.ai_skill_use["@@shangshigive"] = function(self, prompt)
 	local lose_hp = self.player:getLostHp()
 	local current = self.room:getCurrent()
 	local cards = self.player:getCards("h")
@@ -1497,7 +1536,7 @@ end
 		end
 		local acard, afriend = self:getCardNeedPlayer(cards, self.friends_noself)
 		if lose_hp == 1 then
-			if acard and afriend then return "#shangshiCard:".. acard:getEffectiveId() .. "->" .. afriend:objectName() end
+			if acard and afriend then return "#shangshiCard:".. acard:getEffectiveId() .. ":&shangshi->" .. afriend:objectName() end
 		else
 			local target = nil
 			local to_give = {}
@@ -1522,22 +1561,43 @@ end
 				end
 			end
 			if target and #to_give == lose_hp then
-				return "#shangshiCard:" .. table.concat(to_give, "+") .. "->" .. target:objectName()
+				return "#shangshiCard:" .. table.concat(to_give, "+") .. ":&shangshi->" .. target:objectName()
 			end
 		end
 	end
-	--[[Global_room:writeToConsole("伤逝弃牌")
-	local card_ids = self:askForDiscard("dummy_reason", 1, 1, false, true)
-	return "#shangshiCard:".. card_ids[1] .. ":"]]
-	--return ""
---end
+	self:sortByUseValue(cards)
+	local actionList = sgs.SPlayerList()
+	local cardToGive = {}
+	actionList = self.room:getAlivePlayers()
+	self.room:sortByActionOrder(actionList)
+	for _, p in sgs.qlist(actionList) do
+		if self.player:isFriendWith(p) then
+			for i = 1, self.player:getLostHp() do
+				table.insert(cardToGive, cards[i]:getEffectiveId())
+			end
+			return "#shangshiCard:" .. table.concat(cardToGive, "+") .. ":&shangshi->" .. p:objectName()
+		end
+	end
+	return ""
+end
+
+sgs.ai_skill_invoke.shangshi = function(self, data)
+	local yuanshu = sgs.findPlayerByShownSkillName("weidi")
+	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then return false end
+	return true
+end
 
 sgs.ai_skill_choice.shangshi = function(self, choices)
-	if #self.friends_noself <= 0 or self.player:getHandcardNum() < self.player:getLostHp() then
+	local same_kingdom_count = 0
+	for _, p in pairs(self.friends_noself) do
+		if self.player:isFriendWith(p) then
+			same_kingdom_count = same_kingdom_count + 1
+		end
+	end
+	if same_kingdom_count <= 0 or self.player:getCards("h"):length() < self.player:getLostHp() then
 		return "discard"
 	end
-	return "discard"
-	--return "givecard"
+	return "givecard"
 end
 
 sgs.ai_skill_discard.shangshi = function(self, discard_num, min_num, optional, include_equip)
@@ -2554,7 +2614,7 @@ end
 
 sgs.ai_skill_playerchosen.haokui_transform = function(self, targets)
 	targets = sgs.QList2Table(targets)
-	local importantsklii = {"congjian", "jijiu", "qianhuan", "yigui", "shicai", "jinghe", "zhuidu"}--还有哪些？
+	local importantsklii = {"congjian", "jijiu", "qianhuan", "yigui", "shicai", "jiejinghe", "zhuidu", "huashen"}--还有哪些？
 	for _, target in ipairs(targets) do
 		local has_important = false
 		local skills = sgs.QList2Table(target:getDeputySkillList(true,true,false))
@@ -2575,7 +2635,7 @@ end
 
 sgs.ai_skill_choice["transform_haokui"] = function(self, choices)
 	Global_room:writeToConsole("袭射变更选择")
-	local importantsklii = {"congjian", "jijiu", "qianhuan", "yigui", "shicai", "jinghe"}--还有哪些？
+	local importantsklii = {"congjian", "jijiu", "qianhuan", "yigui", "shicai", "jiejinghe", "zhuidu", "huashen"}--还有哪些？
 	local skills = sgs.QList2Table(self.player:getDeputySkillList(true,true,false))
 	for _, skill in ipairs(skills) do
 		if table.contains(importantsklii, skill:objectName()) then--重要技能

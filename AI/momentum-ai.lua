@@ -85,12 +85,18 @@ sgs.wangxi_keep_value = {
 }
 
 --臧霸
-function sgs.ai_skill_invoke.jiehengjiang(self, data)
-	if not self:willShowForMasochism() then return false end
-	local target = data:toPlayer()
+function sgs.ai_skill_invoke.hengjiang(self, data)
+	--if not self:willShowForMasochism() then return false end
+	--[[local target = data:toPlayer()
 	if not target then target = data:toDamage().from end
 	if not target then return end
 	if self:isFriend(target) then
+		return false
+	else
+		return true
+	end]]
+	local current = self.room:getCurrent()
+	if self:isFriend(current) then
 		return false
 	else
 		return true
