@@ -5,6 +5,7 @@ caozhi_xianxia = sgs.General(extension, "caozhi_xianxia", "wei", 3) -- 蜀势力
 linlang = sgs.CreateTriggerSkill{  
     name = "linlang",  
     events = {sgs.FinishJudge},  
+    frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         local judge = data:toJudge()  
         local caozhi_xianxia = room:findPlayerBySkillName(self:objectName())  
@@ -78,6 +79,7 @@ linlang = sgs.CreateTriggerSkill{
 luoyingTurn = sgs.CreateTriggerSkill{  
     name = "luoyingTurn",  
     events = {sgs.Damaged, sgs.TurnedOver},  
+    frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  return "" end
         if event == sgs.Damaged then
@@ -520,10 +522,12 @@ sgs.LoadTranslationTable{
 }
 
 guansuo_xianxia = sgs.General(extension, "guansuo_xianxia", "shu", 4) -- 蜀势力，4血，男性（默认）  
+guansuo_xianxia:setDeputyMaxHpAdjustedValue(-1)
 
 zhengfeng = sgs.CreateTriggerSkill{  
     name = "zhengfeng",  
     events = {sgs.EventPhaseStart},  
+    frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or player:getPhase() ~= sgs.Player_Start then  
             return ""  
@@ -560,6 +564,7 @@ lvjin = sgs.CreateTriggerSkill{
     name = "lvjin",  
     relate_to_place = "head", -- 主将技  
     events = {sgs.Damage},  
+    --frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
             return ""  
@@ -602,6 +607,7 @@ muyang = sgs.CreateTriggerSkill{
     name = "muyang",  
     relate_to_place = "deputy", -- 副将技  
     events = {sgs.EventPhaseStart},  
+    frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Finish then  
             return self:objectName()  
@@ -646,7 +652,7 @@ sgs.LoadTranslationTable{
 ["lvjin"] = "旅进",  
 [":lvjin"] = "主将技，每回合限一次，当你使用杀造成伤害后，你可将该杀交给一名其他角色，若其为女性角色，其摸1张牌。",  
 ["muyang"] = "募养",  
-[":muyang"] = "副将技，你的结束阶段开始时，你可以亮出牌堆顶2张牌，获得其中的红色牌和杀。",
+[":muyang"] = "副将技，-1阴阳鱼。你的结束阶段开始时，你可以亮出牌堆顶2张牌，获得其中的红色牌和杀。",
 }
 
 liuchen = sgs.General(extension, "liuchen", "shu", 4) -- 蜀势力，4血，男性（默认）  
@@ -775,6 +781,7 @@ sunlin = sgs.General(extension, "sunlin", "wu", 4) -- 蜀势力，4血，男性�
 zhuanxing = sgs.CreateTriggerSkill{  
     name = "zhuanxing",  
     events = {sgs.EventPhaseStart},  
+    frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or player:getPhase() ~= sgs.Player_Start then  
             return ""  
@@ -1166,9 +1173,9 @@ gongao = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)  
         local death = data:toDeath()  
         local killer = death.damage and death.damage.from or nil  
-          
+        
         -- 检查是否是技能拥有者杀死的角色  
-        if killer and killer:isAlive() and killer:hasSkill(self:objectName()) then  
+        if killer and killer:isAlive() and killer:hasSkill(self:objectName()) and not killer:hasFlag("gongao_" .. death.who:objectName()) then  
             return self:objectName(), killer:objectName()
         end  
         return ""  
@@ -1179,7 +1186,7 @@ gongao = sgs.CreateTriggerSkill{
         local death = data:toDeath()  
         local killer = death.damage.from
         if ask_who:hasShownSkill(self:objectName()) or ask_who:askForSkillInvoke(self:objectName(),data) then
-            room:notifySkillInvoked(killer, self:objectName())  
+            room:notifySkillInvoked(ask_who, self:objectName())  
             room:broadcastSkillInvoke(self:objectName())  
             return true  
         end
@@ -1190,7 +1197,7 @@ gongao = sgs.CreateTriggerSkill{
         local death = data:toDeath()  
         local killer = death.damage.from  
         local dead_player = death.who  
-          
+        room:setPlayerFlag(ask_who,"gongao_" .. death.who:objectName())
         -- 查找与死亡角色势力相同的存活角色  
         local same_kingdom_players = sgs.SPlayerList()  
         for _, p in sgs.qlist(room:getAlivePlayers()) do  
@@ -1224,6 +1231,7 @@ zhugeguo = sgs.General(extension, "zhugeguo", "shu", 3, false)
 qidao = sgs.CreateTriggerSkill{
 	name = "qidao",
 	events = {sgs.CardUsed},
+    frequency = sgs.Skill_Frequent,  
 	can_trigger = function(self, event, room, player, data)
 		if skillTriggerable(player, self:objectName()) then
 			local use = data:toCardUse()
@@ -1281,7 +1289,7 @@ qidao = sgs.CreateTriggerSkill{
 yuhua = sgs.CreateTriggerSkill{  
     name = "yuhua",  
     events = {sgs.CardsMoveOneTime},  
-    frequency = sgs.Skill_Frequent,  
+    --frequency = sgs.Skill_Frequent,  
       
     can_trigger = function(self, event, room, player, data)
 		if skillTriggerable(player, self:objectName()) then
