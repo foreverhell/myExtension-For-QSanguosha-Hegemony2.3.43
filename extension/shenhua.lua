@@ -1369,6 +1369,81 @@ sgs.LoadTranslationTable{
     [":zhanjue"] = "出牌阶段开始时，你可以选择：（1）摸等同于当前体力值的牌，然后本回合使用杀无距离限制（2）摸等同于已失去体力值的牌，然后本回合下一次造成伤害后回复等量体力值"
 }  
 
+shen_simayi = sgs.General(extension, "shen_simayi", "wei", 4) -- 蜀势力，4血，男性（默认）  
+
+
+guijin = sgs.CreateTriggerSkill{  
+    name = "guijin",  
+    events = {sgs.EventPhaseStart},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName())   
+           and player:getPhase() == sgs.Player_Start then  
+                return self:objectName()  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(), data)  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        room:loseMaxHp(player,1)
+        if player:inHeadSkills(self:objectName()) then
+            room:detachSkillFromPlayer(player, self:objectName(), false, false, true)--第三个参数表示该技能的位置是否在主将上，默认true，位置不对移除不了
+        else
+            room:detachSkillFromPlayer(player, self:objectName(), false, false, false)--第三个参数表示该技能的位置是否在主将上，默认true，位置不对移除不了
+        end
+        room:acquireSkill(player,"fangzhu",true,true)
+        --room:acquireSkill(player,"jilve",true,true)
+        return false  
+    end  
+}
+
+jilve = sgs.CreateTriggerSkill{  
+    name = "jilve",  
+    events = {sgs.EventPhaseStart},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName())   
+           and player:getPhase() == sgs.Player_Start then  
+            if not player:hasSkill("guijin") then  
+                return self:objectName()  
+            end  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(), data)  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        local choices = {}
+        if not player:hasSkill("zhiheng") then
+            table.insert(choices,"zhiheng")
+        end
+        if not player:hasSkill("jizhi") then
+            table.insert(choices,"jizhi")
+        end
+        table.insert(choices,"draw3")
+        local choice = room:askForChoice(player,self:objectName(),table.concat(choices,'+'))
+        if choice == "zhiheng" then
+            room:acquireSkill(player,"zhiheng",true,true)
+        elseif choice == "jizhi" then
+            room:acquireSkill(player,"jizhi",true,true)
+        else
+            player:drawCards(3,self:objectName())
+        end
+        return false  
+    end  
+}
+shen_simayi:addSkill(guijin)  
+shen_simayi:addSkill(jilve)  
+sgs.LoadTranslationTable{
+    ["shen_simayi"] = "神司马懿",  
+    ["guijin"] = "归晋",  
+    [":guijin"] = "准备阶段，你可以失去一点体力上限，失去此技能，获得【放逐】，激活【极略】；",
+    ["jilve"] = "极略",  
+    [":jilve"] = "准备阶段，若你没有【归晋】，你可以选择（1）获得【制衡】（2）获得【集智】（3）摸3张牌；",
+}
 
 shen_zhaoyun = sgs.General(extension, "shen_zhaoyun", "shu", 4)  
 
