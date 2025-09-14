@@ -161,12 +161,12 @@ function SetInitialTables()
 							"hongfa|jijiu|luanji|wansha|jianchu|qianhuan|yigui|fudi|yongsi|"..
 							"paiyi|suzhi|shilu|huaiyi|chenglve|congcha|jinfa|lixia|"..
 							"zhukou|jinghe|guowu|shenwei|wanggui|boyan|kuangcai|"..
-							"miewu|guishu|sidi|danlao|wanglie|zhuidu"
+							"miewu|guishu|sidi|danlao|wanglie|zhuidu|jiediaodu|jiejinghe"
 	sgs.masochism_skill = "yiji|fankui|jieming|ganglie|fangzhu|hengjiang|jianxiong|qianhuan|zhiyu|jihun|fudi|" ..
-						  "bushi|shicai|quanji|zhaoxin|fankui_simazhao|wanggui|sidi|shangshi|benyu"
+						  "bushi|shicai|quanji|zhaoxin|fankui_simazhao|wanggui|sidi|shangshi|benyu|jiehengjiang"
 	sgs.defense_skill = "qingguo|longdan|kongcheng|niepan|bazhen|kanpo|xiangle|tianxiang|liuli|qianxun|leiji|duanchang|beige|weimu|" ..
 						"tuntian|shoucheng|yicheng|qianhuan|jizhao|wanwei|enyuan|buyi|keshou|qiuan|biluan|jiancai|aocai|" ..
-						"xibing|zhente|qiao|shejian|yusui|deshao|yuanyu|mingzhe|jilei|shigong|dingke|shefu"
+						"xibing|zhente|qiao|shejian|yusui|deshao|yuanyu|mingzhe|jilei|shigong|dingke|shefu|taidan"
 	sgs.usefull_skill = "tiandu|qiaobian|xingshang|xiaoguo|wusheng|guanxing|qicai|jizhi|kuanggu|lianhuan|huoshou|juxiang|shushen|zhiheng|keji|" ..
 						"duoshi|xiaoji|hongyan|haoshi|guzheng|zhijian|shuangxiong|guidao|guicai|xiongyi|mashu|lirang|yizhi|shengxi|" ..
 						"xunxun|wangxi|yingyang|hunshang|biyue"
@@ -3067,7 +3067,7 @@ function SmartAI:askForDiscard(reason, discard_num, min_num, optional, include_e
 	end
 	
 	local can_diaodu = false
-	local lvfan = sgs.findPlayerByShownSkillName("diaodu")
+	local lvfan = sgs.findPlayerByShownSkillName("jiediaodu")
 	if lvfan and self.player:isFriendWith(lvfan) and saveByUse then can_diaodu = true end--调度使用装备
 	local function getCardSurplusValue(card,to_save_ids,to_dis_ids)
 		local v,borderline = 0,0
@@ -3197,7 +3197,8 @@ function SmartAI:askForTransferFieldCards(targets, reason, equipArea, judgingAre
 	return -1
 end
 
---positive：为 true 时，本【无懈可击】使 trick 失效，否则本【无懈可击】使 trick 生效
+--positive：为 true 时，本【无懈可击】使 trick 失效，否则本【无懈可击】使 trick 生效？？？
+--看下来怎么感觉是反的？？？
 function SmartAI:askForNullification(trick, from, to, positive)
 	if self.player:isDead() then return nil end
 	if trick:isKindOf("SavageAssault") and self:isFriend(to) and positive then
@@ -3240,7 +3241,7 @@ function SmartAI:askForNullification(trick, from, to, positive)
 		end
 		if only then
 			for _, p in ipairs(self.friends) do
-				if p:containsTrick("indulgence") and not p:hasShownSkills("guanxing|yizhi|shensu|qiaobian") and p:getHandcardNum() >= p:getHp() and not trick:isKindOf("Indulgence") then
+				if p:containsTrick("indulgence") and not p:hasShownSkills("jieguanxing|jieyizhi|shensu|qiaobian") and p:getHandcardNum() >= p:getHp() and not trick:isKindOf("Indulgence") then
 					keep = true
 					break
 				end
@@ -3389,7 +3390,7 @@ function SmartAI:askForNullification(trick, from, to, positive)
 			end
 		elseif trick:isKindOf("Indulgence") then
 			if self:isFriend(to) and not to:isSkipped(sgs.Player_Play) then
-				if to:hasShownSkills("guanxing|yizhi") and (Global_room:alivePlayerCount() > 4 or to:hasShownSkills("guanxing+yizhi")) then return nil end
+				if to:hasShownSkills("jieguanxing|jieyizhi") then return nil end--and (Global_room:alivePlayerCount() > 3 or to:hasShownSkills("jieguanxing+jieyizhi")) then return nil end
 				if to:getHp() - to:getHandcardNum() >= 2 then return nil end
 				if to:hasShownSkill("tuxi") and to:getHp() > 2 then return nil end
 				if to:hasShownSkill("qiaobian") and not to:isKongcheng() then return nil end
@@ -3398,7 +3399,7 @@ function SmartAI:askForNullification(trick, from, to, positive)
 			end
 		elseif trick:isKindOf("SupplyShortage") then
 			if self:isFriend(to) and not to:isSkipped(sgs.Player_Draw) then
-				if to:hasShownSkills("guanxing|yizhi") and (Global_room:alivePlayerCount() > 4 or to:hasShownSkills("guanxing+yizhi")) then return nil end
+				if to:hasShownSkills("jieguanxing|jieyizhi") then return nil end--and (Global_room:alivePlayerCount() > 3 or to:hasShownSkills("jieguanxing+jieyizhi")) then return nil end
 				if to:hasShownSkills("guidao|tiandu") then return nil end
 				if to:hasShownSkill("qiaobian") and not to:isKongcheng() then return nil end
 				if (to:containsTrick("indulgence") or self:willSkipPlayPhase(to)) and null_num <= 1 and self:getOverflow(to) > 1 then return nil end
@@ -6796,7 +6797,7 @@ function SmartAI:useEquipCard(card, use)
 	elseif card:isKindOf("Armor") then
 		local lion = self:getCard("SilverLion")
 		if lion and self.player:isWounded() and not self.player:hasArmorEffect("SilverLion") and not card:isKindOf("SilverLion")
-			and not (self.player:hasSkills("bazhen|jgyizhong") and not self.player:getArmor()) then
+			and not (self.player:hasSkills("bazhen|jgyizhong|taidan") and not self.player:getArmor()) then
 			use.card = lion
 			return
 		end
@@ -7010,7 +7011,7 @@ end
 function SmartAI:needToThrowArmor(player)
 	player = player or self.player
 	if not player:getArmor() or not player:hasArmorEffect(player:getArmor():objectName()) then return false end
-	if player:hasShownSkill("bazhen") and not(player:getArmor():isKindOf("EightDiagram") or player:getArmor():isKindOf("RenwangShield") or player:getArmor():isKindOf("PeaceSpell")) then return true end
+	if player:hasShownSkill("bazhen|taidan") and not(player:getArmor():isKindOf("EightDiagram") or player:getArmor():isKindOf("RenwangShield") or player:getArmor():isKindOf("PeaceSpell")) then return true end
 	if self:evaluateArmor(player:getArmor(), player) <= -2 then return true end
 	if player:hasArmorEffect("SilverLion") and player:isWounded() and player:canRecover() 
 		and not self:needToLoseHp(player, nil, nil, true, true) then
