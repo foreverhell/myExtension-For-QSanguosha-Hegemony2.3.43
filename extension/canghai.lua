@@ -743,7 +743,7 @@ sgs.LoadTranslationTable{
     ["sigong"] = "伺攻",   
     [":sigong"] = "当任意角色的杀被闪抵消后，你可以将手牌摸或弃置至1张，视为对来源使用一张决斗。"  
 }  
-
+--[[
 --创建武将
 luajushou = sgs.General(extension, "luajushou", "qun", 3)
 
@@ -950,7 +950,7 @@ sgs.LoadTranslationTable{
     ["luashibei_get"] = "获得伤害来源的坐骑牌",
 	["luashibei_discard"] = "弃置一张坐骑牌并回复1点体力",
 }
-
+]]
 
 -- 创建武将：
 liru = sgs.General(extension, "liru", "qun", 3) 
@@ -1327,7 +1327,7 @@ sgs.LoadTranslationTable{
     [":mizhao"] = "出牌阶段限1次，你可以将X张牌交给一名其他角色（X为场上势力数-1），令其与另一名角色拼点，赢的角色视为对没赢的角色使用一张【杀】。",  
     ["@mizhao-pindian"] = "请选择拼点的目标",  
 }
-
+--[[
 lualuotong = sgs.General(extension, "lualuotong", "wu")
 
 luaqinzheng = sgs.CreateTriggerSkill{
@@ -1469,7 +1469,7 @@ sgs.LoadTranslationTable{
     "则按2、1的顺序发动）",
     ["@luaqinzheng_slashChoose"] = "勤政：选择一名角色对其出【杀】",
 }
-
+]]
 luyusheng_canghai = sgs.General(extension, "luyusheng_canghai", "wu", 3, false)  
 
 fengwu = sgs.CreateTriggerSkill{  
@@ -1632,24 +1632,6 @@ sgs.LoadTranslationTable{
   
 
 luzhi = sgs.General(extension, "luzhi", "wei", 3) -- 吴苋，蜀势力，3血，女性
---[[
-xianjing = sgs.CreateZeroCardViewAsSkill{  
-    name = "xianjing",  
-    view_as = function(self)  
-        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
-        slash:setSkillName(self:objectName())  
-        return slash  
-    end,  
-      
-    enabled_at_play = function(self, player)  
-        return not player:hasUsed("#xianjing") and sgs.Slash_IsAvailable(player) and not player:isKongcheng()
-    end,  
-      
-    enabled_at_response = function(self, player, pattern)  
-        return not player:hasUsed("#xianjing") and (pattern == "slash" or pattern == "jink") and not player:isKongcheng()
-    end  
-}  
-]]
 xianjingVS = sgs.CreateZeroCardViewAsSkill{  
     name = "xianjing",  
     response_or_use = true,  -- 关键参数，允许既主动使用又响应使用  
@@ -2496,9 +2478,9 @@ qianya = sgs.CreateTriggerSkill{
     events = {sgs.DamageInflicted, sgs.EventPhaseStart}, 
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then return "" end  
-        if event == sgs.DamageInflicted then -- and TriggerSkill.triggerable(player, self) 
+        if event == sgs.DamageInflicted then 
             return self:objectName()     
-        elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and player:hasShownSkill(self:objectName()) then  
+        elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then  
             return self:objectName()
         end  
           
@@ -2506,21 +2488,7 @@ qianya = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data)  
-        if event == sgs.DamageInflicted then  
-            room:broadcastSkillInvoke(self:objectName())  
-            --room:sendCompulsoryTriggerLog(self:objectName())  
-            if player:hasShownSkill(self:objectName()) then
-                return true
-            else
-                return player:askForSkillInvoke(self:objectName(), data)
-            end
-        elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then  
-            --room:broadcastSkillInvoke(self:objectName())  
-            --room:sendCompulsoryTriggerLog(self:objectName())  
-            return true --player:askForSkillInvoke(self:objectName(), data)  
-        end  
-          
-        return false  
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data)
     end,  
       
     on_effect = function(self, event, room, player, data)  
@@ -2534,7 +2502,11 @@ qianya = sgs.CreateTriggerSkill{
             end
         elseif event == sgs.EventPhaseStart then  
             -- 准备阶段失去技能。这部分有问题
-            room:detachSkillFromPlayer(player, self:objectName(), true, false, true)
+            if player:inHeadSkills(self:objectName()) then
+                room:detachSkillFromPlayer(player, self:objectName(), false, false, true)--第三个参数表示该技能的位置是否在主将上，默认true，位置不对移除不了
+            else
+                room:detachSkillFromPlayer(player, self:objectName(), false, false, false)--第三个参数表示该技能的位置是否在主将上，默认true，位置不对移除不了
+            end
         end  
           
         return false  
@@ -2851,7 +2823,7 @@ sgs.LoadTranslationTable{
     [":jici"] = "当你拼点没赢后，你受到赢得角色的1点伤害，然后摸2张牌，令鼓舌本回合限2次。",  
     ["@jici-invoke"] = "你可以发动激词",
 }
-
+----------------------------我实现的王凌
 --[[wangling = sgs.General(extension, "wangling", "wei", 4)  
   
 mibei = sgs.CreateTriggerSkill{  
@@ -2978,8 +2950,10 @@ sgs.LoadTranslationTable{
     ["mibei_execute"] = "执行军令",  
     ["mibei_refuse"] = "拒绝军令",  
     ["@mibei-discard"] = "秘备：你需要弃置一张手牌",  
-}  ]]--
-
+}  
+]]
+----------------------------zz实现的王凌
+--[[
 luawangling = sgs.General(extension, "luawangling", "wei")
 
 luamibei = sgs.CreateTriggerSkill{
@@ -3089,46 +3063,9 @@ sgs.LoadTranslationTable{
     ["@luamibei_command"] = "秘备：选择一名手牌数最多的其他角色对你发起军令",
     ["@luamibei_discard"] = "秘备：弃置一张手牌",
 }
-
+]]
 -- 创建武将：
 wangyi = sgs.General(extension, "wangyi", "wei", 3)  -- 吴国，4血，男性  
---[[
-zhenlie = sgs.CreateTriggerSkill{  
-    name = "zhenlie",  
-    events = {sgs.TargetConfirming},  --CardEffected--杀/单体锦囊至少需要一个目标，此时在指定目标时触发取消目标不能成功，需要在效果生效时触发取消效果
-      
-    can_trigger = function(self, event, room, player, data)  
-        local effect = data:toCardEffect()  
-        if effect.to and effect.to:hasSkill(self:objectName()) and effect.card then
-            --if effect.card:isKindOf("DelayedTrick") then return "" end
-            if effect.card:isKindOf("Slash") or effect.card:isNDTrick() then --or effect.card:isKindOf("TrickCard")
-                return self:objectName()  
-            end
-        end  
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        if player:askForSkillInvoke(self:objectName(), data) then  
-            room:broadcastSkillInvoke(self:objectName(), player)  
-            return true  
-        end  
-        return false  
-    end,  
-      
-    on_effect = function(self, event, room, player, data)  
-        room:loseHp(player, 1)  -- 失去一点体力  
-        player:drawCards(1)
-
-        local effect = data:toCardEffect()  
-        -- 弃置来源一张牌
-        if effect.from and effect.from:isAlive() and not effect.from:isAllNude() then  
-            local card_id = room:askForCardChosen(player, effect.from, "hej", self:objectName())  
-            room:throwCard(card_id, effect.from, player)  
-        end            
-        return true  --返回true，终止效果结算
-    end  
-}
-]]
 zhenlie = sgs.CreateTriggerSkill{  
     name = "zhenlie",  
     events = {sgs.TargetConfirming}, --sgs.CardEffected
@@ -3155,13 +3092,14 @@ zhenlie = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data)  
         room:loseHp(player, 1)  -- 失去一点体力  
-        player:drawCards(1)
 
         local use = data:toCardUse()  
         sgs.Room_cancelTarget(use, player)
-        data:setValue(use)   
+        data:setValue(use) 
+
+        player:drawCards(1)
         -- 弃置来源一张牌
-        if use.from and use.from:isAlive() and not use.from:isNude() then  
+        if player:isAlive() and use.from and use.from:isAlive() and not use.from:isNude() then  
             local card_id = room:askForCardChosen(player, use.from, "he", self:objectName())  
             room:throwCard(card_id, use.from, player)  
         end            
@@ -3563,10 +3501,10 @@ jingde = sgs.CreateTriggerSkill{
           
         -- 伤害-1  
         damage.damage = damage.damage - 1  
+        data:setValue(damage)  
         if damage.damage <= 0 then  
             return true -- 阻止伤害  
         end  
-        data = sgs.QVariant_fromValue(damage)  
         return false  
     end  
 }
@@ -3591,7 +3529,7 @@ sgs.LoadTranslationTable{
     ["source_show_head_general"] = "明置伤害来源的主将",  
     ["source_show_deputy_general"] = "明置伤害来源的副将",
 }
-
+--[[
 -- 创建武将：
 luayufan = sgs.General(extension, "luayufan", "wu", 3)
 
@@ -3744,7 +3682,7 @@ sgs.LoadTranslationTable{
     ["luazongxuan#up"] = "放入弃牌堆",
     ["luazongxuan#down"] = "放入牌堆顶",
 }
-
+]]
 zhangchangpu = sgs.General(extension, "zhangchangpu", "wei", 3, false)  
 
 xingshen = sgs.CreateTriggerSkill{  
@@ -3824,7 +3762,7 @@ yanjiao_card = sgs.CreateSkillCard{
     will_throw = false,  
     filter = function(self, targets, to_select, Self)  
         return #targets == 0 and to_select:objectName() ~= Self:objectName()   
-               and (to_select:getKingdom() == Self:getKingdom() and to_select:getRole()~="careerist")
+               and (to_select:getKingdom() == Self:getKingdom() and to_select:getRole()~="careerist" and Self:getRole()~="careerist")
     end,  
     feasible = function(self, targets, Self)  
         return #targets == 1  
@@ -3873,12 +3811,12 @@ sgs.LoadTranslationTable{
     [":xingshen"] = "你受到伤害后，你可以选择摸1张牌或弃置1张手牌，然后展示所有手牌，若所有手牌的花色和伤害牌都不相同，你可以令一名其他角色恢复一点体力。",  
       
     ["yanjiao"] = "严教",   
-    [":yanjiao"] = "出牌阶段限一次，你可以对一名同势力角色造成1点伤害，令其摸2张牌。",  
+    [":yanjiao"] = "出牌阶段限一次，你可以对一名同势力其他角色造成1点伤害，令其摸2张牌。",  
 
 }  
 
 -- 创建武将：
-zhonghui = sgs.General(extension, "zhonghui", "wei", 3)  -- 吴国，4血，男性  
+zhonghui_wei = sgs.General(extension, "zhonghui_wei", "wei", 3)  -- 吴国，4血，男性  
 
 fushuCard = sgs.CreateSkillCard{  
     name = "fushu",  
@@ -3945,8 +3883,9 @@ fushu = sgs.CreateZeroCardViewAsSkill{
 }
 
 
-zhonghui:addSkill(fushu)
+zhonghui_wei:addSkill(fushu)
 sgs.LoadTranslationTable{
+    ["zhonghui_wei"] = "钟会",
     ["fushu"] = "扶术",  
     [":fushu"] = "出牌阶段限一次。你可以令一名角色视为使用一张远交近攻，然后其对你指定的另一名与其势力相同的角色造成一点伤害。",  
     ["@fushu-damage"] = "请选择一名与 %src 势力相同的角色，令 %src 对其造成一点伤害",
