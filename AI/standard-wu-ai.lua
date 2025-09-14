@@ -1681,7 +1681,7 @@ sgs.ai_skill_use["@@tianxiang"] = function(self, data, method)
 	cards = sgs.QList2Table(cards)
 	self:sortByUseValue(cards, true)
 	for _, card in ipairs(cards) do
-		if not self.player:isCardLimited(card, method) and (card:getSuit() == sgs.Card_Heart or (self.player:hasSkill("hongyan") and card:getSuit() == sgs.Card_Spade)) then
+		if not self.player:isCardLimited(card, method) and (card:getSuit() == sgs.Card_Heart or (self.player:hasShownSkill("hongyan") and card:getSuit() == sgs.Card_Spade)) then
 			card_tianxiang = card
 			break
 		end
