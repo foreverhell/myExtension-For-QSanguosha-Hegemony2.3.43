@@ -386,7 +386,7 @@ zhuanzheng = sgs.CreateTriggerSkill{
         if player:getHandcardNum() == 0 then  
             for _, p in sgs.qlist(room:getAlivePlayers()) do  
                 if p:hasSkill(self:objectName()) then  
-                    return self:objectName(), p:objectName()
+                    return self:objectName() .. "->" .. player:objectName()
                 end  
             end  
         end  
