@@ -253,6 +253,7 @@ mou_huangyueying = sgs.General(extension, "mou_huangyueying", "shu", 3, false) -
 lizi = sgs.CreateTriggerSkill{  
     name = "lizi",  
     events = {sgs.EventPhaseStart, sgs.Damaged},  
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
             return ""  
@@ -774,10 +775,16 @@ shen_zhugeliang_xcx = sgs.General(extension, "shen_zhugeliang_xcx", "shu", 3) --
 
 qixing_xcx = sgs.CreateTriggerSkill{  
     name = "qixing_xcx",  
-    events = {sgs.Dying},  
+    events = {sgs.EventPhaseStart,sgs.Dying},  
     frequency = sgs.Skill_Limited,  
     limit_mark = "@qixing_xcx",  
     can_trigger = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
+            if (player and player:isAlive() and player:hasSkill(self:objectName())) then
+                room:setPlayerMark(player,"@qixing_xcx",1)
+            end
+            return ""
+        end
         local dying = data:toDying()  
         if dying.who and dying.who:objectName() == player:objectName()   
                and player:hasSkill(self:objectName()) and player:getMark("@qixing_xcx") > 0  then
@@ -811,6 +818,7 @@ qixing_xcx = sgs.CreateTriggerSkill{
 tianfaTrick = sgs.CreateTriggerSkill{  
     name = "tianfaTrick",  
     events = {sgs.EventPhaseStart, sgs.CardUsed, sgs.EventPhaseEnd},  
+    --frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
         if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start  then  
@@ -976,6 +984,7 @@ QiAi = sgs.CreateOneCardViewAsSkill{
 ShanXi = sgs.CreateTriggerSkill{  
     name = "shanxi",  
     events = {sgs.EventPhaseStart, sgs.HpRecover},  
+    --frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         if event == sgs.EventPhaseStart then
             if player and player:isAlive() and player:hasSkill(self:objectName())   
@@ -1163,6 +1172,7 @@ zhugeguo_xcx = sgs.General(extension, "zhugeguo_xcx", "shu", 3, false) -- 蜀势
 qidaoXCX = sgs.CreateTriggerSkill{  
     name = "qidaoXCX",  
     events = {sgs.CardUsed},  
+    frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
         if event == sgs.CardUsed then
