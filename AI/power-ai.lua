@@ -352,7 +352,7 @@ sgs.ai_skill_use_func.JianglveCard= function(card, use, self)
 end
 
 sgs.ai_card_intention.JianglveCard = -120
-sgs.ai_use_priority.JianglveCard = 6.15
+sgs.ai_use_priority.JianglveCard = 8
 
 sgs.ai_skill_choice["startcommand_jianglve"] = function(self, choices)
   Global_room:writeToConsole(choices)
