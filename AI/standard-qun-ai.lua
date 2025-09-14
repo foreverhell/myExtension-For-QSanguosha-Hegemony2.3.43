@@ -589,7 +589,7 @@ luanji_skill.getTurnUseCard = function(self)
 					local svalueCard = (isCard("Peach", scard, self.player) or isCard("ExNihilo", scard, self.player) or isCard("ArcheryAttack", scard, self.player) or isCard("JadeSeal", scard, self.player))
 					if useAll and not can_jianxiong then svalueCard = (isCard("ArcheryAttack", scard, self.player) or isCard("BefriendAttacking", scard, self.player))
 					elseif useAll and can_jianxiong then svalueCard = (isCard("ArcheryAttack", scard, self.player) or isCard("BefriendAttacking", scard, self.player) or isCard("Peach", scard, caocao)) end
-					if first_card ~= scard and (scard:getSuit() == first_card:getSuit() or not hasSamesuit)--新万箭齐发
+					if first_card ~= scard and (scard:getSuit() == first_card:getSuit() and not hasSamesuit)--新万箭齐发
 						and not svalueCard and not table.contains(usedsuits, sgs.Sanguosha:getCard(scard:getId()):getSuitString()) then
 
 						local card_str = ("archery_attack:luanji[%s:%s]=%d+%d&luanji"):format("to_be_decided", 0, first_card:getId(), scard:getId())
@@ -900,7 +900,7 @@ sgs.ai_skill_invoke.weimu = function(self, data)
 	--南
 	if use.card:isKindOf("SavageAssault") and self:getCardsNum("Slash") == 0 then return true end
 	--乱击
-	if use.card:isKindOf("ArcheryAttack") and self:getCardsNum("Jink") <= 1 then return true end
+	if use.card:isKindOf("ArcheryAttack") then return true end--and self:getCardsNum("Jink") <= 1 then return true end
 	--闪电
 	if use.card:isKindOf("Lightning") then return true end
 	--火烧连营
@@ -966,11 +966,19 @@ sgs.ai_skill_invoke.jianchu = function(self,data)
 end
 
 sgs.ai_skill_cardchosen.jianchu = function(self, who, flags, method, disable_list)
-	if flags:match("e") then
-		local id = self:askForCardChosen(who, "e", "jianchu_dismantlement", method, disable_list)
+	--if flags:match("e") then
+	if not who:getEquips():isEmpty() then
+		if who:getArmor() then 
+			local armor = who:getArmor()
+			if armor:objectName() == "PeaceSpell" and who:getHp() <= 1 then end
+			return who:getArmor():getEffectiveId() 
+		end
+		if who:getTreasure() then return who:getTreasure():getEffectiveId() end
+
+		--[[local id = self:askForCardChosen(who, "e", "jianchu_dismantlement", method, disable_list)
 		if id then
 			return id
-		end
+		end]]
 	else
 		return self:askForCardChosen(who, flags, "jianchu_dismantlement", method, disable_list)
 	end
@@ -1337,7 +1345,7 @@ sgs.ai_skill_use_func.XiongyiCard = function(card, use, self)
 end
 
 sgs.ai_card_intention.XiongyiCard = -80
-sgs.ai_use_priority.XiongyiCard = 3.31
+sgs.ai_use_priority.XiongyiCard = 10
 
 --孔融
 sgs.ai_skill_invoke.mingshi = true
