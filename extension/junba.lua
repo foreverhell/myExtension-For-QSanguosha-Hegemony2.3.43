@@ -409,7 +409,121 @@ sgs.LoadTranslationTable{
     ["$zhimin2"] = "置民安邦，方显君德。",  
     ["~caofang"] = "江山如此多娇...",  
 }  
+caomao = sgs.General(extension, "caomao", "wei", 3)  
+  
+-- 潜龙技能  
+qianlong = sgs.CreateTriggerSkill{  
+    name = "qianlong",  
+    events = {sgs.Damaged},  
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then  
+            local damage = data:toDamage()  
+            return self:objectName()  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        local lost_hp = player:getMaxHp() - player:getHp()  
+        local cards = room:getNCards(3, false)  
+         
+        local to_get = {}  
+        for i = 1, math.min(lost_hp, 3) do  
+            room:fillAG(cards, player) 
+            local card_id = room:askForAG(player, cards, true, self:objectName())  
+            if card_id == -1 then 
+                room:clearAG(player)
+                break
+            end  
+            table.insert(to_get, card_id)  
+            cards:removeOne(card_id)  
+            room:clearAG(player)
+        end  
+          
+        if #to_get > 0 then  
+            local dummy = sgs.DummyCard()  
+            for _, id in ipairs(to_get) do  
+                dummy:addSubcard(id)  
+            end  
+            player:obtainCard(dummy)  
+        end  
+          
+        -- 将剩余的牌放回牌堆顶  
+        for _, id in sgs.qlist(cards) do  
+            room:returnToTopDrawPile(id)  
+        end  
+          
+        return false  
+    end  
+}  
+  
+-- 忿肆技能  
+fensi = sgs.CreateTriggerSkill{  
+    name = "fensi",  
+    events = {sgs.EventPhaseStart},  
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName())   
+           and player:getPhase() == sgs.Player_Start then  
+            return self:objectName()  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(),data)  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        local targets = sgs.SPlayerList()  
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if p:getHp() >= player:getHp() then  
+                targets:append(p)  
+            end  
+        end  
+          
+        if targets:isEmpty() then return false end  
+          
+        local target = room:askForPlayerChosen(player, targets, self:objectName(),   
+                                             "@fensi-choose", true, true)  
+          
+        if target and target:isAlive() then  
+            local damage = sgs.DamageStruct()  
+            damage.from = player  
+            damage.to = target  
+            damage.damage = 1  
+            room:damage(damage)  
+              
+            if target:objectName() ~= player:objectName() and target:isAlive() then  
+                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)  
+                slash:setSkillName(self:objectName())  
+                local use = sgs.CardUseStruct()  
+                use.card = slash  
+                use.from = target  
+                use.to:append(player)  
+                room:useCard(use, false)  
+            end  
+        end  
+          
+        return false  
+    end  
+}  
+  
+caomao:addSkill(qianlong)  
+caomao:addSkill(fensi)
 
+sgs.LoadTranslationTable{
+["caomao"] = "曹髦",  
+["#caomao"] = "高贵乡公",  
+["qianlong"] = "潜龙",  
+[":qianlong"] = "当你受到伤害后，你可以展示牌堆顶的三张牌，然后获得其中至多X张，X为已失去的体力值。",  
+["fensi"] = "忿肆",  
+[":fensi"] = "回合开始时，你对一名体力值大于等于你的角色造成1点伤害，若其不为你，其视为对你使用一张杀。",  
+["@fensi-choose"] = "忿肆：选择一名体力值大于等于你的角色",
+}
 xing_caoren = sgs.General(extension, "xing_caoren", "jin", 3)  -- 吴国，4血，男性  
 
 sujun = sgs.CreateTriggerSkill{  
@@ -910,6 +1024,107 @@ sgs.LoadTranslationTable{
 ["dangxian"] = "当先",   
 ["zhiman"] = "制蛮"
 }  
+haozhao = sgs.General(extension, "haozhao", "wei", 4)  
+  
+zhengu = sgs.CreateTriggerSkill{  
+    name = "zhengu",  
+    events = {sgs.EventPhaseStart},  
+    can_trigger = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart then  
+            -- 郝昭/拥有'骨'标记的角色回合结束时触发  
+            if player and player:isAlive() and player:getPhase() == sgs.Player_NotActive then
+                if player:hasSkill(self:objectName()) or player:getMark("@bone") > 0  then
+                    return self:objectName()  
+                end
+            end  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        if player:hasSkill(self:objectName()) then
+            return player:askForSkillInvoke(self:objectName(),data)
+        elseif player:getMark("@bone") > 0 then
+            -- 拥有'骨'标记的角色回合结束时，自动触发  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        if player:hasSkill(self:objectName()) then  
+            -- 郝昭的结束阶段效果  
+            -- 郝昭的结束阶段，选择其他角色  
+            local targets = sgs.SPlayerList()  
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
+                if p:isAlive() then  
+                    targets:append(p)  
+                end  
+            end  
+              
+            if targets:isEmpty() then return false end  
+              
+            local target = room:askForPlayerChosen(player, targets, self:objectName(),   
+                                                 "@zhengu-choose", true, true)  
+              
+            if target and target:isAlive() then  
+                -- 给目标添加'骨'标记  
+                room:setPlayerMark(target, "@bone", 1)  
+                  
+                -- 调整目标手牌数至与郝昭相同  
+                local haozhao_handcards = player:getHandcardNum()  
+                local target_handcards = target:getHandcardNum()  
+                  
+                if target_handcards < haozhao_handcards then  
+                    target:drawCards(haozhao_handcards - target_handcards, self:objectName())  
+                elseif target_handcards > haozhao_handcards then  
+                    room:askForDiscard(target, self:objectName(),   
+                                     target_handcards - haozhao_handcards,   
+                                     target_handcards - haozhao_handcards,   
+                                     false, false)  
+                end  
+            end  
+        elseif player:getMark("@bone") > 0 then  
+            -- 拥有'骨'标记的角色回合结束时效果  
+            room:setPlayerMark(player, "@bone", 0)  
+              
+            -- 找到拥有镇骨技能的角色（郝昭）  
+            local haozhao_player = nil  
+            for _, p in sgs.qlist(room:getAlivePlayers()) do  
+                if p:hasSkill(self:objectName()) then  
+                    haozhao_player = p  
+                    break  
+                end  
+            end  
+              
+            if haozhao_player and haozhao_player:isAlive() then  
+                local haozhao_handcards = haozhao_player:getHandcardNum()  
+                local player_handcards = player:getHandcardNum()  
+                  
+                if player_handcards < haozhao_handcards then  
+                    player:drawCards(haozhao_handcards - player_handcards, self:objectName())  
+                elseif player_handcards > haozhao_handcards then  
+                    room:askForDiscard(player, self:objectName(),   
+                                     player_handcards - haozhao_handcards,   
+                                     player_handcards - haozhao_handcards,   
+                                     false, true)  
+                end  
+            end  
+        end  
+          
+        return false  
+    end  
+}  
+  
+haozhao:addSkill(zhengu)
+
+sgs.LoadTranslationTable{
+["haozhao"] = "郝昭",  
+["#haozhao"] = "镇守街亭",  
+["zhengu"] = "镇骨",  
+[":zhengu"] = "你的回合结束时，你可以选择一名其他角色，令其获得1个'骨'标记，并将手牌摸或弃至与你相同；拥有'骨'标记的角色回合结束时，其移除'骨'标记，然后将手牌摸或弃至与你相同。",  
+["@zhengu-choose"] = "镇骨：选择一名其他角色获得'骨'标记",  
+["@bone"] = '骨',
+}
 
 hejin_junba = sgs.General(extension, "hejin_junba", "qun", 3)  
 
@@ -2615,6 +2830,88 @@ sgs.LoadTranslationTable{
     ["weimian:draw"] = "摸四张牌",  
     ["@weimian"] = "慰勉：选择弃置所有手牌"  
 }  
+
+wangping_junba = sgs.General(extension, "wangping_junba", "shu", 4)  
+  
+feijunCard = sgs.CreateSkillCard{  
+    name = "FeijunCard",  
+    will_throw = true,  
+    target_fixed = false,  
+    filter = function(self, targets, to_select, Self)  
+        if #targets >= 1 then return false end  
+        if to_select:objectName() == Self:objectName() then return false end  
+
+        return to_select:getHandcardNum() > Self:getHandcardNum()-1 or to_select:getEquips():length() > Self:getEquips():length()-1
+    end,  
+    feasible = function(self, targets, Self)  
+        return #targets == 1  
+    end,  
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+
+        local choices = {}  
+        if target:getHandcardNum() > source:getHandcardNum() then  
+            table.insert(choices, "handcard")  
+        end  
+        if target:getEquips():length() > source:getEquips():length() then  
+            table.insert(choices, "equip")  
+        end       
+        if #choices == 0 then return false end  
+        local choice = room:askForChoice(source, self:objectName(), table.concat(choices, "+"))  
+
+          
+        -- 检查是否第一次选择该目标  
+        local first_time_mark = "feijun_first_" .. target:objectName()  
+        local is_first_time = source:getMark(first_time_mark) == 0  
+        if is_first_time then  
+            room:setPlayerMark(source, first_time_mark, 1)  
+        end  
+          
+        if choice == "handcard" then  
+            -- 选择1：令手牌数大于你的角色交给你一张牌  
+            if target:getHandcardNum() > source:getHandcardNum() and not target:isNude() then  
+                local card_id = room:askForCardChosen(target, target, "he", "feijun", false, sgs.Card_MethodNone)  
+                room:obtainCard(source, sgs.Sanguosha:getCard(card_id))  
+            end  
+        elseif choice == "equip" then  
+            -- 选择2：令装备区大于你的角色弃置装备区的一张装备  
+            if target:getEquips():length() > source:getEquips():length() and not target:getEquips():isEmpty() then  
+                local card_id = room:askForCardChosen(target, target, "e", "feijun", false, sgs.Card_MethodDiscard)  
+                room:throwCard(sgs.Sanguosha:getCard(card_id), target, target)  
+            end  
+        end  
+          
+        -- 若第一次选择该目标，摸2张牌  
+        if is_first_time then  
+            source:drawCards(2, "feijun")  
+        end  
+    end  
+}  
+  
+-- 飞军视为技  
+feijun = sgs.CreateOneCardViewAsSkill{  
+    name = "feijun",  
+    filter_pattern = ".",  
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#FeijunCard")  
+    end,  
+    view_as = function(self, card)  
+        local acard = feijunCard:clone()  
+        acard:addSubcard(card:getEffectiveId())  
+        acard:setShowSkill(self:objectName())  
+        return acard  
+    end  
+}  
+wangping_junba:addSkill(feijun)
+
+sgs.LoadTranslationTable{
+["wangping_junba"] = "王平",  
+["#wangping_junba"] = "镇北将军",  
+["feijun"] = "飞军",  
+[":feijun"] = "出牌阶段限一次，你可以弃置一张牌，然后选择：1.令一名手牌数大于你的角色交给你一张牌；2.令一名装备区大于你的角色弃置装备区的一张装备。若本局游戏中，你第一次选择该目标，你摸2张牌。",  
+["handcard"] = "令其交给你一张手牌",  
+["equip"] = "令其弃置一张装备",
+}
 
 -- 创建武将：
 xiahoushi = sgs.General(extension, "xiahoushi", "shu", 3, false)  -- 吴国，4血，男性  
