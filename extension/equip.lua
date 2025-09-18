@@ -1472,7 +1472,7 @@ sgs.LoadTranslationTable{
     ["#JinxiuZhengpaoNullify"] = "%from 的【%arg】效果被触发，免疫了此次伤害",
 
     ["XiuliQiankun"] = "袖里乾坤",  
-    [":XiuliQiankun"] = "装备牌·防具\n\n技能：锁定技，你不会成为延时锦囊的目标；当延时性锦囊生效时，取消之；当你你被叠置时，你平置。",
+    [":XiuliQiankun"] = "装备牌·防具\n\n技能：锁定技，你不会成为延时锦囊的目标；当延时性锦囊生效时，取消之；当你被叠置时，你平置。",
 
     ["Bileizhen"] = "避雷针",  
     [":Bileizhen"] = "装备牌·防具\n\n技能：\
