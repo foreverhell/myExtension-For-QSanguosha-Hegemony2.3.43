@@ -1606,7 +1606,7 @@ zhaojie = sgs.CreateTriggerSkill{
 zhaojieDelay = sgs.CreateProhibitSkill{  --不能指定为目标，不是取消目标
     name = "zhaojieDelay",  
     is_prohibited = function(self, from, to, card)  
-        if to and to:hasSkill(self:objectName()) and card and card:getSubtype() == "delayed_trick" then  
+        if to and to:hasSkill(self:objectName()) and card and card:isKindOf("DelayedTrick") then  
             return true  
         end  
         return false  
