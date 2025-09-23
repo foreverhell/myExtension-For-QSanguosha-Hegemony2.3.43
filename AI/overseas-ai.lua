@@ -1361,108 +1361,132 @@ sgs.ai_skill_playerchosen["naman_target"] = function(self, targets)
     local is_friend = self:isFriend(from)
     local tos = sgs.QList2Table(use.to)
     local targetlist = sgs.QList2Table(targets)
+	local result = {}
 
-    if card:isKindOf("ArcheryAttack") or card:isKindOf("SavageAssault") then
+    if card:isKindOf("ArcheryAttack") or card:isKindOf("SavageAssault") or card:isKindOf("BurningCamps") then
         self:sort(tos, "hp")
         for _, p in ipairs(tos) do
             if self.player:isFriendWith(p) and self:aoeIsEffective(card, p, from) then
-                return p
+				table.insert(result, p)
+                return result
             end
         end
         for _, p in ipairs(tos) do
-            if self.player:isFriendWith(p) and self:aoeIsEffective(card, p, from) then
-                return p
+            if self:isFriend(p) and self:aoeIsEffective(card, p, from) then
+                table.insert(result, p)
+                return result
             end
         end
     elseif card:isKindOf("GodSalvation") then
         self:sort(tos, "hp")
         for _, p in ipairs(tos) do
             if self:isEnemy(p) and self:trickIsEffective(card, p, from) then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
         for _, p in ipairs(tos) do
             if not self:isFriend(p) and self:trickIsEffective(card, p, from) then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
     elseif card:isKindOf("AmazingGrace") then
         self:sort(tos, "handcard")
         for _, p in ipairs(tos) do
             if self:isEnemy(p) and self:trickIsEffective(card, p, from) then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
         for _, p in ipairs(tos) do
             if not self:isFriend(p) and self:trickIsEffective(card, p, from) then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
     elseif card:isKindOf("AwaitExhausted") then
         if is_friend then
             return {}
         else
-            return targetlist[1]
+            table.insert(result, targetlist[1])
+			return result
         end
     elseif card:isKindOf("IronChain") then
         self:sort(tos, "defenseSlash")
         for _, p in ipairs(tos) do
-            if self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isChained() then
-                return p
+            if self.player:isFriendWith(p) and self:trickIsEffective(card, p, from) and not p:isChained() then
+                table.insert(result, p)
+                return result
             end
         end
         self:sort(targetlist, "defenseSlash")
         for _, p in ipairs(targetlist) do
             if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isChained() then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
     elseif card:isKindOf("FightTogether") then
         self:sort(tos, "defenseSlash")
         for _, p in ipairs(tos) do
             if self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isChained() then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
         for _, p in ipairs(tos) do
             if not self:isFriend(p) and self:trickIsEffective(card, p, from) and p:isChained() then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
 	elseif card:isKindOf("Slash") then
 		self:sort(tos, "hp")
 		for _, p in ipairs(tos) do
+            if self.player:isFriendWith(p) and self:slashIsEffective(card, p, from) then
+                table.insert(result, p)
+                return result
+            end
+        end
+		for _, p in ipairs(tos) do
             if self:isFriend(p) and self:slashIsEffective(card, p, from) then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
 		for _, p in ipairs(targetlist) do
             if not table.contains(tos, p) and not self:isFriend(p) and self:slashIsEffective(card, p, from) then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
 	elseif card:isKindOf("Duel") then
 		self:sort(tos, "hp")
 		for _, p in ipairs(tos) do
             if self:isFriend(p) and self:trickIsEffective(card, p, from) then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
 		for _, p in ipairs(targetlist) do
             if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
 	elseif card:isKindOf("Snatch") or card:isKindOf("Dismantlement") then
 		self:sort(tos, "handcard")
 		for _, p in ipairs(tos) do
             if self:isFriend(p) and self:trickIsEffective(card, p, from) and not self:isFriendWith(from) then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
 		for _, p in ipairs(targetlist) do
             if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isNude() then
-                return p
+                table.insert(result, p)
+                return result
             end
         end
     end
@@ -2266,8 +2290,8 @@ sgs.ai_skill_invoke.lifu_view = function(self, data)
 		Global_room:writeToConsole("lifu_view:"..tostring(card:getClassName()))
 	end
 	
-	local flag = string.format("%s_%s_%s", "visible", self.player:objectName(), target2:objectName())
-	if not cards[1]:hasFlag("visible") then cards[1]:setFlags(flag) end--记录方便后续言中
+	--[[local flag = string.format("%s_%s_%s", "visible", self.player:objectName(), target2:objectName())
+	if not cards[1]:hasFlag("visible") then cards[1]:setFlags(flag) end]]--记录方便后续言中
 	
 end
 sgs.ai_card_intention.lifuCard = 40
@@ -2768,9 +2792,18 @@ sgs.ai_skill_invoke.kangkai = function(self, data)
 end
 
 sgs.ai_skill_playerchosen.kangkai = function(self, targets)
-	targets = sgs.QList2Table(targets)
-    self:sort(targets, "defense")
-	return targets[1]
+	--targets = sgs.QList2Table(targets)
+    --self:sort(targets, "defense")
+	for _, p in pairs(self.friends) do
+        if self.player:objectName() == p:objectName() and #self.friends_noself == 0 then
+            return p
+		else
+			if self.player:isFriendWith(p) and p:getHp() <= 2 then
+				return p
+			end
+        end
+    end
+	return self.friends[1]
 end
 
 sgs.ai_skill_invoke.nizhan = function(self, data)
