@@ -947,9 +947,10 @@ sgs.ai_skill_invoke.mengjin = function(self, data)
 	return not self:isFriend(effect.to)
 end]]--旧技能
 
-sgs.ai_skill_invoke.jianchu = function(self,data)
+sgs.ai_skill_invoke.jianchu = function(self, data)
 	local target = data:toPlayer()
 	if not target then return false end
+	if target:hasSkills(sgs.lose_equip_skill) and target:isKongcheng() then return false end
 	--丈八拍桃酒别鞬出,没强中时避免黑杀倾国(其他复杂情况不考虑了……)
 	local use = self.room:getTag("JianchuUsedata"):toCardUse()
 	if use and use.card and not self:isFriend(target) and not (target:getCards("e"):length() > 1 and self.player:canDiscard(target, "e")) then
@@ -967,13 +968,22 @@ end
 
 sgs.ai_skill_cardchosen.jianchu = function(self, who, flags, method, disable_list)
 	--if flags:match("e") then
-	if not who:getEquips():isEmpty() then
-		if who:getArmor() then 
+	if who:hasSkills(sgs.lose_equip_skill) then
+		return self:askForCardChosen(who, "h", "jianchu_dismantlement", method, disable_list)
+	end
+	if who:getCards("e"):length() >= 1 then
+		if who:getArmor() then
 			local armor = who:getArmor()
-			if armor:objectName() == "PeaceSpell" and who:getHp() <= 1 then end
-			return who:getArmor():getEffectiveId() 
+			if (armor:objectName() == "PeaceSpell" or armor:objectName() == "SilverLion") and who:getHp() <= 1 then
+				return self:askForCardChosen(who, "h", "jianchu_dismantlement", method, disable_list)
+			end
+			return armor:getEffectiveId()
 		end
 		if who:getTreasure() then return who:getTreasure():getEffectiveId() end
+		if who:getDefensiveHorse() then return who:getDefensiveHorse():getEffectiveId() end
+		if who:getWeapon() then return who:getWeapon():getEffectiveId() end
+		if who:getOffensiveHorse() then return who:getOffensiveHorse():getEffectiveId() end
+		return self:askForCardChosen(who, "e", "jianchu_dismantlement", method, disable_list)
 
 		--[[local id = self:askForCardChosen(who, "e", "jianchu_dismantlement", method, disable_list)
 		if id then

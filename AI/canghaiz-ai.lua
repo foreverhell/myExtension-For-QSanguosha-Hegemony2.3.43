@@ -22,6 +22,38 @@
 sgs.ai_skill_invoke.luaqinzheng = function(self, data)
     return true
 end
+sgs.ai_skill_playerchosen.luaqinzheng = function(self, targets)
+    local effectslash, best_target, target, throw_weapon
+	local defense = 6
+	local weapon = self.player:getWeapon()
+	if weapon and (weapon:isKindOf("Fan") or weapon:isKindOf("QinggangSword")) then 
+        throw_weapon = true 
+    end
+    for _, enemy in sgs.qlist(targets) do
+        if self:isFriend(enemy) then continue end
+		local def = sgs.getDefenseSlash(enemy, self)
+		local slash = sgs.cloneCard("slash")
+		local eff = self:slashIsEffective(slash, enemy) and sgs.isGoodTarget(enemy, self.enemies, self)
+
+		if not self.player:canSlash(enemy, slash, false) then
+		elseif throw_weapon and enemy:hasArmorEffect("Vine") then
+		elseif self:slashProhibit(nil, enemy) then
+		elseif eff then
+			if enemy:getHp() == 1 and getCardsNum("Jink", enemy, self.player) == 0 then
+				best_target = enemy
+				break
+			end
+			if def < defense then
+				best_target = enemy
+				defense = def
+			end
+			target = enemy
+		end
+	end
+    if best_target then return best_target end
+    if target then return target end
+    return ""
+end
 
 --虞翻
 sgs.ai_skill_invoke.luazhiyan = function(self, data)
@@ -55,19 +87,13 @@ end
 local luajiushi_skill = {}
 luajiushi_skill.name = "luajiushi"
 table.insert(sgs.ai_skills, luajiushi_skill)
-luajiushi_skill.getTurnUseCard = function(self, inclusive)
+luajiushi_skill.getTurnUseCard = function(self)
     if self.player:hasUsed("#luajiushiCard") then return false end
-    if not self.player:hasShownAllGenerals() and self.player:hasUsed("Analeptic") then return false end
-    local cards = sgs.QList2Table(self.player:getHandcards())
+    if not self.player:hasShownAllGenerals() or self.player:hasUsed("Analeptic") then return false end
     if self:getCardsNum("Slash") == 0 then return false end
     return sgs.Card_Parse("#luajiushiCard:.:&luajiushi")
 end
 sgs.ai_skill_use_func["#luajiushiCard"] = function(card, use, self)
     use.card = card
 end
-sgs.ai_view_as.luajiushi = function(card, player, card_place)
-    if player:hasShownAllGenerals() and player:getHp() <= 0 then
-        return "#luajiushiCard:.:&luajiushi"
-    end
-end
-sgs.ai_use_priority.luajiushiCard = 4.2
+sgs.ai_use_priority.luajiushiCard = 6
