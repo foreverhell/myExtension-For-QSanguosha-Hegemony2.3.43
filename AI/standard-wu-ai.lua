@@ -1551,6 +1551,7 @@ sgs.ai_skill_playerchosen.yinghun_sunjian = function(self, targets)
 			if not weakf then
 				self:sort(self.enemies)
 				for _, enemy in ipairs(self.enemies) do
+					if enemy:hasSkill("lirang") then continue end
 					if enemy:getCardCount(true) == n
 						and not self:doNotDiscard(enemy, "he", true, n) then
 						self.yinghunchoice = x > 0 and "d1tx" or "dxt1"
@@ -1558,6 +1559,7 @@ sgs.ai_skill_playerchosen.yinghun_sunjian = function(self, targets)
 					end
 				end
 				for _, enemy in ipairs(self.enemies) do
+					if enemy:hasSkill("lirang") then continue end
 					if enemy:getCardCount(true) >= n
 						and not self:doNotDiscard(enemy, "he", true, n)
 						and enemy:hasShownSkills(sgs.cardneed_skill) then
@@ -1588,6 +1590,7 @@ sgs.ai_skill_playerchosen.yinghun_sunjian = function(self, targets)
 	end
 	if x ~= 1 and #self.enemies > 0 then
 		for _, enemy in ipairs(self.enemies) do
+			if enemy:hasSkill("lirang") then continue end
 			if enemy:getCardCount(true) <= n and (self:getDangerousCard(enemy) or self:getValuableCard(enemy))
 				and not self:doNotDiscard(enemy, "he", true, n) then
 				self.yinghunchoice = x > 0 and "d1tx" or "dxt1"
@@ -1596,6 +1599,7 @@ sgs.ai_skill_playerchosen.yinghun_sunjian = function(self, targets)
 		end
 		self:sort(self.enemies, "handcard")
 		for _, enemy in ipairs(self.enemies) do
+			if enemy:hasSkill("lirang") then continue end
 			if enemy:getCardCount(true) >= n and not self:doNotDiscard(enemy, "he", true, n) then
 				self.yinghunchoice = x > 0 and "d1tx" or "dxt1"
 				return enemy
@@ -1603,6 +1607,7 @@ sgs.ai_skill_playerchosen.yinghun_sunjian = function(self, targets)
 		end
 		self.enemies = sgs.reverse(self.enemies)
 		for _, enemy in ipairs(self.enemies) do
+			if enemy:hasSkill("lirang") then continue end
 			if not enemy:isNude()
 				and not (enemy:hasShownSkills(sgs.lose_equip_skill) and enemy:hasEquip())
 				and not (self:needToThrowArmor(enemy) and (x == 2 or x == 0))
@@ -1614,6 +1619,7 @@ sgs.ai_skill_playerchosen.yinghun_sunjian = function(self, targets)
 	end
 	if x ~= 1 then
 		for _, enemy in sgs.qlist(targets) do
+			if enemy:hasSkill("lirang") then continue end
 			if not self:isFriend(enemy) and not enemy:isNude()
 				and not (enemy:hasShownSkills(sgs.lose_equip_skill) and enemy:hasEquip())
 				and not (self:needToThrowArmor(enemy) and (x == 2 or x == 0))
