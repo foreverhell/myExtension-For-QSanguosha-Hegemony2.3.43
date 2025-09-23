@@ -190,8 +190,59 @@ end
 	end	
 }]]--
 
-
 jieqingjian = sgs.CreateTriggerSkill{
+	name = "jieqingjian",
+	events = {sgs.CardsMoveOneTime},
+	can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) and player:getPhase() ~= sgs.Player_Draw and not 
+		player:hasFlag("jieqingjianUsed") then
+			local move_datas = data:toList()
+			for _, move_data in sgs.qlist(move_datas) do
+				local move = move_data:toMoveOneTime()
+				if move and move.to and move.to:objectName() == player:objectName() then
+					local ids = sgs.IntList()
+					for _, id in sgs.qlist(move.card_ids) do
+						if room:getCardOwner(id):objectName() == player:objectName() and room:getCardPlace(id) == sgs.Player_PlaceHand then
+							ids:append(id)
+						end
+					end
+					if ids:isEmpty() then return false end
+					return self:objectName()
+				end
+			end
+		end
+		return false
+	end,
+
+	on_cost = function(self, event, room, player, data)
+		if player:askForSkillInvoke(self:objectName()) then
+			room:broadcastSkillInvoke(self:objectName(), player)
+			return true
+		end
+		return false
+	end,
+
+	on_effect = function(self, event, room, player, data)
+		local move_datas = data:toList()
+		for _, move_data in sgs.qlist(move_datas) do
+			local move = move_data:toMoveOneTime()
+			local ids = sgs.IntList()
+			for _, id in sgs.qlist(move.card_ids) do
+				if room:getCardOwner(id) == player and room:getCardPlace(id) == sgs.Player_PlaceHand then
+					ids:append(id)
+				end
+			end
+			if ids:isEmpty() then return false end
+			while room:askForYiji(player, ids, self:objectName(), false, false, true, -1, room:getOtherPlayers(player)) do
+				room:setPlayerFlag(player, "jieqingjianUsed")
+				if player:isDead() then return false end
+			end
+		end
+		return false
+	end
+}
+
+--[[jieqingjian = sgs.CreateTriggerSkill{
 	name = "jieqingjian",
 	events = {sgs.CardsMoveOneTime},
 	can_trigger = function(self, event, room, player, data)
@@ -229,11 +280,11 @@ jieqingjian = sgs.CreateTriggerSkill{
 					qingjianPile_ids = move.card_ids
 					local beforYijiNum = player:getMark("jieqingjian_hNum")
 					while(room:askForYiji(player, qingjianPile_ids, self:objectName(), true, false, true, -1,
-					room:getOtherPlayers(player))) do
+					room:getOtherPlayers(player))) do]]
 						--[[local moveStruct = sgs.CardsMoveStruct(sgs.IntList(), player, nil, sgs.Player_PlaceHand, 
 						sgs.Player_PlaceTable, sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, player:objectName(),
 						self:objectName(), ""))]]
-						for i = 1, qingjianPile_ids:length() do
+						--[[for i = 1, qingjianPile_ids:length() do
 							if room:getCardPlace(qingjianPile_ids:at(i - 1)) == sgs.Player_PlaceHand then
 								--qingjianPile_ids:removeOne(qingjianPile_ids:at(i - 1))
 								room:setPlayerFlag(player, "jieqingjianUsed")
@@ -258,7 +309,7 @@ jieqingjian = sgs.CreateTriggerSkill{
 								return false
 							end
 						end
-					end
+					end]]
 					--if beforYijiNum > player:getMark("jieqingjian_hNum") then
 						--room:setPlayerFlag(player, "jieqingjianUsed")
 					--[[elseif not qingjianPile_ids:isEmpty() then
@@ -269,7 +320,7 @@ jieqingjian = sgs.CreateTriggerSkill{
 							player:obtainCard(sgs.Sanguosha:getCard(qingjianPile_ids:at(i - 1)), false)
 						end]]
 					--end
-				end
+				--[[end
 			end
 		end
 		return false
@@ -288,12 +339,12 @@ jieqingjian_setHNum = sgs.CreateTriggerSkill{
 		end
 		return false
 	end,
-}
+}]]
 
 jiexiahoudun:addSkill(jieqingjian)
-jiexiahoudun:addSkill(jieqingjian_setHNum)
+--jiexiahoudun:addSkill(jieqingjian_setHNum)
 jiexiahoudun:addSkill("ganglie")
-testToFix:insertRelatedSkills("jieqingjian", "#jieqingjian_setHNum")
+--testToFix:insertRelatedSkills("jieqingjian", "#jieqingjian_setHNum")
 
 sgs.LoadTranslationTable{
 	["jiexiahoudun"] = "夏侯惇",
@@ -766,7 +817,7 @@ jiejianglveCard = sgs.CreateSkillCard{ --目前只能写成先亮将再发动原
 				if player:isFriendWith(source) or player:willBeFriendWith(source) then
 					if not player:hasShownOneGeneral() then
 						player:showGeneral(false, true, false)
-						--player:askForGeneralShow() --无效
+						--player:askForGeneralShow(true, true, true, true) --无效
 					end
 				end
 			end
@@ -1778,7 +1829,8 @@ jiexiechanPindian = sgs.CreateTriggerSkill{
 		end
 		if winner:isAlive() and loser:isAlive() then
 			local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, 0)
-			room:useCard(sgs.CardUseStruct(duel, winner, loser), false)
+			duel:setSkillName("jiexiechan")
+			room:useCard(sgs.CardUseStruct(duel, winner, loser), true)
 			duel:deleteLater()
 		end
 		return false
