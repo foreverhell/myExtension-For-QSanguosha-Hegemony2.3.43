@@ -31,7 +31,7 @@ sgs.ai_skill_use_func["#jiejianglveCard"] = function(card, use, self)
     use.card = card
 end
 
-sgs.ai_use_priority.jiejianglveCard = 10
+sgs.ai_use_priority.jiejianglveCard = 6.8
 
 --潘淑
 sgs.ai_skill_choice.jiezhiren = function(self, choices, data)
@@ -117,7 +117,8 @@ sgs.ai_skill_playerchosen.jiejingheCard = function(self, targets)
         if skill_number == 3 then
             local maybeResult1, maybeResult2 = {}
             local friendsByAction = sgs.SPlayerList()
-            friendsByAction = self.room:getAlivePlayers()
+            local room = self.player:getRoom()
+            friendsByAction = room:getAlivePlayers()
             room:sortByActionOrder(friendsByAction)
             for _, p in sgs.qlist(friendsByAction) do
                 if p:objectName() ~= self.player:objectName() and self.player:isFriendWith(p) and p:getHandcardNum() >= 3 then
@@ -295,20 +296,8 @@ local jiexiechan_skill = {}
 jiexiechan_skill.name = "jiexiechan"
 table.insert(sgs.ai_skills, jiexiechan_skill)
 jiexiechan_skill.getTurnUseCard = function(self, inclusive)
-    if self.player:getMark("@jiexiechan") < 1 or not self.player:hasFlag("luoyi") then return false end
-    --local cards = sgs.QList2Table(self.player:getHandcards())
+    if self.player:getMark("@jiexiechan") < 1 or self.player:getMark("##luoyi") < 1 then return false end
     if self:getCardsNum("Slash") == 0 then return false end
-    --[[for _, enemy in sgs.pairs(self.enemies) do
-        if enemy:getHandcardNum() <= 3 and not enemy:isKongcheng() and not enemy:isRemoved() and not (enemy:hasShownSkill("gongqing") 
-        and self:getAttackRange() < 3) and not enemy:hasArmorEffect("SilverLion") and not enemy:hasShownSkill("buqu") then
-            if (enemy:hasShownSkill("wusheng") and enemy:getHandcardNum() > 1) or (enemy:hasShownSkill("wushuang") and 
-            self:getCardsNum("Slash") < 2) then
-                continue
-            end
-            return sgs.Card_Parse("#jiexiechanCard:.:&jiexiechan")
-        end
-    end
-    return false]]
     return sgs.Card_Parse("#jiexiechanCard:.:&jiexiechan")
 end
 
@@ -603,6 +592,12 @@ sgs.ai_skill_playerchosen.jiediaodu = function(self, targets)
                 if hcard:isKindOf("EquipCard") and self:getSameEquip(hcard) then--重复先拿自己
                     self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
                     return self.room:getCurrent()
+                elseif hcard:objectName() == "PeaceSpell" and self.player:getHp() == 1 then
+                    self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
+                    return self.room:getCurrent()
+                elseif self.player:hasSkills(sgs.lose_equip_skill) then
+                    self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
+                    return self.room:getCurrent()
                 end
             end
             for _,p in sgs.qlist(targets) do
@@ -662,7 +657,10 @@ sgs.ai_skill_cardchosen.jiediaodu = function(self, who, flags, method, disable_l
 	self.diaodu_id = nil
 	if who:objectName() == self.player:objectName() then--指针是可以判定等于的，severplayer类型，但是who是否会是player类型？
 		for _, hcard in sgs.qlist(self.player:getCards("h")) do
-			if hcard:isKindOf("EquipCard") and self:getSameEquip(hcard) then
+            if hcard:objectName() == "PeaceSpell" and self.player:getHp() == 1 then
+                self.diaodu_id = hcard:getEffectiveId()
+				return self.diaodu_id
+            elseif hcard:isKindOf("EquipCard") and self:getSameEquip(hcard) then
 				self.diaodu_id = self:getSameEquip(hcard):getEffectiveId()
 				return self.diaodu_id
 			end
@@ -702,4 +700,36 @@ function sgs.ai_skill_invoke.jiehengjiang(self, data)
 end
 
 --祝融
-sgs.ai_skill_cardchosen.jielierenPindian = sgs.ai_skill_cardchosen.jianchu
+sgs.ai_skill_cardchosen.jielierenPindian = function(self, who, flags, method, disable_list)
+    if who:hasSkills(sgs.lose_equip_skill) then
+		return self:askForCardChosen(who, "h", "jielieren", method, disable_list)
+	end
+    if who:getCards("e"):length() >= 1 then
+        local use = self.player:getTag("jielieren_cardUsed"):toCardUse()
+        if who:getArmor() then
+            local armor = who:getArmor()
+			if armor:objectName() == "PeaceSpell" and who:getHp() <= 1 then 
+                if use.card:isKindOf("Fire_slash") or use.card:isKindOf("Thunder_slash") then
+                    return armor:getEffectiveId()
+                end
+            end
+            if armor:objectName() == "Vine" then
+                if use.card:isKindOf("Fire_slash") then
+                    return self:askForCardChosen(who, flags, "jielieren", method, disable_list)
+                else
+                    return armor:getEffectiveId()
+                end
+            end
+            if armor:objectName() == "SilverLion" and who:getLostHp() > 0 then
+                return self:askForCardChosen(who, flags, "jielieren", method, disable_list)
+            end
+            return armor:getEffectiveId()
+        elseif who:getTreasure() then
+            return who:getTreasure():getEffectiveId()
+        elseif who:getDefensiveHorse() then
+            return who:getDefensiveHorse():getEffectiveId()
+        end
+    else
+        return self:askForCardChosen(who, flags, "jielieren", method, disable_list)
+    end
+end
