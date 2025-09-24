@@ -23,7 +23,7 @@ local jiejianglve_skill = {}
 jiejianglve_skill.name = "jiejianglve"
 table.insert(sgs.ai_skills, jiejianglve_skill)
 jiejianglve_skill.getTurnUseCard = function(self, inclusive)
-    if self.player:getMark("@jiejianglve") < 1 then return end
+    if self.player:getMark("@strategy") < 1 then return end
     return sgs.Card_Parse("#jiejianglveCard:.:&jiejianglve")
 end
 
@@ -32,6 +32,112 @@ sgs.ai_skill_use_func["#jiejianglveCard"] = function(card, use, self)
 end
 
 sgs.ai_use_priority.jiejianglveCard = 6.8
+
+sgs.ai_skill_choice["startcommand_jiejianglve"] = function(self, choices)
+    Global_room:writeToConsole(choices)
+    choices = choices:split("+")
+    if table.contains(choices, "command5") then
+        local faceup, not_faceup = 0, 0
+        for _, friend in ipairs(self.friends_noself) do
+        if self:isFriendWith(friend) then
+            if friend:faceUp() then
+            faceup = faceup + 1
+            else
+            not_faceup = not_faceup + 1
+            end
+        end
+        if not_faceup > faceup and not_faceup > 1 then
+            return "command5"
+        end
+        end
+    end
+    local commands = {"command1", "command2", "command4", "command3", "command6", "command5"}--索引大小代表优先级，注意不是原顺序
+    local command_value1 = table.indexOf(commands,choices[1])
+    local command_value2 = table.indexOf(commands,choices[2])
+    local index = math.min(command_value1,command_value2)
+    return commands[index]
+end
+
+sgs.ai_skill_choice["docommand_jiejianglve"] = function(self, choices, data)
+    local source = data:toPlayer()
+    local index = self.player:getMark("command_index")
+    if self.player:getActualGeneral1():getKingdom() == "careerist" then
+        return "yes"
+    end
+    if index == 4 then
+        if self.player:getMark("command4_effect") > 0 then
+        return "yes"
+        end
+        if self.player:hasSkill("xuanhuo") and not source:hasUsed("XuanhuoAttachCard") and source:getHandcardNum() > 5 then
+        return "no"
+        end
+    end
+    if index == 5 then
+        if not self.player:faceUp() then
+        return "yes"
+        end
+        return "no"
+    end
+    if index == 6 then
+        if (self.player:getEquips():length() < 4
+        and self.player:getHandcardNum() <= (self.player:hasSkills("xuanhuoattach|paoxiao") and 5 or 4))
+        or (self:isWeak() and self:getCardsNum("Peach") + self:getCardsNum("Analeptic") == 0) then
+        return "yes"
+        end
+        return "no"
+    end
+    return "yes"
+end
+
+sgs.ai_skill_playerchosen["command_jiejianglve"] = sgs.ai_skill_playerchosen.damage
+
+sgs.ai_skill_choice["jiejianglve"] = function(self, choices, data)--ai势力召唤
+    choices = choices:split("+")
+    if table.contains(choices,"show_head_general") and (self.player:inHeadSkills("jianxiong") or self.player:inHeadSkills("rende")
+        or self.player:inHeadSkills("zhiheng") or self.player:inHeadSkills("guidao"))--君主替换
+        and sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1  then
+        return "show_deputy_general"
+    end
+    if table.contains(choices,"show_both_generals") then
+        local wuhu_show_head, wuhu_show_deputy = false,false
+        local xuanhuo_priority = {"paoxiao", "tieqi", "kuanggu", "liegong", "wusheng", "longdan"}
+        for _, skill in ipairs(xuanhuo_priority) do--有顺序优先度
+        if self.player:hasSkill(skill) then
+            if self.player:inHeadSkills(skill) then
+            wuhu_show_deputy = true
+            break
+            else
+            wuhu_show_head = true
+            break
+            end
+        end
+        end
+        if wuhu_show_deputy then
+        return "show_deputy_general"
+        end
+        if wuhu_show_head then
+        return "show_head_general"
+        end
+        return "show_both_generals"
+    end
+    if table.contains(choices,"show_deputy_general") then
+        return "show_deputy_general"
+    end
+    if table.contains(choices,"show_head_general") then
+        return "show_head_general"
+    end
+    return choices[1]
+end
+
+sgs.ai_choicemade_filter.skillChoice["jiejianglve"] = function(self, player, promptlist)
+	local current = self.room:getCurrent()
+	if not player:hasShownOneGeneral() then
+		local choice = promptlist[#promptlist]
+		if choice == "cancel" and (player:canShowGeneral("h") or player:canShowGeneral("d")) then
+			sgs.updateIntention(player, current, 80)
+		end
+	end
+end
 
 --潘淑
 sgs.ai_skill_choice.jiezhiren = function(self, choices, data)
@@ -122,7 +228,7 @@ sgs.ai_skill_playerchosen.jiejingheCard = function(self, targets)
             room:sortByActionOrder(friendsByAction)
             for _, p in sgs.qlist(friendsByAction) do
                 if p:objectName() ~= self.player:objectName() and self.player:isFriendWith(p) and p:getHandcardNum() >= 3 then
-                    if not p:getJudgingArea():isEmpty() then
+                    if not p:getCards("j"):isEmpty() then
                         table.insert(maybeResult1, p)
                     elseif p:hasShownSkill("lirang") then
                         table.insert(maybeResult1, p)
@@ -587,12 +693,12 @@ end
 
 sgs.ai_skill_playerchosen.jiediaodu = function(self, targets)
     if not self.player:hasFlag("jiediaodu_takeEquip") then
-        if targets:length() > 1 then
-            for _, hcard in sgs.qlist(self.player:getCards("h")) do
-                if hcard:isKindOf("EquipCard") and self:getSameEquip(hcard) then--重复先拿自己
+        if targets:length() > 0 then
+            for _, hcard in sgs.qlist(self.player:getCards("e")) do
+                if hcard:objectName() == "PeaceSpell" and self.player:getHp() == 1 then
                     self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
                     return self.room:getCurrent()
-                elseif hcard:objectName() == "PeaceSpell" and self.player:getHp() == 1 then
+                elseif hcard:objectName() == "SilverLion" and self.player:getLostHp() >= 1 then
                     self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
                     return self.room:getCurrent()
                 elseif self.player:hasSkills(sgs.lose_equip_skill) then
@@ -600,7 +706,7 @@ sgs.ai_skill_playerchosen.jiediaodu = function(self, targets)
                     return self.room:getCurrent()
                 end
             end
-            for _,p in sgs.qlist(targets) do
+            for _, p in sgs.qlist(targets) do
                 if p:hasSkills(sgs.lose_equip_skill) then
                     self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
                     return p
@@ -656,14 +762,14 @@ end
 sgs.ai_skill_cardchosen.jiediaodu = function(self, who, flags, method, disable_list)
 	self.diaodu_id = nil
 	if who:objectName() == self.player:objectName() then--指针是可以判定等于的，severplayer类型，但是who是否会是player类型？
-		for _, hcard in sgs.qlist(self.player:getCards("h")) do
+		for _, hcard in sgs.qlist(self.player:getCards("e")) do
             if hcard:objectName() == "PeaceSpell" and self.player:getHp() == 1 then
                 self.diaodu_id = hcard:getEffectiveId()
 				return self.diaodu_id
-            elseif hcard:isKindOf("EquipCard") and self:getSameEquip(hcard) then
-				self.diaodu_id = self:getSameEquip(hcard):getEffectiveId()
+            elseif hcard:objectName() == "SilverLion" and self.player:getLostHp() >= 1 then
+                self.diaodu_id = hcard:getEffectiveId()
 				return self.diaodu_id
-			end
+            end
 		end
 	end
 	self.diaodu_id = self:askForCardChosen(who, flags, "diaodu_snatch", method, disable_list)
