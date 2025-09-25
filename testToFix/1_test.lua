@@ -540,8 +540,13 @@ jiediaodu = sgs.CreateTriggerSkill{
 				local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXTRACTION, player:objectName())
 				room:obtainCard(player, sgs.Sanguosha:getCard(card_id), reason, false)
 				room:broadcastSkillInvoke("diaodu", player)
-				--room:doAnimate(1, player:objectName(), target:objectName())
-
+				if player == skill_owner then
+					if player:getActualGeneral1Name() == "lvfan" then
+						player:showGeneral(true, false, false)
+					else
+						player:showGeneral(false, true, false)
+					end
+				end
 				local target_to = sgs.SPlayerList() --获取除选择目标的其他角色
 				for _, p in sgs.qlist(room:getOtherPlayers(target)) do
 					target_to:append(p)
@@ -595,7 +600,7 @@ jiediaoduDrawCard = sgs.CreateTriggerSkill{
 
 	on_cost = function(self, event, room, player, data, skill_owner)
 		if player:askForSkillInvoke(self:objectName(), data) then
-			room:broadcastSkillInvoke("diaodu", player)
+			room:broadcastSkillInvoke("diaodu", skill_owner)
 			room:doAnimate(1, skill_owner:objectName(), player:objectName())
 			if player == skill_owner then
 				if player:getActualGeneral1Name() == "lvfan" then
@@ -1413,15 +1418,17 @@ jiejinghe = sgs.CreateZeroCardViewAsSkill{
 
 jiejinghe_clear = sgs.CreateTriggerSkill{
 	name = "#jiejinghe-clear",
-	events = {sgs.EventPhaseStart, sgs.EventLoseSkill, sgs.TurnStart},
+	events = {sgs.EventPhaseStart, sgs.EventLoseSkill, sgs.TurnStart, sgs.Death},
 	on_record = function(self, event, room, player, data)
-		if event == sgs.EventLoseSkill and data:toString():split(":")[1] == self:objectName() and player then
+		if (event == sgs.EventLoseSkill and data:toString():split(":")[1] == self:objectName() and player) or 
+		event == sgs.Death then
 			local target = player:getTag("jiejinghe_skill"):toPlayer()
 			local skill_list = {"lundao", "guanyue", "yanzheng", "leiji_tianshu", "yinbing", "huoqi", "guizhu", "xianshou"}
 			if target and target:isAlive() then
 				for i = 1, #skill_list do
 					if target:hasSkill(skill_list[i]) then
 						room:detachSkillFromPlayer(target, skill_list[i])
+						room:detachSkillFromPlayer(target, skill_list[i], false, false, false)
 					end
 				end
 				target:removeTag("jiejinghe_skill")
