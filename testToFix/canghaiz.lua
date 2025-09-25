@@ -340,26 +340,23 @@ luazhiyan = sgs.CreateTriggerSkill{
         end
         if not targets:isEmpty() then
             local target = room:askForPlayerChosen(player, targets, self:objectName(), "@luazhiyan_target", true, true)
-            room:doAnimate(1, player:objectName(), target:objectName())
-            local before_handcard_ids = CardList2Table(target:getHandcards())
-            room:drawCards(target, 1, "luazhiyan")
-            local now_handcard_ids = CardList2Table(target:getHandcards())
-            for i = #before_handcard_ids, 1, -1 do
-                for j = #now_handcard_ids, 1, -1 do
-                    if before_handcard_ids[i] == now_handcard_ids[j] then
-                        table.remove(now_handcard_ids, j)
-                    end
-                end
-            end
-            room:showCard(target, Table2IntList(now_handcard_ids))
-            for i = 1 , #now_handcard_ids do
-                local card = sgs.Sanguosha:getCard(now_handcard_ids[i])
+            if target then
+                room:doAnimate(1, player:objectName(), target:objectName())
+                local card_id = room:drawCard()
+                local card = sgs.Sanguosha:getCard(card_id)
+                room:obtainCard(target, card, false)
+                if not target:isAlive() then return false end
+                room:showCard(target, card_id)
                 if card:isKindOf("EquipCard") then
-                    room:useCard(sgs.CardUseStruct(card, target, target), false)
-                    local recover = sgs.RecoverStruct()
-                    recover.who = target
-                    recover.recover = 1
-                    room:recover(target, recover)
+                    if not target:isCardLimited(card, sgs.Card_MethodUse, true) then
+                        room:useCard(sgs.CardUseStruct(card, target, target), true)
+                    end
+                    if target:isWounded() then
+                        local recover = sgs.RecoverStruct()
+                        recover.who = target
+                        recover.recover = 1
+                        room:recover(target, recover)
+                    end
                 end
             end
         end
@@ -956,31 +953,15 @@ lualuoying = sgs.CreateTriggerSkill{
     end
 }
 
-luajiushiCard = sgs.CreateSkillCard{
-    name = "luajiushiCard",
-    skill_name = "luajiushi",
-    target_fixed = true,
-    on_use = function(self, room, source)
-        local analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
-        room:useCard(sgs.CardUseStruct(analeptic, source, source), true)
-        room:broadcastSkillInvoke("luajiushi", source)
-        analeptic:deleteLater()
-        room:addPlayerMark(source, "##luajiushi")
-    end,
-}
-
 luajiushi = sgs.CreateZeroCardViewAsSkill{
     name = "luajiushi",
     view_as = function(self)
-		--[[local analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
+		local analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
 		analeptic:setSkillName(self:objectName())
-		return analeptic]]
-        local card = luajiushiCard:clone()  
-        card:setSkillName(self:objectName())
-        return card  
+		return analeptic
 	end,
     enabled_at_play = function(self, player)
-		return not player:hasUsed("#luajiushiCard") and player:hasShownAllGenerals() and not player:hasUsed("Analeptic")
+		return player:hasShownAllGenerals() and sgs.Analeptic_IsAvailable(player)
 	end,
     enabled_at_response = function(self, player, pattern)
         return player:hasShownAllGenerals() and string.find(pattern, "analeptic")
@@ -1018,7 +999,9 @@ luajiushiDamaged = sgs.CreateTriggerSkill{
                 local use = data:toCardUse()
                 if use and use.card:getSkillName() == "luajiushi" then  
                     room:setPlayerFlag(player, "luajiushiUsed")
-                    --room:addPlayerHistory(player, "Analeptic", 1)
+                    room:addPlayerHistory(player, "Analeptic", 1)
+                    room:broadcastSkillInvoke("luajiushi", player)
+                    room:addPlayerMark(player, "##luajiushi")
                     local isHead
                     if player:getActualGeneral2Name() == "luacaozhi" then
                         isHead = false
