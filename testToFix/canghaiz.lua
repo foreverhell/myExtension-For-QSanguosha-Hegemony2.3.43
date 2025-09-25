@@ -560,7 +560,6 @@ luaqinzheng = sgs.CreateTriggerSkill{
         local suit_diamond = "luaqinzheng_diamond_suit"
         local suit_heart = "luaqinzheng_heart_suit"
         if player:getMark("luaqinzheng_type") == 7 and player:getMark("luaqinzheng_typeUsed") == 0 then
-            room:broadcastSkillInvoke(self:objectName(), player)
             room:addPlayerMark(player, "luaqinzheng_typeUsed", 1)
             local Analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
 			Analeptic:setSkillName("luaqinzheng")
@@ -574,7 +573,6 @@ luaqinzheng = sgs.CreateTriggerSkill{
                     target_to:append(p)
                 end
             end
-            room:broadcastSkillInvoke(self:objectName(), player)
             if not target_to:isEmpty() then
                 local target_player = room:askForPlayerChosen(player, target_to, self:objectName(),
                 "@luaqinzheng_slashChoose", true, true)
@@ -661,6 +659,7 @@ luamibei = sgs.CreateTriggerSkill{
         local target = room:askForPlayerChosen(player, players_overSelf, self:objectName(), "@luamibei_command", true, true)
         if target then
             if not target:askCommandto(self:objectName(), player) then
+                if player:isKongcheng() then return false end
                 local card = room:askForCardShow(player, player, self:objectName())
                 room:showCard(player, card:getId())
                 if card:isKindOf("Jink") or card:isKindOf("DelayedTrick") then return false end
@@ -728,7 +727,7 @@ sgs.LoadTranslationTable{
 	["$luamibei2"] = "事以密成，语以泄败！",
 }
 
---[[uatianbian = sgs.CreateTriggerSkill{
+--[[luatianbian = sgs.CreateTriggerSkill{
     name = "luatianbian",
     events = {sgs.CardUsed, sgs.TargetConfirming},
     can_trigger = function(self, event, room, player, data)
