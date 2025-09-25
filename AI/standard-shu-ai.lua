@@ -209,7 +209,8 @@ end
 
 sgs.dynamic_value.benefit.RendeCard = true
 
---[[--无效,虽然源码确实是@@rende_basic,感觉打包的版本就不对(国战2.3.40版本,主程序日期2023.4.27 22:44)
+--无效,虽然源码确实是@@rende_basic,感觉打包的版本就不对(国战2.3.40版本,主程序日期2023.4.27 22:44)
+--桃可以
 sgs.ai_skill_use["@@rende_basic"] = function(self, prompt, method)
 
 	Global_room:writeToConsole("仁德使用基本牌")
@@ -287,8 +288,8 @@ sgs.ai_skill_use["@@rende_basic"] = function(self, prompt, method)
 		return peach:toString()
 	end
 end
---]]
-sgs.ai_skill_choice.rende_basic = function(self, choices)
+
+--[[sgs.ai_skill_choice.rende_basic = function(self, choices)
 	--"slash+fire_slash+thunder_slash+analeptic+peach+cancel"
 	Global_room:writeToConsole("仁德使用基本牌:"..choices)
 	choices = choices:split("+")
@@ -377,7 +378,7 @@ sgs.ai_skill_use["@@rende_slash"] = function(self, data, method)
 		slash:setSkillName("_rende")
 		return slash:toString() .. "->" .. self.rendeslash
 	end
-end
+end]]
 --复制身份未修改
 --[[
 local tenyearrende_skill = {}
