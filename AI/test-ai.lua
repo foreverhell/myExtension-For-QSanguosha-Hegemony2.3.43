@@ -175,10 +175,13 @@ end
 sgs.ai_skill_cardchosen.jiezhiren = function(self, who, flags, method, disable_list)
     local armor = who:getArmor()
     local treasure = who:getTreasure()
+    local offHorse = who:getOffensiveHorse()
     if treasure then
         return treasure:getEffectiveId()
     elseif armor then
         return armor:getEffectiveId()
+    elseif offHorse then
+        return offHorse:getEffectiveId()
     end
     return self:askForCardChosen(who, flags, "jiezhiren", method, disable_list)
 end
@@ -225,7 +228,7 @@ sgs.ai_skill_playerchosen.jiejingheCard = function(self, targets)
             local friendsByAction = sgs.SPlayerList()
             local room = self.player:getRoom()
             friendsByAction = room:getAlivePlayers()
-            room:sortByActionOrder(friendsByAction)
+            --room:sortByActionOrder(friendsByAction)
             for _, p in sgs.qlist(friendsByAction) do
                 if p:objectName() ~= self.player:objectName() and self.player:isFriendWith(p) and p:getHandcardNum() >= 3 then
                     if not p:getCards("j"):isEmpty() then
@@ -723,7 +726,8 @@ sgs.ai_skill_playerchosen.jiediaodu = function(self, targets)
         self.player:getPile("wooden_ox"):length() > 0 then
             return {}
         end
-        return {}
+        --return {}
+        return self.room:getCurrent()
     elseif self.player:hasFlag("jiediaodu_takeEquip") then
         local diaodu_card
         if self.diaodu_id then
