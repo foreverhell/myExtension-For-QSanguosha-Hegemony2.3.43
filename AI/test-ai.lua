@@ -31,7 +31,7 @@ sgs.ai_skill_use_func["#jiejianglveCard"] = function(card, use, self)
     use.card = card
 end
 
-sgs.ai_use_priority.jiejianglveCard = 6.8
+sgs.ai_use_priority.jiejianglveCard = 1
 
 sgs.ai_skill_choice["startcommand_jiejianglve"] = function(self, choices)
     Global_room:writeToConsole(choices)
@@ -291,7 +291,7 @@ sgs.ai_skill_invoke.guizhu = function(self, data)
     return true
 end
 
-sgs.ai_use_priority.jiejingheCard = 8.2
+sgs.ai_use_priority.jiejingheCard = 1
 
 --祖茂
 sgs.ai_skill_invoke.jieyinbing = function(self, data)
@@ -716,17 +716,43 @@ sgs.ai_skill_playerchosen.jiediaodu = function(self, targets)
                 end
             end
         end
-        for _,p in sgs.qlist(targets) do
+        for _, p in sgs.qlist(targets) do
             if self:needToThrowArmor(p) then
                 self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
                 return p
+            end
+        end
+        if self.player:hasSkills(sgs.lose_equip_skill) and self.player:getCards("e"):length() == 0 then
+            for _, p in sgs.qlist(targets) do
+                if p:objectName() == self.player:objectName() then
+                    continue
+                end
+                for _, hcard in sgs.qlist(p:getCards("e")) do
+                    if hcard:objectName() == "PeaceSpell" and p:getHp() == 1 then
+                        self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
+                        return p
+                    elseif hcard:objectName() == "SilverLion" and p:getLostHp() >= 1 then
+                        self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
+                        return p
+                    elseif hcard:objectName() == "Breastplate" and self.player:getHp() <= 2 and p:getHp() > 1 then
+                        self.room:setPlayerFlag(self.player, "jiediaodu_takeEquip")
+                        return p
+                    end
+                end
+            end
+            for _, p in sgs.qlist(targets) do
+                if p:objectName() == self.player:objectName() then
+                    continue
+                end
+                if not p:getEquips():isEmpty() then
+                    return p
+                end
             end
         end
         if self.player:getEquips():length() == 1 and self.player:hasTreasure("WoodenOx") and 
         self.player:getPile("wooden_ox"):length() > 0 then
             return {}
         end
-        --return {}
         return self.room:getCurrent()
     elseif self.player:hasFlag("jiediaodu_takeEquip") then
         local diaodu_card
@@ -773,6 +799,9 @@ sgs.ai_skill_cardchosen.jiediaodu = function(self, who, flags, method, disable_l
             elseif hcard:objectName() == "SilverLion" and self.player:getLostHp() >= 1 then
                 self.diaodu_id = hcard:getEffectiveId()
 				return self.diaodu_id
+            elseif hcard:objectName() == "Breastplate" and self.player:getHp() <= 2 and who:getHp() > 1 then
+                self.diaodu_id = hcard:getEffectiveId()
+                return self.diaodu_id
             end
 		end
 	end
