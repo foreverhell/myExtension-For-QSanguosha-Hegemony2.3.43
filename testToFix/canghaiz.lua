@@ -350,12 +350,12 @@ luazhiyan = sgs.CreateTriggerSkill{
                 if card:isKindOf("EquipCard") then
                     if not target:isCardLimited(card, sgs.Card_MethodUse, true) then
                         room:useCard(sgs.CardUseStruct(card, target, target), true)
-                    end
-                    if target:isWounded() then
-                        local recover = sgs.RecoverStruct()
-                        recover.who = target
-                        recover.recover = 1
-                        room:recover(target, recover)
+                        if target:isWounded() then
+                            local recover = sgs.RecoverStruct()
+                            recover.who = target
+                            recover.recover = 1
+                            room:recover(target, recover)
+                        end
                     end
                 end
             end
