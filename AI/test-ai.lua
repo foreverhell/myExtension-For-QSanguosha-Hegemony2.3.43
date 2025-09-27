@@ -31,7 +31,7 @@ sgs.ai_skill_use_func["#jiejianglveCard"] = function(card, use, self)
     use.card = card
 end
 
-sgs.ai_use_priority.jiejianglveCard = 1
+sgs.ai_use_priority.jiejianglveCard = 8.4
 
 sgs.ai_skill_choice["startcommand_jiejianglve"] = function(self, choices)
     Global_room:writeToConsole(choices)
@@ -291,7 +291,7 @@ sgs.ai_skill_invoke.guizhu = function(self, data)
     return true
 end
 
-sgs.ai_use_priority.jiejingheCard = 1
+sgs.ai_use_priority.jiejingheCard = 8.4
 
 --祖茂
 sgs.ai_skill_invoke.jieyinbing = function(self, data)
