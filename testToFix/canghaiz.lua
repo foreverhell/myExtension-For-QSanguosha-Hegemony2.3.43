@@ -115,7 +115,7 @@ luaxuyuan_tag = sgs.CreateTriggerSkill{
             for _, p in sgs.qlist(skill_owners) do
                 local current = room:getCurrent()
                 if skillTriggerable(p, "luaxuyuan") and current:isFriendWith(p) then
-                    table.insert(skill_list, self:objectName())
+                    table.insert(skill_list, "luaxuyuan")
                     table.insert(name_list, p:objectName())
 				end
 			end
@@ -130,7 +130,7 @@ luaxuyuan_tag = sgs.CreateTriggerSkill{
                             if current:getMark("luaxuyuan_fail") > 0 then return false end
                             if not p:hasFlag("luaxuyuan_hasTarget") then
                                 local hasOtherTarget = false
-                                for _, sp in sgs.qlist(room:getAlivePlayers()) do
+                                for _, sp in sgs.qlist(room:getOtherPlayers(p)) do
                                     if sp:hasFlag("luaxuyuan_hasTarget") then
                                         hasOtherTarget = true
                                         break
@@ -139,7 +139,7 @@ luaxuyuan_tag = sgs.CreateTriggerSkill{
                                 if hasOtherTarget then
                                     room:setPlayerMark(current, "luaxuyuan_fail", 1)
                                 else
-                                    room:setPlayerFlag(current, "luaxuyuan_hasTarget")
+                                    room:setPlayerFlag(p, "luaxuyuan_hasTarget")
                                 end
                             end
                         end
