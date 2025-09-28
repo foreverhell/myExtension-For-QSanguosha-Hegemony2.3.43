@@ -381,11 +381,14 @@ bileizhenSkill = sgs.CreateTriggerSkill{
         local damage = data:toDamage()  
         if event == sgs.DamageInflicted then --任意角色受到伤害时
             if damage.to:objectName() ~= ask_who:objectName() then
+                room:setPlayerFlag(ask_who,"bilenzhen-attrack")
                 return ask_who:askForSkillInvoke("@bileizhen-attrack",data)  
             else
+                room:setPlayerFlag(ask_who,"bilenzhen-immuse")
                 return ask_who:askForSkillInvoke("@bileizhen-immuse",data)  
             end
         elseif event == sgs.Damaged and damage.to == ask_who then --自己受到伤害后
+            --room:setPlayerFlag(ask_who,"bilenzhen-effect")
             return ask_who:askForSkillInvoke("@bileizhen-effect",data)  
         end
 
@@ -818,12 +821,25 @@ shengfan = sgs.CreateArmor{
         room:detachSkillFromPlayer(player, "shengfan", true, false, true)  
     end  
 }  
-
+--[[
+shengfanVS = sgs.CreateViewAsSkill{
+	name = "shengfan",
+	response_pattern = "@@shengfanDiscard",
+	view_filter = function(self, selected, to_select)
+		return not to_select:objectName()~="shengfan"
+	end,
+	view_as = function(self, cards)
+		if #cards == 1 then
+			return cards[1]
+		end
+	end,
+}
+]]
 shengfanSkill = sgs.CreateTriggerSkill{  
     name = "shengfan",  
     events = {sgs.EventPhaseStart},  
     frequency = sgs.Skill_Frequent,  
-      
+    --view_as_skill = shengfanVS,
     can_trigger = function(self, event, room, player, data)  
         local armor = player:getArmor()
         if not (armor and armor:isKindOf("shengfan")) then  
@@ -846,7 +862,8 @@ shengfanSkill = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data)  
         room:notifySkillInvoked(player, self:objectName())  
         --弃一张牌
-        local is_discard = room:askForDiscard(player,self:objectName(),1,1,true,true)
+        --local is_discard = room:askForCard(player, ".", "@shengfan-discard", data, sgs.Card_MethodDiscard)  
+        local is_discard = room:askForDiscard(player,self:objectName(),1,1,false,true)
         if not is_discard then return false end
         -- 回复1点体力  
         local recover = sgs.RecoverStruct()  
