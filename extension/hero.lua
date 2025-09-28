@@ -106,7 +106,6 @@ sgs.LoadTranslationTable{
 
 -- 创建武将：褒姒  
 baosi = sgs.General(extension, "baosi", "wei", 3, false)  --wei,wu,qun
-  
 -- 技能：烽火 - 将装备牌视为南蛮入侵  
 fenghuo = sgs.CreateOneCardViewAsSkill{  
     name = "fenghuo",  
@@ -612,6 +611,169 @@ sgs.LoadTranslationTable{
 
     ["guigu"] = "鬼谷",  
     [":guigu"] = "出牌阶段限1次。你可以将任意数量的杀给另一名角色，然后摸等量的牌",  
+}
+
+chairong = sgs.General(extension, "chairong", "wu", 4)
+
+shenwuCard = sgs.CreateSkillCard{
+    name = "shenwuCard",
+    mute = true,
+    target_fixed = false,
+    will_throw = false,
+    can_recast = false,
+    
+    filter = function(self, targets, to_select)
+        -- 只能选择一名其他角色
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName() --and not to_select:isKongcheng()
+    end,
+    
+    feasible = function(self, targets)
+        -- 必须选择一名目标
+        return #targets == 1
+    end,
+    
+    on_use = function(self, room, source, targets)
+        local target = targets[1]
+        local subcards = self:getSubcards()
+        local color = sgs.Sanguosha:getCard(subcards:first()):getColor()
+        
+        local target_cards = sgs.IntList()
+        for _, card in sgs.qlist(target:getHandcards()) do
+            if card:getColor()~=color then
+                target_cards:append(card:getId())
+            end
+        end
+        -- 创建卡牌移动结构
+        local move1 = sgs.CardsMoveStruct()
+        move1.card_ids = subcards
+        move1.from = source
+        move1.to = target
+        move1.to_place = sgs.Player_PlaceHand
+        move1.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXCHANGE_FROM_PILE,
+                                        source:objectName(), target:objectName(), "shenwuExchange", "")
+        
+        local move2 = sgs.CardsMoveStruct()
+        move2.card_ids = target_cards
+        move2.from = target
+        move2.to = source
+        move2.to_place = sgs.Player_PlaceHand
+        move2.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXCHANGE_FROM_PILE,
+                                        target:objectName(), source:objectName(), "shenwuExchange", "")
+        
+        local moves = sgs.CardsMoveList()
+        moves:append(move1)
+        moves:append(move2)
+        
+        room:moveCardsAtomic(moves, true)
+    end
+}
+
+shenwu = sgs.CreateViewAsSkill{  
+    name = "shenwu",  
+    n = 999,  
+    view_filter = function(self, selected, to_select)  
+        if #selected == 0 then  
+            return not to_select:isEquipped() and not to_select:hasFlag("using")  
+        else  
+            local first_color = selected[1]:isRed()  
+            return to_select:isRed() == first_color and not to_select:hasFlag("using") and not to_select:isEquipped()
+        end  
+    end,  
+    view_as = function(self, cards)  
+        if #cards == 0 then return nil end  
+          
+        local first_color = cards[1]:isRed()  
+        for _, card in ipairs(cards) do  
+            if card:isRed() ~= first_color then  
+                return nil  
+            end  
+        end  
+          
+        local hand_cards = sgs.Self:getHandcards()  
+        local same_color_count = 0  
+        for _, hand_card in sgs.qlist(hand_cards) do  
+            if hand_card:isRed() == first_color then  
+                same_color_count = same_color_count + 1  
+            end  
+        end  
+          
+        if #cards ~= same_color_count then  
+            return nil  
+        end  
+          
+        local new_card = shenwuCard:clone()
+          
+        for _, card in ipairs(cards) do  
+            new_card:addSubcard(card)  
+        end  
+        new_card:setShowSkill(self:objectName())  
+        new_card:setSkillName(self:objectName())  
+        return new_card  
+    end,  
+    enabled_at_play = function(self, player)
+        return not player:hasUsed("#shenwuCard") and not player:isKongcheng()
+    end  
+}  
+
+
+
+shitu = sgs.CreateTriggerSkill{  
+    name = "shitu",  
+    events = {sgs.EventPhaseStart},  
+    limit_mark = "@shitu",
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:getPhase() == sgs.Player_Start) then
+            return ""
+        end
+        if player:hasSkill(self:objectName()) then
+            room:setPlayerMark(player,"@shitu",0)
+        else
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if not (owner and owner:isAlive() and owner:getMark("@shitu")==0 and not owner:isKongcheng()) then 
+                return ""
+            end
+            return self:objectName(), owner:objectName()
+        end
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:askForSkillInvoke(self:objectName()) then  
+            room:broadcastSkillInvoke(self:objectName(), ask_who)  
+            room:setPlayerMark(ask_who,"@shitu",1)
+            return true  
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local card_id = room:askForCardChosen(ask_who, ask_who, "h", self:objectName()) 
+        room:obtainCard(player,card_id)
+        room:setPlayerFlag(player,"shitu_target")
+        room:setPlayerProperty(ask_who, "shitu_card_id", sgs.QVariant(tostring(card_id)))
+        return false  
+    end  
+}
+shitu_prohibit = sgs.CreateProhibitSkill{  
+    name = "#shitu_prohibit",  
+    is_prohibited = function(self, from, to, card)  
+        if from and from:hasFlag("shitu_target") and to and to:hasSkill("shitu") and card then  
+            local shitu_card_id = to:property("shitu_card_id"):toString()
+            local color = sgs.Sanguosha:getCard(shitu_card_id):getColor() 
+            if card:getColor() == color then  
+                return true  
+            end  
+        end  
+        return false  
+    end  
+}
+chairong:addSkill(shenwu)
+chairong:addSkill(shitu)
+chairong:addSkill(shitu_prohibit)
+sgs.LoadTranslationTable{
+    ["chairong"] = "柴荣",
+    ["shitu"] = "时图",
+    [":shitu"] = "每轮限一次。其他角色的准备阶段，你可以交给其一张手牌，该角色本回合不能对你使用与此牌颜色相同的牌",
+    ["shenwu"] = "神武",
+    [":shenwu"] = "出牌阶段限一次。你可以将一种颜色的所有手牌交给另一名角色，然后获得其另一种颜色的所有手牌"
 }
 
 change = sgs.General(extension, "change", "wu", 3, false) --wu,qun  
@@ -1781,9 +1943,9 @@ YangshengCard = sgs.CreateSkillCard{
         -- 增加体力上限  
         room:addPlayerMark(source, "maxhp", 1)  
         room:broadcastProperty(source, "maxhp")  
-        source:setMaxHp(source:getMaxHp()+1)  --这么实现没有问题，只是不显示
-        room:broadcastProperty(source,"maxhp")
-        --room:setPlayerProperty(source, "maxhp", source:getMaxHp() + 1)  
+        --source:setMaxHp(source:getMaxHp()+1)  --这么实现没有问题，只是不显示
+        --room:broadcastProperty(source,"maxhp") --告诉所有人，从而显示
+        room:setPlayerProperty(source, "maxhp", sgs.QVariant(source:getMaxHp() + 1)) --等于上面2行
         -- 恢复体力  
         local recover = sgs.RecoverStruct()  
         recover.who = source  
@@ -2675,10 +2837,16 @@ dudiaoVS = sgs.CreateOneCardViewAsSkill{
 dudiao = sgs.CreateTriggerSkill{  
     name = "dudiao",  
     view_as_skill = dudiaoVS,  
-    events = {sgs.CardUsed, sgs.CardResponded},  
+    events = {sgs.EventPhaseStart, sgs.CardUsed, sgs.CardResponded},  
       
     can_trigger = function(self, event, room, player, data)
         if not (player and player:isAlive()) then
+            return ""
+        end
+        if event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_Start then
+            if player:hasSkill(self:objectName()) then
+                player:setMark("dudiao_suit", 0)
+            end
             return ""
         end
         local owner = room:findPlayerBySkillName(self:objectName())  
@@ -2690,10 +2858,11 @@ dudiao = sgs.CreateTriggerSkill{
         if event == sgs.CardUsed then  
             local use = data:toCardUse()  
             card = use.card  
-        else -- sgs.CardResponded  
+        elseif event == sgs.CardResponded then
             local response = data:toCardResponse()  
             card = response.m_card  
         end  
+        if card==nil then return "" end
         if card:isKindOf("EquipCard") or card:isKindOf("DelayedTrick") then return "" end
         local recorded_suit = owner:getMark("dudiao_suit")-1
         if card:getSuit() == recorded_suit then  
@@ -2708,20 +2877,18 @@ dudiao = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data, ask_who)  
-
         -- 获得使用的牌  
-        local target = ask_who  
         local card = nil
         if event == sgs.CardUsed then  
             local use = data:toCardUse()  
             card = use.card  
-        else -- sgs.CardResponded  
+        elseif event == sgs.CardResponded then
             local response = data:toCardResponse()  
             card = response.m_card  
         end              
-        if target and target:isAlive() then  
-            --target:obtainCard(card)  
-            room:moveCardTo(card, target, sgs.Player_PlaceHand)  
+        if ask_who and ask_who:isAlive() and card then  
+            --ask_who:obtainCard(card)  
+            room:moveCardTo(card, ask_who, sgs.Player_PlaceHand)  
         end  
           
         return false  
@@ -2734,13 +2901,6 @@ taolue = sgs.CreateTriggerSkill{
     events = {sgs.EventPhaseStart},  
     limit_mark = "@taolue",
     can_trigger = function(self, event, room, player, data)  
-        --[[
-        local wangyangming = room:findPlayerBySkillName(self:objectName())  
-        if wangyangming and wangyangming:isAlive() and wangyangming:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start   
-           and not wangyangming:isKongcheng() then  
-            return self:objectName()
-        end  
-        ]]
         if not (player and player:isAlive() and player:getPhase() == sgs.Player_Start) then
             return ""
         end
@@ -2764,19 +2924,18 @@ taolue = sgs.CreateTriggerSkill{
         return false  
     end,  
     on_effect = function(self, event, room, player, data, ask_who)  
-        local wangyangming = ask_who--room:findPlayerBySkillName(self:objectName())  
-        local handcards = wangyangming:getHandcards()  
+        local handcards = ask_who:getHandcards()  
         --交换任意张
         if handcards:length() == 0 then return false end  
           
         -- 让玩家选择要交换的手牌  
-        local to_exchange = room:askForExchange(wangyangming, self:objectName(),   
+        local to_exchange = room:askForExchange(ask_who, self:objectName(),   
                                                handcards:length(), 0,   
                                                "@taolue-exchange", "", ".|.|.|hand")  
           
         if to_exchange:length() == 0 then return false end  
         local exchange_num = to_exchange:length()  
-        wangyangming:drawCards(exchange_num)
+        ask_who:drawCards(exchange_num)
         -- 将手牌和牌堆顶牌合并，让玩家重新排列  
         local all_cards = sgs.IntList()  
         for _, id in sgs.qlist(to_exchange) do  
@@ -2785,7 +2944,7 @@ taolue = sgs.CreateTriggerSkill{
         -- 使用askForGuanxing让玩家排列卡牌  
         -- 注意：这里只能使用GuanxingUpOnly，因为我们需要所有牌都放回牌堆顶  
         local cards = room:getNCards(exchange_num)  
-        room:askForGuanxing(wangyangming, cards, sgs.Room_GuanxingUpOnly)
+        room:askForGuanxing(ask_who, cards, sgs.Room_GuanxingUpOnly)
         return false  
     end  
 }
@@ -7460,7 +7619,8 @@ gewu = sgs.CreateTriggerSkill{
     events = {sgs.EventPhaseStart},  
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
-        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start then  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start then
+            player:setMark("gewu_suit", 0)
             return self:objectName()  
         end  
         return ""  
@@ -7478,7 +7638,7 @@ gewu = sgs.CreateTriggerSkill{
         room:showCard(player, card:getEffectiveId())
           
         -- 记录花色到玩家标记  
-        local suit = card:getSuit()            
+        local suit = card:getSuit()+1
         player:setMark("gewu_suit", suit)  
           
         -- 将牌放回牌堆顶  
@@ -7491,7 +7651,7 @@ gewu_prohibit = sgs.CreateProhibitSkill{
     name = "#gewu_prohibit",  
     is_prohibited = function(self, from, to, card)  
         if to and to:hasSkill("gewu") and from and from:objectName() ~= to:objectName() and card then  
-            local suit = to:getMark("gewu_suit")  
+            local suit = to:getMark("gewu_suit")-1
             if card:getSuit() == suit then  
                 return true  
             end  
@@ -7519,40 +7679,13 @@ zhixing = sgs.CreateTriggerSkill{
         return false  
     end,  
     on_effect = function(self, event, room, player, data, ask_who)  
-        local wangyangming = ask_who--room:findPlayerBySkillName(self:objectName())  
         --交换1张
         -- 选择一张手牌  
-        local card_id = room:askForCardChosen(wangyangming, wangyangming, "h", self:objectName())
+        local card_id = room:askForCardChosen(ask_who, ask_who, "h", self:objectName())
         -- 获取牌堆顶的牌  
-        wangyangming:drawCards(1)
+        ask_who:drawCards(1)
         -- 执行交换  
         room:moveCardTo(sgs.Sanguosha:getCard(card_id), nil, sgs.Player_DrawPile, true)
-        
-        --[[
-        --交换任意张
-        cards = {}
-        for i = 1, wangyangming:getHandcardNum() do
-            local card = room:askForCard(wangyangming, ".|.|.|hand", self:objectName(), data, sgs.Card_MethodNone) 
-            if card then
-                local is_exist = false
-                for _,c in ipairs(cards) do
-                    if c:getEffectiveId()==card:getEffectiveId() then
-                        is_exist = true
-                        break
-                    end
-                end
-                if not is_exist then
-                    table.insert(cards,card)
-                end
-            else
-                break
-            end
-        end
-        wangyangming:drawCards(#cards)
-        for _,card in ipairs(cards) do
-            room:moveCardTo(card, nil, sgs.Player_DrawPile, true)
-        end
-        ]]
         return false  
     end  
 }
@@ -7596,20 +7729,28 @@ HeqinCard = sgs.CreateSkillCard{
         end  
           
         -- 执行交换  
-        if not source_handcards:isEmpty() then  
+        if not source_handcards:isEmpty() or not target_handcards:isEmpty() then  
             local move1 = sgs.CardsMoveStruct()  
             move1.card_ids = source_handcards  
+            move1.from = source
             move1.to = target  
             move1.to_place = sgs.Player_PlaceHand  
-            room:moveCardsAtomic(move1, false)  
-        end  
-          
-        if not target_handcards:isEmpty() then  
+            move1.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXCHANGE_FROM_PILE,
+                                                source:objectName(), target:objectName(), "heqin", "")
+
             local move2 = sgs.CardsMoveStruct()  
             move2.card_ids = target_handcards  
+            move2.from = target
             move2.to = source  
             move2.to_place = sgs.Player_PlaceHand  
-            room:moveCardsAtomic(move2, false)  
+            move2.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXCHANGE_FROM_PILE,
+                                                target:objectName(), source:objectName(), "heqin", "")
+
+            local moves = sgs.CardsMoveList()
+            moves:append(move1)
+            moves:append(move2)
+            
+            room:moveCardsAtomic(moves, true)
         end  
 
         -- 记录交换后的手牌数  
@@ -9986,41 +10127,36 @@ jiandie = sgs.CreateTriggerSkill{
         local target = player:getTag("jiandie_target"):toPlayer()  
         player:removeTag("jiandie_target")  
           
-        local n1 = player:getHandcardNum()  
-        local n2 = target:getHandcardNum()  
-          
         -- 交换手牌  
-        --[[
-        local exchangeMove = {}  
-        local move1 = sgs.CardsMoveStruct(player:handCards(), target, sgs.Player_PlaceHand,  
-            sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP, player:objectName(), target:objectName(), "jiandie", ""))  
-        local move2 = sgs.CardsMoveStruct(target:handCards(), player, sgs.Player_PlaceHand,  
-            sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP, target:objectName(), player:objectName(), "jiandie", ""))  
-        table.insert(exchangeMove, move1)  
-        table.insert(exchangeMove, move2)  
-        room:moveCards(exchangeMove, false)  
-        ]]
         local source_handcards = player:handCards()  
         local target_handcards = target:handCards()  
         if source_handcards:isEmpty() and target_handcards:isEmpty() then  
-            return  false
+            return false
         end  
-        if not source_handcards:isEmpty() then  
+        if not source_handcards:isEmpty() or not target_handcards:isEmpty() then  
             local move1 = sgs.CardsMoveStruct()  
             move1.card_ids = source_handcards  
+            move1.from = player
             move1.to = target  
             move1.to_place = sgs.Player_PlaceHand  
-            room:moveCardsAtomic(move1, false)  
+            move1.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXCHANGE_FROM_PILE,
+                                                player:objectName(), target:objectName(), "jiandie", "")
+
+            local move2 = sgs.CardsMoveStruct()  
+            move2.card_ids = target_handcards  
+            move2.from = target
+            move2.to = player  
+            move2.to_place = sgs.Player_PlaceHand  
+            move2.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXCHANGE_FROM_PILE,
+                                                target:objectName(), player:objectName(), "jiandie", "")
+
+            local moves = sgs.CardsMoveList()
+            moves:append(move1)
+            moves:append(move2)
+            
+            room:moveCardsAtomic(moves, true)
         end  
 
-        if not target_handcards:isEmpty() then  
-            local move1 = sgs.CardsMoveStruct()  
-            move1.card_ids = target_handcards  
-            move1.to = player  
-            move1.to_place = sgs.Player_PlaceHand  
-            room:moveCardsAtomic(move1, false)  
-        end  
-        
         -- 手牌数较少的角色摸牌至相等  
         local new_n1 = player:getHandcardNum()  
         local new_n2 = target:getHandcardNum()  
