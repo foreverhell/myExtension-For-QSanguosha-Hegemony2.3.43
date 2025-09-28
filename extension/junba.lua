@@ -3206,9 +3206,9 @@ yunshu = sgs.CreateTriggerSkill{
             end
             if has_max then
                 -- 加一点体力上限 
-                ask_who:setMaxHp(ask_who:getMaxHp()+1) 
-                room:broadcastProperty(ask_who,"maxhp")
-                --room:setPlayerProperty(ask_who, "maxhp", ask_who:getMaxHp() + 1)  
+                --ask_who:setMaxHp(ask_who:getMaxHp()+1) --这么实现没有问题，只是不显示
+                --room:broadcastProperty(ask_who,"maxhp")  --告诉所有人，从而显示
+                room:setPlayerProperty(ask_who, "maxhp", sgs.QVariant(ask_who:getMaxHp() + 1))  --等于上面2行
                     
                 -- 回复一点体力  
                 local recover = sgs.RecoverStruct()  
