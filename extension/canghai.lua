@@ -1612,6 +1612,40 @@ zhaojieDelay = sgs.CreateProhibitSkill{  --不能指定为目标，不是取消�
         return false  
     end  
 }
+zhaojieDelay = sgs.CreateTriggerSkill{  
+    name = "zhaojieDelay",  
+    events = {sgs.CardEffected},  
+    frequency = sgs.Skill_Compulsory,  
+            
+    can_trigger = function(self, event, room, player, data)  
+        if event == sgs.CardEffected then
+            --local use = data:toCardUse()  
+            local effect = data:toCardEffect()  
+            if effect.card and (effect.card:isKindOf("DelayedTrick")) then  
+                return self:objectName()  
+            end  
+        elseif event == sgs.TurnedOver then
+            return self:objectName()
+        end   
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        return true  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)     
+        if event == sgs.CardEffected then
+            return true
+        elseif event == sgs.TurnedOver then
+            if not player:faceup() then
+                player:turnOver()
+                --player:setFaceUp(true)  
+                return false
+            end
+        end
+        return true  --返回true，终止效果结算
+    end  
+}
 -- 将技能添加到武将  
 luyusheng_canghai:addSkill(fengwu)  
 luyusheng_canghai:addSkill(zhaojie)  
@@ -1626,7 +1660,7 @@ sgs.LoadTranslationTable{
     ["zhaojie"] = "昭节",  
     [":zhaojie"] = "锁定技，红色牌对你的伤害-1",  
     ["zhaojieDelay"] = "昭节-延时",  
-    [":zhaojieDelay"] = "锁定技，你不会成为延时锦囊的目标",  
+    [":zhaojieDelay"] = "锁定技，延时锦囊对你生效时，取消之",  
     ["@fengwu-give"] = "奉无：交给 %src 一张牌"  
 }  
   
