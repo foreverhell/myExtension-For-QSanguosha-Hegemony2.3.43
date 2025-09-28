@@ -683,24 +683,22 @@ zhanjueDuelCard = sgs.CreateSkillCard{
             --不论谁受到伤害，自己先摸1张
             room:drawCards(source, 1, self:objectName())  
             -- 决斗结算完成后的效果  
-            if target:isAlive() and source:isAlive() then 
-                -- 检查谁受到了伤害  
-                local source_damaged = source:getTag("zhanjueDuel_damaged"):toBool()  
-                local target_damaged = target:getTag("zhanjueDuel_damaged"):toBool()  
-                  
-                -- 清除标记  
-                source:removeTag("zhanjueDuel_damaged")  
-                target:removeTag("zhanjueDuel_damaged")  
-                  
-                -- 摸牌逻辑  
-                if source_damaged then  --自己受伤
-                    room:drawCards(source, 1, self:objectName())
-                else --自己没受伤，技能使用次数变为2次  
-                    room:setPlayerFlag(source, "zhanjueDuel_extra")
-                end  
-                if target_damaged then  
-                    room:drawCards(target, 1, self:objectName()) 
-                end  
+            -- 检查谁受到了伤害  
+            local source_damaged = source:getTag("zhanjueDuel_damaged"):toBool()  
+            local target_damaged = target:getTag("zhanjueDuel_damaged"):toBool()  
+                
+            -- 清除标记  
+            source:removeTag("zhanjueDuel_damaged")  
+            target:removeTag("zhanjueDuel_damaged")  
+                
+            -- 摸牌逻辑  
+            if source_damaged and source:isAlive() then  --自己受伤
+                room:drawCards(source, 1, self:objectName())
+            else --自己没受伤，技能使用次数变为2次  
+                room:setPlayerFlag(source, "zhanjueDuel_extra")
+            end  
+            if target_damaged and target:isAlive() then  
+                room:drawCards(target, 1, self:objectName()) 
             end  
         end  
     end  
