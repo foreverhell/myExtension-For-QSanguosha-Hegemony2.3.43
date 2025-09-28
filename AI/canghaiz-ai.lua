@@ -88,12 +88,113 @@ local luajiushi_skill = {}
 luajiushi_skill.name = "luajiushi"
 table.insert(sgs.ai_skills, luajiushi_skill)
 luajiushi_skill.getTurnUseCard = function(self)
-    if self.player:hasUsed("#luajiushiCard") then return false end
+    if self.player:hasUsed("#luajiushi") then return false end
     if not self.player:hasShownAllGenerals() or self.player:hasUsed("Analeptic") then return false end
     if self:getCardsNum("Slash") == 0 then return false end
     return sgs.Card_Parse("#luajiushiCard:.:&luajiushi")
 end
-sgs.ai_skill_use_func["#luajiushiCard"] = function(card, use, self)
-    use.card = card
-end
 sgs.ai_use_priority.luajiushiCard = 6
+
+sgs.ai_cardsview.luajiushi = function(self, class_name, player)
+	if class_name == "Analeptic" then
+		if player:hasShownSkill("luajiushi") and player:hasShownAllGenerals() and sgs.Analeptic_IsAvailable(player) then
+			return ("analeptic:luajiushi[no_suit:0]=.")
+		end
+	end
+end
+
+--王凌
+sgs.ai_skill_choice["startcommand_luamibei"] = function(self, choices)
+    Global_room:writeToConsole(choices)
+    choices = choices:split("+")
+    local commands_toEnemy = {"command2", "command3", "command6", "command4", "command1", "command5"}--索引大小代表优先级，注意不是原顺序
+    local commands_toFriend = {"command5", "command4", "command3", "command6", "command2", "command1"}
+    local current = self.room:getCurrent()
+    if self.player:isFriendWith(current) then
+        local command_value1 = table.indexOf(commands_toFriend,choices[1])
+        local command_value2 = table.indexOf(commands_toFriend,choices[2])
+        local index = math.max(command_value1,command_value2)
+        return commands_toFriend[index]
+    else
+        local command_value1 = table.indexOf(commands_toEnemy,choices[1])
+        local command_value2 = table.indexOf(commands_toEnemy,choices[2])
+        local index = math.max(command_value1,command_value2)
+        return commands_toEnemy[index]
+    end
+end
+sgs.ai_skill_choice["docommand_luamibei"] = function(self, choices, data)
+    local source = data:toPlayer()
+    local index = self.player:getMark("command_index")
+    local is_friend = self:isFriend(source)
+    local count = 0
+    if self.player:getHandcardNum() <= 1 and not self.player:hasSkills("qiaobian|qiaobian_egf") then
+        if self:willSkipPlayPhase() then
+            if index <= 2 or index == 4 then --被乐，只执行打一、摸一和驳言军令
+                return "yes"
+            else
+                return "no"
+            end
+        elseif self:willSkipDrawPhase() then
+            if index <= 2 then --只被兵，只执行打一、摸一，体流看血量和手牌数
+                return "yes"
+            elseif index == 3 then
+                if self.player:getHp() > 1 and source:getHandcardNum() >= 3 then
+                    return "yes"
+                else
+                    return "no"
+                end
+            end
+        elseif index == 3 then
+            if self.player:getHp() > 1 and source:getHandcardNum() >= 3 then
+                return "yes"
+            else
+                return "no"
+            end
+        end
+    end
+
+    if index == 1 and is_friend then
+        return "yes" 
+    end
+    if index == 2 and is_friend then
+        return "yes"
+    end
+    if index == 3 or (self.player:hasSkill("hongfa") and not self.player:getPile("heavenly_army"):isEmpty()) then
+        return "yes"
+    end
+    if index == 4 then
+        if self.player:getMark("command4_effect") > 0 then
+            return "yes"
+        end
+    end
+    if index == 5 then
+        if not self.player:faceUp() then
+            return "yes"
+        end
+        if self.player:hasSkill("jushou") and self.player:getPhase() <= sgs.Player_Finish then
+            return "yes"
+        end
+    end
+    if index == 6 and self.player:getEquips():length() < 3 and self.player:getHandcardNum() < 3 then
+        return "yes"
+    end
+    return "no"
+end
+sgs.ai_skill_playerchosen["command_luamibei"] = sgs.ai_skill_playerchosen.damage
+sgs.ai_skill_cardshow.luamibei = function(self, who)
+    for _, c in sgs.qlist(self.player:getHandcards()) do
+        if c:isKindOf("Slash") or c:isKindOf("SavageAssault") or c:isKindOf("ArcheryAttack") then
+            return c:getEffectiveId()
+        elseif c:isKindOf("BurningCamps") and not self.player:isFriendWith(self.player:getNextAlive()) then
+            return c:getEffectiveId()
+        elseif card:isKindOf("Duel") then
+            return c:getEffectiveId()
+        elseif card:isKindOf("Snatch") or card:isKindOf("Dismantlement") then
+            return c:getEffectiveId()
+        elseif card:isKindOf("Analeptic") then
+            return c:getEffectiveId()
+        end
+    end
+    return self:askForCardShow(self.player, "luamibei")
+end
+sgs.ai_skill_discard.luamibei = sgs.ai_skill_discard.qiaobian

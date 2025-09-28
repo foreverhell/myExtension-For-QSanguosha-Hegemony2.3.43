@@ -1514,10 +1514,11 @@ lifuCard = sgs.CreateSkillCard{
 		if source:isAlive() and target:isAlive() then
 			local ids = room:getNCards(1)
 			local card = sgs.Sanguosha:getCard(ids:first())
+			source:setFlags("lifu_viewSuit_" .. card:getSuitString())
 			room:fillAG(ids, source)
 			room:askForSkillInvoke(source, "lifu_view", sgs.QVariant("prompt::" .. target:objectName() .. ":" .. card:objectName()), false)
 			room:clearAG(source)
-
+			source:setFlags("-lifu_viewSuit_" .. card:getSuitString())
 			source:setFlags("Global_GongxinOperator")
 			local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PREVIEWGIVE, source:objectName(), target:objectName(), "lifu", "")
 			room:moveCardTo(card, target, sgs.Player_PlaceHand, reason)
