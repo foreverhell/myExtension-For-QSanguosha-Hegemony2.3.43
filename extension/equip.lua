@@ -236,13 +236,11 @@ xiuliQiankun = sgs.CreateArmor{
     on_install = function(self, player)  
         local room = player:getRoom()  
         room:acquireSkill(player, "XiuliQiankun", true, true)  
-        room:acquireSkill(player, "zhaojieDelay")  
     end,  
       
     on_uninstall = function(self, player)  
         local room = player:getRoom()  
         room:detachSkillFromPlayer(player, "XiuliQiankun", true, false, true)  
-        room:detachSkillFromPlayer(player, "zhaojieDelay")  
     end  
 }
 
