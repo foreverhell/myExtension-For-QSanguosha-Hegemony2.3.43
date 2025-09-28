@@ -1076,6 +1076,131 @@ sgs.LoadTranslationTable{
     [":zuwang"] = "锁定技，你的准备阶段和结束阶段，你将手牌摸至体力上限。"  
 }
 
+shuai_liubiao = sgs.General(extension, "shuai_liubiao", "qun", 4) -- 蜀势力，4血，男性（默认）  
+
+YanshaCard = sgs.CreateSkillCard{  
+    name = "YanshaCard",  
+    target_fixed = false,  
+    will_throw = true,  
+    skill_name = "yansha",  
+    filter = function(self, targets, to_select)  
+        return true -- 可以选择任意角色  
+    end,  
+    on_use = function(self, room, source, targets)              
+        --local top_cards = room:getNCards(#targets)
+        --room:askForGuanxing(source, top_cards, sgs.Room_GuanxingUpOnly)-- GuanxingUpOnly, GuanxingBothSides, GuanxingDownOnly
+        -- 记录被选择的角色  
+        local selected_players = sgs.SPlayerList()  
+        for _, target in ipairs(targets) do
+            --target:drawCards(1,self:objectName())
+            selected_players:append(target)  
+        end  
+        -- 对选择的角色使用五谷丰登  
+        local amazing_grace = sgs.Sanguosha:cloneCard("amazing_grace")  
+        amazing_grace:setSkillName("yansha")            
+        local ag_use = sgs.CardUseStruct(amazing_grace, source, selected_players)  --使用结构体，目标是qlist类型
+        room:useCard(ag_use)  
+        amazing_grace:deleteLater()  
+
+        -- 所有未被选择的角色可以弃置装备视为使用杀  
+        local all_players = room:getAllPlayers()  
+        for _, player in sgs.qlist(all_players) do  
+            if not selected_players:contains(player) and not player:getEquips():isEmpty() then  
+                if room:askForSkillInvoke(player, "yansha_slash", sgs.QVariant()) and room:askForCard(player,"EquipCard","@yansha-discard",sgs.QVariant(),sgs.Card_MethodDiscard) then  
+                    --local equip_id = room:askForCardChosen(player, player, "e", "yansha")  
+                    --room:throwCard(equip_id, player, player)  
+                    -- 选择一个被选择的角色作为杀的目标  
+                    local slash_target = room:askForPlayerChosen(player, selected_players, "yansha")  
+                    local slash = sgs.Sanguosha:cloneCard("slash")  
+                    slash:setSkillName("yansha")                        
+                    local slash_use = sgs.CardUseStruct(slash, player, slash_target)  
+                    room:useCard(slash_use)  
+                    slash:deleteLater()  
+                end  
+            end  
+        end  
+    end  
+}  
+  
+-- 宴杀视为技  
+yansha = sgs.CreateZeroCardViewAsSkill{  
+    name = "yansha",  
+    view_as = function(self)  
+        card = YanshaCard:clone()  
+        card:setShowSkill(self:objectName())
+        return card
+    end,  
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#YanshaCard")  
+    end  
+}  
+
+qingping = sgs.CreateTriggerSkill{  
+    name = "qingping",  
+    frequency = sgs.Skill_Frequent,  
+    events = {sgs.EventPhaseStart},  
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Finish then  
+            local in_range_players = {}  
+            local all_players = room:getAllPlayers()  
+              
+            for _, p in sgs.qlist(all_players) do  
+                if p:objectName() ~= player:objectName() and player:inMyAttackRange(p) then  
+                    table.insert(in_range_players, p)  
+                end  
+            end  
+              
+            if #in_range_players > 0 then  
+                local can_trigger = true  
+                for _, p in ipairs(in_range_players) do  
+                    local hand_count = p:getHandcardNum()  
+                    if hand_count <= 0 or hand_count > player:getHandcardNum() then  
+                        can_trigger = false  
+                        break  
+                    end  
+                end  
+                  
+                if can_trigger then  
+                    return self:objectName()  
+                end  
+            end  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(), data)  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        local in_range_count = 0  
+        local all_players = room:getAllPlayers()  
+          
+        for _, p in sgs.qlist(all_players) do  
+            if p:objectName() ~= player:objectName() and player:inMyAttackRange(p) then  
+                in_range_count = in_range_count + 1  
+            end  
+        end  
+          
+        if in_range_count > 0 then  
+            room:drawCards(player, in_range_count, "qingping")  
+        end  
+    end  
+}
+
+shuai_liubiao:addSkill(yansha)  
+shuai_liubiao:addSkill(qingping) 
+
+sgs.LoadTranslationTable{
+    ["#shuai_liubiao"] = "衰世牧守",  
+    ["shuai_liubiao"] = "衰刘表",  
+    ["illustrator:shuai_liubiao"] = "未知",  
+    ["yansha"] = "宴杀",  
+    [":yansha"] = "出牌阶段限一次，你可以选择任意名角色，对这些角色使用一张【五谷丰登】，所有未被选择的角色可以弃置一张装备区的装备，视为对其中1个被选择的角色使用杀。",  
+    ["qingping"] = "清平",  
+    [":qingping"] = "结束阶段开始时，若你攻击范围内的角色手牌数均大于0且小于等于你，你可以摸X张牌，X为你攻击范围内的角色数。",  
+    ["yansha_slash"] = "是否弃置一张装备牌，视为使用【杀】",  
+    ["@yansha-target"] = "宴杀：选择【杀】的目标"  
+}
+
 shuai_zhangjiao = sgs.General(extension, "shuai_zhangjiao", "qun", 3) -- 蜀势力，4血，男性（默认）  
 
 xiangru = sgs.CreateTriggerSkill{  
