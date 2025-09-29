@@ -1618,6 +1618,7 @@ zhaojieDelay = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Compulsory,  
             
     can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
         if event == sgs.CardEffected then
             --local use = data:toCardUse()  
             local effect = data:toCardEffect()  
@@ -1630,7 +1631,7 @@ zhaojieDelay = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data)  
-        return true  
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
     end,  
       
     on_effect = function(self, event, room, player, data)     
