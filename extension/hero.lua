@@ -2339,6 +2339,120 @@ sgs.LoadTranslationTable{
     [":zunwang"] = "每回合限一次。你拼点结算后，你摸一张牌。"  
 }  
 
+guoziyi = sgs.General(extension, "guoziyi", "qun", 4) -- 蜀势力，4血，男性（默认）  
+
+wenwu = sgs.CreateTriggerSkill{  
+    name = "wenwu",  
+    events = {sgs.CardUsed},  
+    frequency = sgs.Skill_Frequent, 
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
+            return ""   
+        end  
+          
+        local use = data:toCardUse()  
+        local card = use.card  
+          
+        if not card then return "" end  
+          
+        -- 获取上一张牌的类型  
+        local last_card_type = player:getTag("wenwu_last_card_type"):toString()  
+        --记录这张牌的类型
+        if card then  
+            local card_type = ""  
+            if card:isKindOf("BasicCard") then  
+                card_type = "BasicCard"  
+            elseif card:isKindOf("TrickCard") then  
+                card_type = "TrickCard"  
+            end  
+                
+            if card_type ~= "" then  
+                local tag = sgs.QVariant(card_type)  
+                player:setTag("wenwu_last_card_type", tag)  
+            end  
+        end  
+        -- 检查是否满足文武条件  
+        if card:isKindOf("BasicCard") and last_card_type == "TrickCard" then  
+            return self:objectName()  
+        elseif card:isKindOf("TrickCard") and last_card_type == "BasicCard" then  
+            return self:objectName()  
+        end  
+          
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(), data)  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        -- 额外结算一次  
+        if event == sgs.CardUsed then  
+            local use = data:toCardUse()  
+            room:useCard(use, true) -- 额外结算  
+        end  
+        return false  
+    end  
+}
+
+qing2guo = sgs.CreateTriggerSkill{  
+    name = "qing2guo",  
+    events = {sgs.EventPhaseEnd, sgs.CardUsed}, 
+    frequency = sgs.Skill_Frequent, 
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
+            return ""   
+        end  
+          
+        if event == sgs.EventPhaseEnd then  
+            if player:getPhase() == sgs.Player_Finish then  
+                -- 检查本回合是否使用过基本牌或锦囊牌  
+                local used_basic = player:hasFlag("qing2guo_used_basic")  
+                local used_trick = player:hasFlag("qing2guo_used_trick")  
+                  
+                if not used_basic or not used_trick then  
+                    return self:objectName()  
+                end  
+            end  
+        elseif event == sgs.CardUsed then  
+            -- 记录使用的牌类型  
+            local use = data:toCardUse()  
+            if use.from and use.from:objectName() == player:objectName() then  
+                local card = use.card  
+                if card:isKindOf("BasicCard") then  
+                    room:setPlayerFlag(player, "qing2guo_used_basic")  
+                elseif card:isKindOf("TrickCard") then  
+                    room:setPlayerFlag(player, "qing2guo_used_trick")  
+                end  
+            end  
+        end  
+          
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseEnd then  
+            return player:askForSkillInvoke(self:objectName(), data)  
+        end  
+        return true  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseEnd then  
+            room:drawCards(player, 1, self:objectName())  
+        end  
+        return false  
+    end  
+}
+
+guoziyi:addSkill(wenwu)  
+guoziyi:addSkill(qing2guo)  
+-- 翻译表  
+sgs.LoadTranslationTable{  
+["#guoziyi"] = "汾阳王",  
+["guoziyi"] = "郭子仪",  
+["illustrator:guoziyi"] = "待定",  
+["wenwu"] = "文武",  
+[":wenwu"] = "①当你使用基本牌时，若你使用的上一张牌是锦囊牌，此基本牌额外结算一次。②当你使用锦囊牌时，若你使用或打出的上一张牌是基本牌，此锦囊牌额外结算一次。",  
+["qing2guo"] = "擎国",   
+[":qing2guo"] = "结束阶段开始时，若你于此回合内未使用过基本牌或未使用过锦囊牌，你摸一张牌。",
+}  
 --[[
 hanxin = sgs.General(extension, "hanxin", "wu", 3)  -- 吴国，4血，男性  
 
