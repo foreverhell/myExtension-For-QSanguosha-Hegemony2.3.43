@@ -8306,24 +8306,29 @@ qiandu = sgs.CreateTriggerSkill{
 qiaoqianCard = sgs.CreateSkillCard{  
     name = "qiaoqian",  
     target_fixed = false,  
-    will_throw = false,
+    will_throw = true,
     filter = function(self, targets, to_select)  
         return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()   
     end,  
     on_use = function(self, room, source, targets)  
-        room:askForDiscard(source, self:objectName(), 2, 2, false, false)
         local target = targets[1]  
         room:swapSeat(source, target)
     end  
 }  
-  
-qiaoqian = sgs.CreateZeroCardViewAsSkill{  
+
+qiaoqian = sgs.CreateViewAsSkill{  
     name = "qiaoqian",  
+    view_filter = function(self, selected, to_select)  
+        return #selected < 2 and not to_select:isEquipped() 
+    end,  
     view_as = function(self, cards)  
-        --if #cards ~= 2 then return nil end  
+        if #cards ~= 2 then return nil end  
         local card = qiaoqianCard:clone()  
         card:setSkillName(self:objectName())
         card:setShowSkill(self:objectName())
+        for _, c in ipairs(cards) do  
+            card:addSubcard(c)  
+        end  
         return card
     end,  
     enabled_at_play = function(self, player)  
