@@ -4706,24 +4706,15 @@ cheji_card = sgs.CreateSkillCard{
         end  
           
         -- 处理闪的效果 - 视为使用杀  
-        if has_jink then  
-            local slash_targets = {}  
-            for _, p in sgs.qlist(room:getOtherPlayers(target)) do  
-                if target:canSlash(p, sgs.Sanguosha:cloneCard("slash"), false) then  
-                    table.insert(slash_targets, p)  
-                end  
-            end  
-              
-            if #slash_targets > 0 then  
-                local slash_target = room:askForPlayerChosen(source, slash_targets, "cheji", "@cheji-slash:" .. target:objectName())  
-                if slash_target then  
-                    local slash = sgs.Sanguosha:cloneCard("slash")  
-                    local use = sgs.CardUseStruct()  
-                    use.card = slash  
-                    use.from = target  
-                    use.to:append(slash_target)  
-                    room:useCard(use, false)  
-                end  
+        if has_jink then                
+            local slash_target = room:askForPlayerChosen(source, room:getOtherPlayers(target), "cheji", "@cheji-slash:" .. target:objectName(), true, true)  
+            if slash_target then  
+                local slash = sgs.Sanguosha:cloneCard("slash")  
+                local use = sgs.CardUseStruct()  
+                use.card = slash  
+                use.from = target  
+                use.to:append(slash_target)  
+                room:useCard(use, false)  
             end  
         end  
           
