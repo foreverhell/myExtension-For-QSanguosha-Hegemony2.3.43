@@ -30,25 +30,30 @@ sgs.ai_skill_playerchosen.luaqinzheng = function(self, targets)
         throw_weapon = true 
     end
     for _, enemy in sgs.qlist(targets) do
-        if self:isFriend(enemy) then continue end
-		local def = sgs.getDefenseSlash(enemy, self)
-		local slash = sgs.cloneCard("slash")
-		local eff = self:slashIsEffective(slash, enemy) and sgs.isGoodTarget(enemy, self.enemies, self)
+        if not self:isFriend(enemy) then
+            local def = sgs.getDefenseSlash(enemy, self)
+            local slash = sgs.cloneCard("slash")
+            local eff = self:slashIsEffective(slash, enemy) and sgs.isGoodTarget(enemy, self.enemies, self)
 
-		if not self.player:canSlash(enemy, slash, false) then
-		elseif throw_weapon and enemy:hasArmorEffect("Vine") then
-		elseif self:slashProhibit(nil, enemy) then
-		elseif eff then
-			if enemy:getHp() == 1 and getCardsNum("Jink", enemy, self.player) == 0 then
-				best_target = enemy
-				break
-			end
-			if def < defense then
-				best_target = enemy
-				defense = def
-			end
-			target = enemy
-		end
+            if not self.player:canSlash(enemy, slash, false) then
+            elseif throw_weapon and enemy:hasArmorEffect("Vine") then
+                if enemy:getHp() <= 2 and getCardsNum("Jink", enemy, self.player) == 0 then
+                    best_target = enemy
+                    break
+                end
+            elseif self:slashProhibit(nil, enemy) then
+            elseif eff then
+                if enemy:getHp() == 1 and getCardsNum("Jink", enemy, self.player) == 0 then
+                    best_target = enemy
+                    break
+                end
+                if def < defense then
+                    best_target = enemy
+                    defense = def
+                end
+                target = enemy
+            end
+        end
 	end
     if best_target then return best_target end
     if target then return target end
@@ -62,12 +67,13 @@ end
 sgs.ai_skill_playerchosen.luazhiyan = function(self, targets)
     local friends = {}
     if self.player:getMark("luazongxuan_discard") > 0 then
+        self:sort(friends, "hp")
         for _, p in sgs.qlist(targets) do
             if self.player:isFriendWith(p) then
                 table.insert(friends, p)
+                break
             end
         end
-        self:sort(friends, "hp")
     else
         self.room:sortByActionOrder(targets)
         for _, p in sgs.qlist(targets) do
@@ -198,3 +204,161 @@ sgs.ai_skill_cardshow.luamibei = function(self, who)
     return self:askForCardShow(self.player, "luamibei")
 end
 sgs.ai_skill_discard.luamibei = sgs.ai_skill_discard.qiaobian
+
+--沮授
+sgs.ai_skill_invoke.luaxuyuan = function(self, data)
+    local room = self.player:getRoom()
+    local current = room:getCurrent()
+    if self.player:isFriendWith(current) and not self.player:isNude() then
+        if current:hasSkills("kuangcai|gongxiu|wuxin|beige|guidao|yongsi|jijiu|fenglve|lijian|shenwei") then
+            return true
+        end
+    end
+    return false
+end
+sgs.ai_skill_choice["luaxuyuan_choice"] = function(self, choices, data)
+    local current = self.room:getCurrent()
+    if self.player:isFriendWith(current) and not self.player:isNude() then
+        if current:hasSkills("yongsi|fenglve|shenwei") then
+            return "luaxuyuan_both"
+        elseif current:hasSkills("kuangcai|gongxiu|beige|guidao|jijiu") then
+            return "luaxuyuan_draw"
+        elseif current:hasSkills("lijian|wuxin") then
+            return "luaxuyuan_play"
+        end
+    end
+    return "luaxuyuan_draw"
+end
+
+sgs.ai_skill_invoke.luashibei = function(self, data)
+    local damage = data:toDamage()
+    local from = damage.from
+    local equipcards_from = from:getEquips()
+    local equipcards_self = self.player:getEquips()
+    local hasHorse_self, hasHorse_from = false
+    for _, card in sgs.qlist(equipcards_self) do
+        if card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse")  or card:isKindOf("SixDragons") then
+            hasHorse_self = true
+            break
+        end
+    end
+    for _, card in sgs.qlist(equipcards_from) do
+        if card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse")  or card:isKindOf("SixDragons") then
+            hasHorse_from = true
+            break
+        end
+    end
+    if hasHorse_self then
+        return true
+    elseif hasHorse_from and not from:hasSkills(sgs.lose_equip_skill) then
+        return true
+    end
+    return false
+end
+sgs.ai_skill_choice.luashibei = function(self, choices, data)
+    local damage = data:toDamage()
+    local from = damage.from
+    local equipcards_from = from:getEquips()
+    local equipcards_self = self.player:getEquips()
+    local hasHorse_self, hasHorse_from = false
+    for _, card in sgs.qlist(equipcards_self) do
+        if card:isKindOf("SixDragons") then
+            hasHorse_self = true
+            self.luashibeiCard = card
+            break
+        elseif card:isKindOf("DefensiveHorse") then
+            hasHorse_self = true
+            self.luashibeiCard = card
+            break
+        elseif card:isKindOf("OffensiveHorse") then
+            hasHorse_self = true
+            self.luashibeiCard = card
+            break
+        end
+    end
+    for _, card in sgs.qlist(equipcards_from) do
+        if card:isKindOf("SixDragons") then
+            hasHorse_self = true
+            self.luashibeiCard = card
+            break
+        elseif card:isKindOf("OffensiveHorse") then
+            hasHorse_self = true
+            self.luashibeiCard = card
+            break
+        elseif card:isKindOf("DefensiveHorse") then
+            hasHorse_self = true
+            self.luashibeiCard = card
+            break
+        end
+    end
+    if self:getHp() == 1 and hasHorse_self then
+        return "luashibei_discard"
+    elseif hasHorse_from and not from:hasSkills(sgs.lose_equip_skill) then
+        return "luashibei_get"
+    elseif hasHorse_self then
+        return "luashibei_discard"
+    end
+    return ""
+end
+sgs.ai_skill_askforag.luashibei = function(self, card_ids)
+    if self.luashibeiCard then
+        return self.luashibeiCard:getEffectiveId()
+    end
+	return card_ids:at(0)
+end
+
+--皇甫嵩
+local luafenyue_skill = {}
+luafenyue_skill.name = "luafenyue"
+table.insert(sgs.ai_skills, luafenyue_skill)
+luafenyue_skill.getTurnUseCard = function(self, inclusive)
+    if self.player:hasFlag("luafenyue_fail") or self.player:isKongcheng() or self.player:getMark("#luafenyue_times") 
+    >= x then return false end
+    return sgs.Card_Parse("#luafenyueCard:.:&luafenyue")
+end
+
+sgs.ai_skill_use_func["#luafenyueCard"] = function(card, use, self)
+    for _, enemy in pairs(self.enemies) do
+        if not enemy:isKongcheng() and not enemy:isRemoved() and not enemy:hasArmorEffect("PeaceSpell") then
+            if not (enemy:hasSkill("liuli") and enemy:hasSkills("xuanlue|xiaoji")) then
+                if enemy:getHp() <= 2 and enemy:getHandcardNum() <= 4 then
+                    use.card = card
+                    if use.to then
+                        use.to:append(enemy)
+                        break
+                    end
+                elseif self:getOverflow() > 1 then
+                    use.card = card
+                    if use.to then
+                        use.to:append(enemy)
+                        break
+                    end
+                end
+            end
+        end
+    end
+end
+sgs.ai_skill_choice.luafenyuePindian = function(self, choices, data)
+    local pd = data:toPindian()
+    if pd then
+        local pdTo = pd.to
+        if pd.to:getHandcardNum() <= 2 then
+            if pd.to:getMark("##boyan") <= 0 then
+                local jiangwaifeiyi = sgs.findPlayerByShownSkillName("shoucheng")
+                if jiangwaifeiyi and pd.to:isFriendWith(jiangwaifeiyi) then
+                    return "luafenyue_boyan"
+                end
+            else
+                return "luafenyue_slash"
+            end
+        else
+            if pd.to:getMark("##boyan") <= 0 then
+                return "luafenyue_boyan"
+            else
+                return "luafenyue_slash"
+            end
+        end
+        return "luafenyue_slash"
+    end
+end
+sgs.ai_use_priority.luafenyueCard = 7.2
