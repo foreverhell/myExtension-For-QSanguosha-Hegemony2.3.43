@@ -2146,6 +2146,131 @@ sgs.LoadTranslationTable{
     [":shibei"] = "锁定技。每回合你第一次受到伤害后，你回复一点体力；第二次受到伤害后，你失去一点体力"    
 }
 
+-- 创建武将蒙恬  
+
+kuailiangkuaiyue = sgs.General(extension, "kuailiangkuaiyue", "jin", 3) -- 蜀势力，4血，男性（默认）  
+
+jianxiangCard = sgs.CreateSkillCard{  
+    name = "jianxiangCard",  
+    target_fixed = true,  
+    will_throw = true,   
+    on_use = function(self, room, source, targets)
+        local max_handcard = 0 
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if p:getHandcardNum() > max_handcard then  
+                max_handcard = p:getHandcardNum()  
+            end  
+        end 
+        local targets = sgs.SPlayerList()
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if p:getHandcardNum() == max_handcard then  
+                targets:append(p)
+            end  
+        end 
+        local target1 = room:askForPlayerChosen(source, targets, self:objectName(), "jianxiang-maxcand") -- 手牌最多的角色  
+        local target2 = room:askForPlayerChosen(source, room:getOtherPlayers(target1), self:objectName(), "jianxiang-choose") -- 选择执行效果的角色 
+
+        -- 让target2选择效果  
+        local choices = {"jianxiang_give", "jianxiang_damage"}  
+        local choice = room:askForChoice(target2, "jianxiang", table.concat(choices, "+"))  
+          
+        if choice == "jianxiang_give" and not target2:isNude() then  
+            -- 选择交给target1一张牌  
+            local card_id = room:askForCardChosen(target2, target2, "he", "jianxiang")  
+            room:obtainCard(target1, card_id, false)  
+        else  
+            -- 选择受到target1造成的1点伤害  
+            room:damage(sgs.DamageStruct("jianxiang", target1, target2, 1))  
+        end  
+    end  
+}  
+  
+-- 谏降视为技能  
+jianxiangVS = sgs.CreateZeroCardViewAsSkill{  
+    name = "jianxiang",  
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#jianxiangCard")  
+    end,  
+    view_as = function(self)  
+        local jianxiang_card = jianxiangCard:clone()  
+        jianxiang_card:setSkillName(self:objectName())  
+        jianxiang_card:setShowSkill(self:objectName())  
+        return jianxiang_card  
+    end  
+}
+--卡牌移动时，判断阶段
+nashun = sgs.CreateTriggerSkill{
+	name = "nashun",
+	events = {sgs.CardsMoveOneTime},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) then
+			local current = room:getCurrent()
+			if current and current:isAlive() and current:getPhase() == sgs.Player_Discard then
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+					if reasonx == sgs.CardMoveReason_S_REASON_DISCARD then
+						if move.from_places:contains(sgs.Player_PlaceHand) then
+							if move.from and move.from:isAlive() and player:isFriendWith(move.from) then
+								return self:objectName()
+							end
+						end
+					end
+				end
+			end
+		end
+		return ""
+	end,
+    on_cost = function(self, event, room, player, data)
+		return player:askForSkillInvoke(self:objectName(),data)
+	end,
+    on_effect = function(self, event, room, player, data)
+        local move_datas = data:toList()
+        local all_cards = sgs.IntList()
+        for _, move_data in sgs.qlist(move_datas) do
+            local move = move_data:toMoveOneTime()
+            local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+            if reasonx == sgs.CardMoveReason_S_REASON_DISCARD then
+                if move.from_places:contains(sgs.Player_PlaceHand) then
+                    if move.from and move.from:isAlive() and player:isFriendWith(move.from) then
+                        for _,card_id in sgs.qlist(move.card_ids) do
+                            all_cards:append(card_id)
+                        end
+                    end
+                end
+            end
+        end
+        --用askForAG让player选择体力值张 
+        -- 选择至多4张花色不同的牌  
+        for i = 1, player:getHp() do  
+            room:fillAG(all_cards, player)  
+            local card_id = room:askForAG(player, all_cards, true, "nashun")  
+            if card_id == -1 then 
+                room:clearAG(player)
+                break 
+            end
+            room:obtainCard(player, card_id, false)
+            all_cards:removeOne(card_id)  
+            room:clearAG(source)
+        end 
+        return false
+	end,
+}
+kuailiangkuaiyue:addSkill(jianxiangVS)  
+kuailiangkuaiyue:addSkill(nashun)  
+-- 翻译表  
+sgs.LoadTranslationTable{  
+["#kuailiangkuaiyue"] = "上庸守将",  
+["kuailiangkuaiyue"] = "蒯良蒯越",  
+["&kuailiangkuaiyue"] = "蒯良蒯越",  
+["illustrator:kuailiangkuaiyue"] = "画师名",  
+["jianxiang"] = "谏降",  
+[":jianxiang"] = "出牌阶段限一次。你可以选择一名手牌最多的角色，然后令另一名角色选择：1.交给其1张牌；2.受到其造成的1点伤害。",  
+["nashun"] = "纳顺",  
+[":nashun"] = "与你势力相同的角色弃牌阶段结束时，你可以获得其弃置的至多X张牌，X为你的体力值。",
+}  
 
 liubian = sgs.General(extension, "liubian", "qun", 3)  -- 吴国，4血，男性  
 shiyuan_skill = sgs.CreateTriggerSkill{  
