@@ -661,7 +661,13 @@ jieduoshi = sgs.CreatePhaseChangeSkill{
 		local room = player:getRoom()
 		local await = sgs.Sanguosha:cloneCard("await_exhausted", sgs.Card_NoSuit, 0)
 		await:setSkillName(self:objectName())
-		room:useCard(sgs.CardUseStruct(await, player, sgs.SPlayerList()))
+		local targets = sgs.SPlayerList()
+		for _, p in sgs.qlist(room:getAlivePlayers()) do
+			if player:isFriendWith(p) then
+				targets:append(p)
+			end
+		end
+		room:useCard(sgs.CardUseStruct(await, player, targets))
 		return false
 	end
 }
@@ -1239,18 +1245,14 @@ jieyinbing = sgs.CreateTriggerSkill{
 			room:loseHp(player, x)
 			room:setPlayerMark(player, "jieyinbingUsed", 1)
 		elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
-			local cards = player:getPile("pileOfYinbing")
+			local card_ids = player:getPile("pileOfYinbing")
 			local target = player:getTag("@jieyinbing_target"):toPlayer()
 			player:removeTag("@jieyinbing_target")
-			local cards_len = cards:length()
+			local cards_len = card_ids:length()
 			if cards_len <= 0 then return false end
-			for i = 1, cards_len do
-				room:obtainCard(player, cards:at(i - 1), true)
-				--[[local card_id = cards:at(i - 1)
-				local card = sgs.Sanguosha:getCard(card_id)
-				room:moveCardTo(card, player, player, sgs.Player_PlaceHand, 
-				sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT, player:objectName(), "jieyinbing", ""))]]
-			end
+            local dummy = sgs.DummyCard(card_ids)  
+            player:obtainCard(dummy)
+            dummy:deleteLater()
 			player:clearOnePrivatePile("pileOfYinbing")
 			local recover = sgs.RecoverStruct()
             recover.who = player
@@ -1429,6 +1431,7 @@ jiejinghe_clear = sgs.CreateTriggerSkill{
 					if target:hasSkill(skill_list[i]) then
 						room:detachSkillFromPlayer(target, skill_list[i])
 						room:detachSkillFromPlayer(target, skill_list[i], false, false, false)
+						room:removePlayerMark(target, "##" .. skill_list[i])
 					end
 				end
 				target:removeTag("jiejinghe_skill")
@@ -1444,6 +1447,7 @@ jiejinghe_clear = sgs.CreateTriggerSkill{
 					for i = 1, #skill_list do
 						if target:hasSkill(skill_list[i]) then
 							room:detachSkillFromPlayer(target, skill_list[i])
+							room:detachSkillFromPlayer(target, skill_list[i], false, false, false)
 							room:removePlayerMark(target, "##" .. skill_list[i])
 						end
 						target:removeTag("jiejinghe_skill")
@@ -1505,6 +1509,7 @@ jienuzhan = sgs.CreateTriggerSkill{
 					damage.damage = damage.damage + 1
 					data:setValue(damage)
 					room:setPlayerFlag(player, "jienuzhanUsed")
+					room:addPlayerMark(player, "##jienuzhan_Trick")
 					room:broadcastSkillInvoke(self:objectName(), player)
 					-- 显示加伤的提示  
 					local msg = sgs.LogMessage()
@@ -1715,7 +1720,7 @@ jielierenPindian = sgs.CreateTriggerSkill{
 	events = {sgs.Pindian},
 	frequency = sgs.Skill_Frequent,
 	can_trigger = function(self, event, room, player, data)
-		if player and player:isAlive() and event == sgs.Pindian then
+		if skillTriggerable(player, "jielieren") and event == sgs.Pindian then
 			local pindian = data:toPindian()
 			if pindian.reason == "jielieren" then
 				local winner = nil
@@ -1886,8 +1891,8 @@ sgs.LoadTranslationTable{
     ["jiexuchu"] = "许褚",
     ["jiexiechan"] = "挟缠",
 	[":jiexiechan"] = "限定技，出牌阶段，你可以与一名角色拼点。若你赢，你视为对其使用一张【决斗】；若你没赢，其视为对你使用一张【决斗】。",
-	["$jiexiechan1"] = "不是你死，就是我亡！",
-	["$jiexiechan2"] = "跨过我的尸体，才能前进！",
+	["$jiexiechan1"] = "不是你死，便是我亡！",
+	["$jiexiechan2"] = "休走！你我今日定要分个胜负！",
 }
 
 jiejiezi = sgs.CreateTriggerSkill{
@@ -1902,7 +1907,7 @@ jiejiezi = sgs.CreateTriggerSkill{
 			local name_list = {}
 			if skill_owners:isEmpty() then return false end
             for _, skill_owner in sgs.qlist(skill_owners) do
-				if skill_owner:getMark("jiejiezi_draw") < 2 and change.to == sgs.Player_Draw then
+				if skill_owner:getMark("jiejiezi_draw") < 2 and change.to == sgs.Player_Draw and skill_owner ~= player then
 					table.insert(skill_list, self:objectName())
 					table.insert(name_list, skill_owner:objectName())
 				end
@@ -2183,15 +2188,20 @@ jieshuangxiongDraw = sgs.CreateDrawCardsSkill{
 
 jieshuangxiongGetAndClear = sgs.CreateTriggerSkill{
 	name = "#jieshuangxiongGetAndClear",
-	events = {sgs.EventPhaseStart},
+	events = {sgs.EventPhaseStart, sgs.CardUsed},
 	can_trigger = function(self, event, room, player, data)
 		if player and player:isAlive() and player:hasFlag("jieshuangxiongUsed") and event == sgs.EventPhaseStart then
-			if not player:hasSkill("jieshuangxiong") then
+			if not player:hasSkill("jieshuangxiong") and player:getPhase() == sgs.Player_Play then
 				room:acquireSkill(player, "jieshuangxiong", true, false)
 				room:setPlayerFlag(player, "jieshuangxiongGet")
 			elseif player:hasFlag("jieshuangxiongGet") and player:getPhase() == sgs.Player_Finish then
 				room:detachSkillFromPlayer(player, "jieshuangxiong")
 				room:detachSkillFromPlayer(player, "jieshuangxiong", false, false, false)
+			end
+		elseif skillTriggerable(player, "jieshuangxiong") and event == sgs.CardUsed then
+			local use = data:toCardUse()
+			if use and use.card and use.card:getSkillName() == "jieshuangxiong" then
+				room:broadcastSkillInvoke("shuangxiong", player)
 			end
 		end
 		return false
@@ -2229,7 +2239,7 @@ jiepolu = sgs.CreateTriggerSkill{
 				end
 			end 
 			if death.who:getGeneralName() == "sunjian" or death.who:getGeneral2Name() == "sunjian" then 
-				--死亡后就没有该技能，故要后判断自己死亡的条件
+				--死亡后就没有该技能，故要后判断自己死亡的条件，但暂不知怎么判断有没被断肠
 				return self:objectName(), player:objectName() 
 			end
 		end
@@ -2253,9 +2263,9 @@ jiepolu = sgs.CreateTriggerSkill{
 		if not targets:isEmpty() then
 			room:addPlayerMark(skill_owner, "#jiepolu", 1)
 			x = skill_owner:getMark("#jiepolu")
-		end
-		for _, p in sgs.qlist(targets) do
-			room:drawCards(p, x, self:objectName())
+			for _, p in sgs.qlist(targets) do
+				room:drawCards(p, x, self:objectName())
+			end
 		end
 		return false
 	end
@@ -2271,6 +2281,7 @@ sgs.LoadTranslationTable{
 	[":jiepolu"] = "当你杀死一名角色或当你死亡后，你可以令任意名角色各摸X张牌（X为包含本次在内你发动本技能的次数）。",
 	["@jiepolu_draw"] = "破虏：选择任意名角色摸牌",
 	["$jiepolu1"] = "斩敌复城，扬我江东军威！",
+	["$jiepolu2"] = "宝剑出鞘，踏平贼营！",
 }
 
 jieyizhi = sgs.CreateTriggerSkill{
