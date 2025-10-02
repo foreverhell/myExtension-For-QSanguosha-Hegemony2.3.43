@@ -139,12 +139,12 @@ JiangChi = sgs.CreateTriggerSkill{
         if choice == 1 then  
             -- 选择1：摸3张牌，本回合不能使用杀  
             room:drawCards(player, 3, self:objectName())  
-            room:setPlayerFlag(player, "jiangchi_no_slash")  
+            room:setPlayerCardLimitation(player, "use", "Slash", true) 
         elseif choice == 2 then  
             -- 选择2：摸1张牌，本回合获得狂骨  
             room:drawCards(player, 1, self:objectName())  
-            room:acquireSkill(player, "jiangchiDamage")  
             room:setPlayerFlag(player, "jiangchi_damage")  
+            room:acquireSkill(player, "jiangchiDamage")  
         elseif choice == 3 then  
             -- 选择3：本回合使用杀次数+1，且无距离限制  
             room:setPlayerFlag(player, "jiangchi_slash_extra")  
@@ -153,16 +153,6 @@ JiangChi = sgs.CreateTriggerSkill{
         return false  
     end  
 }
-
-JiangChiProhibit = sgs.CreateProhibitSkill{  
-    name = "#jiangchi_prohibit",  
-    is_prohibited = function(self, from, to, card)  
-        if from:hasFlag("jiangchi_no_slash") and card:isKindOf("Slash") then  
-            return true  
-        end  
-        return false  
-    end  
-}  
   
 -- 临时狂骨技能  
 JiangChiDamage = sgs.CreateTriggerSkill{  
@@ -208,8 +198,7 @@ JiangChiClear = sgs.CreateTriggerSkill{
     events = {sgs.EventPhaseEnd},  
     can_trigger = function(self, event, room, player, data)  
         if player:getPhase() == sgs.Player_Finish then  
-            if player:hasFlag("jiangchi_no_slash") or player:hasFlag("jiangchi_damage")   
-               or player:hasFlag("jiangchi_slash_extra") or player:hasFlag("jiangchi_no_distance") then  
+            if player:hasFlag("jiangchi_damage") or player:hasFlag("jiangchi_slash_extra") or player:hasFlag("jiangchi_no_distance") then  
                 return "jiangchi_clear"  
             end  
         end  
@@ -217,7 +206,6 @@ JiangChiClear = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data)  
         -- 清理所有标记  
-        room:setPlayerFlag(player, "-jiangchi_no_slash")  
         room:setPlayerFlag(player, "-jiangchi_slash_extra")  
         room:setPlayerFlag(player, "-jiangchi_no_distance")  
           
@@ -229,13 +217,12 @@ JiangChiClear = sgs.CreateTriggerSkill{
     end  
 }
 caozhang_xcx:addSkill(JiangChi)  
-caozhang_xcx:addSkill(JiangChiProhibit)  
 caozhang_xcx:addSkill(JiangChiDamage)  
 caozhang_xcx:addSkill(JiangChiTargetMod)  
 caozhang_xcx:addSkill(JiangChiClear)  
   
 -- 关联技能  
-sgs.insertRelatedSkills(extension, "jiangchi", "#jiangchi_prohibit", "#jiangchi_targetmod", "#jiangchi_clear")
+sgs.insertRelatedSkills(extension, "jiangchi", "#jiangchi_targetmod", "#jiangchi_clear")
 sgs.LoadTranslationTable{
     ["caozhang_xcx"] = "曹彰",  
     ["#caozhang_xcx"] = "黄须儿",  
@@ -1114,7 +1101,7 @@ miaoxi = sgs.CreateZeroCardViewAsSkill{
 
 SiJiu = sgs.CreateTriggerSkill{  
     name = "sijiu",  
-    events = {sgs.EventPhaseEnd, sgs.CardsMoveOneTime},  
+    events = {sgs.EventPhaseEnd},  
     frequency = sgs.Skill_Frequent,
     on_recoder = function(self, event, room, player, data)
         if event == sgs.CardsMoveOneTime then  
