@@ -1495,6 +1495,7 @@ jienuzhan = sgs.CreateTriggerSkill{
 			local change = data:toPhaseChange()
 			if change.from == sgs.Player_Play then
 				room:setPlayerMark(player, "##jienuzhan_Trick", 0)
+				room:setPlayerMark(player, "##jienuzhan_Equip", 0)
 			end
 		end
 	end,
@@ -1509,7 +1510,7 @@ jienuzhan = sgs.CreateTriggerSkill{
 					damage.damage = damage.damage + 1
 					data:setValue(damage)
 					room:setPlayerFlag(player, "jienuzhanUsed")
-					room:addPlayerMark(player, "##jienuzhan_Trick")
+					room:addPlayerMark(player, "##jienuzhan_Equip")
 					room:broadcastSkillInvoke(self:objectName(), player)
 					-- 显示加伤的提示  
 					local msg = sgs.LogMessage()
@@ -1555,6 +1556,7 @@ sgs.LoadTranslationTable{
 	[":jienuzhan"] = "锁定技，每回合限一次，你使用锦囊牌转化的【杀】无次数限制，装备牌转化的【杀】造成的伤害+1。",
 	["#jienuzhanAddDamage"] =  "%from发动了“%arg2” ,造成的伤害加“%arg1”",
 	["jienuzhan_Trick"] = "怒斩",
+	["jienuzhan_Equip"] = "怒斩",
 	["$jienuzhan1"] = "以义传魂，以武入圣！",
 	["$jienuzhan2"] = "义击逆流，武安黎庶！",
 }
