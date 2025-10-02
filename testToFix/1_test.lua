@@ -1495,6 +1495,7 @@ jienuzhan = sgs.CreateTriggerSkill{
 			local change = data:toPhaseChange()
 			if change.from == sgs.Player_Play then
 				room:setPlayerMark(player, "##jienuzhan_Trick", 0)
+				room:setPlayerMark(player, "##jienuzhan_Equip", 0)
 			end
 		end
 	end,
