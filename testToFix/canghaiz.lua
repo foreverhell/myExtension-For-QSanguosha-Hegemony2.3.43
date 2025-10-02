@@ -1332,7 +1332,8 @@ luajintaoVS = sgs.CreateViewAsSkill{
 luajintao = sgs.CreatePhaseChangeSkill{
     name = "luajintao",
     can_trigger = function(self, event, room, player, data)
-        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Play then
+        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Play and not
+        player:isNude() then
             return self:objectName()
         end
 		return false
