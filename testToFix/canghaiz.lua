@@ -10,6 +10,7 @@ luacaozhi = sgs.General(canghaiz, "luacaozhi", "wei", 3)
 
 --蜀势力
 --luaqinmi = sgs.General(canghaiz,"luaqinmi", "shu", 3)
+luawuban = sgs.General(canghaiz, "luawuban", "shu")
 
 --吴势力
 luayufan = sgs.General(canghaiz, "luayufan", "wu", 3)
@@ -1185,8 +1186,7 @@ luafenyueCard = sgs.CreateSkillCard{
     skill_name = "luafenyue",
 	will_throw = false,
 	filter = function(self, targets, to_select, Self)
-		return #targets == 0 and not to_select:isKongcheng() and to_select:objectName() ~= Self:objectName() and not 
-		to_select:isRemoved()
+		return #targets == 0 and not to_select:isKongcheng() and to_select:objectName() ~= Self:objectName()
 	end,
 	on_use = function(self, room, source, targets)
     	room:broadcastSkillInvoke("luafenyue", source)
@@ -1288,6 +1288,99 @@ sgs.LoadTranslationTable{
     ["$luafenyue1"] = "逆贼势大，且扎营寨，击其懈怠。",
     ["$luafenyue2"] = "兵有其变，不在众寡。",
     ["~luahuangfusong"] = "力有所能，臣必为也……",
+}
+
+luajintaoCard = sgs.CreateSkillCard{
+    name = "luajintaoCard",
+	skill_name = "luajintaoVS",
+    will_throw = false,
+	handling_method = sgs.Card_MethodNone,
+    filter = function(self, targets, to_select, Self)
+        return #targets == 0 and to_select:objectName() ~= Self:objectName() and 
+        Self:distanceTo(to_select) == self:subcardsLength()
+    end,
+    on_use = function(self, room, source, targets)
+		local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
+        slash:addSubcard(self)
+        slash:setSkillName("luajintao")
+        slash:deleteLater()
+        room:useCard(sgs.CardUseStruct(slash, source, targets[1]), true)
+    end
+}
+
+luajintaoVS = sgs.CreateViewAsSkill{
+    name = "luajintaoVS",
+    response_pattern = "@@luajintaoVS",
+    view_filter = function(self, selected, to_select)
+        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
+        slash:deleteLater()
+        return slash:isAvailable(sgs.Self)
+	end,
+
+    view_as = function(self, cards)
+		if #cards > 0 then
+            local slashCard = luajintaoCard:clone()
+            for _, c in pairs(cards) do
+                slashCard:addSubcard(c:getId())
+            end
+            slashCard:setSkillName("luajintao")
+            return slashCard
+        end
+	end,
+}
+
+luajintao = sgs.CreatePhaseChangeSkill{
+    name = "luajintao",
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Play and not
+        player:isNude() then
+            return self:objectName()
+        end
+		return false
+	end,
+
+    on_cost = function(self, event, room, player, data)
+        if player:askForSkillInvoke(self:objectName(), data) then
+            room:broadcastSkillInvoke(self:objectName(), player)
+            room:askForUseCard(player, "@@luajintaoVS", "@luajintao-toSlash")
+            return true
+        end
+        return false
+    end,
+
+    on_phasechange = function(self, player)
+        return false
+    end
+}
+
+luajintaoDraw = sgs.CreateTriggerSkill{
+    name = "#luajintaoDraw",
+    events = {sgs.Damage},
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, "luajintao") then
+            local damage = data:toDamage()
+            if damage.card and damage.card:isKindOf("Slash") and damage.card:getSkillName() == "luajintao" then
+                player:drawCards(damage.card:subcardsLength(), "luajintao")
+            end
+        end
+        return false
+    end
+}
+
+luawuban:addSkill(luajintao)
+luawuban:addSkill(luajintaoDraw)
+canghaiz:insertRelatedSkills("luajintao", "#luajintaoDraw")
+
+if not sgs.Sanguosha:getSkill("luajintaoVS") then skills:append(luajintaoVS) end
+
+sgs.LoadTranslationTable{
+    ["luawuban"] = "吴班",  
+    ["luajintao"] = "进讨",
+    [":luajintao"] = "出牌阶段开始时，你可以将X张牌当一张【杀】对一名其他角色使用，若此【杀】造成伤害，你摸X张牌（X为你与其的距离）。",
+    ["@luajintao-toSlash"] = "进讨：选择X张牌与一名其他角色（X为你与其的距离）",
+    ["$luajintao1"] = "引兵进讨，断不负丞相之望！",
+    ["$luajintao2"] = "举兵出征，以期北伐建功！",
+    ["~luawuban"] = "汉室倾颓，匡复无望……",
 }
 
 sgs.Sanguosha:addSkills(skills)
