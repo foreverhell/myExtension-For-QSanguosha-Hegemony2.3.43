@@ -2299,6 +2299,7 @@ jianhui = sgs.CreateZeroCardViewAsSkill{
     view_as = function(self)  
         local card = jianhuiCard:clone()  
         card:setSkillName(self:objectName())  
+        card:setShowSkill(self:objectName())  
         return card  
     end,  
       
