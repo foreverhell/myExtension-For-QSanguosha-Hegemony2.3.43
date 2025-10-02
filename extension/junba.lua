@@ -3069,9 +3069,10 @@ chenjie = sgs.CreateTriggerSkill{
         local death = data:toDeath()  
         local dead_player = death.who  
 
-        local skill_owner = room:findPlayerBySkillName(self:objectName())  
-        if skill_owner and skill_owner:isAlive() and not skill_owner:hasFlag("chenjie_" .. dead_player:objectName()) then  
-            room:setPlayerFlag(skill_owner, "chenjie_" .. dead_player:objectName())  
+        --local skill_owner = room:findPlayerBySkillName(self:objectName())  
+        --if skill_owner and skill_owner:isAlive() and not skill_owner:hasFlag("chenjie_" .. dead_player:objectName()) then  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and not player:hasFlag("chenjie_" .. dead_player:objectName()) then  
+            room:setPlayerFlag(player, "chenjie_" .. dead_player:objectName())  
             return self:objectName() .. "->" .. dead_player:objectName()  
         end  
         return ""  
@@ -3347,7 +3348,7 @@ shepan = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)  
         local use = data:toCardUse()  
         if player and player:isAlive() and player:hasSkill(self:objectName()) and use.from and use.from:objectName() ~= player:objectName() then  
-            if use.to:contains(player) and not player:hasFlag("shepan") and use.card:getTypeId()==sgs.Card_TypeSkill then  
+            if use.to:contains(player) and not player:hasFlag("shepan") and use.card:getTypeId()~=sgs.Card_TypeSkill then  
                 return self:objectName(), player:objectName()
             end  
         end  
@@ -3725,9 +3726,8 @@ yunshu = sgs.CreateTriggerSkill{
         -- 寻找拥有运枢技能的角色  
         local death = data:toDeath()  
         local dead_player = death.who  
-        local yuanyin = room:findPlayerBySkillName(self:objectName())  
-        if yuanyin and yuanyin:isAlive() and not yuanyin:hasFlag("yunshu" .. dead_player:objectName()) then  
-            room:setPlayerFlag(yuanyin, "yunshu" .. dead_player:objectName()) 
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and not player:hasFlag("yunshu" .. dead_player:objectName()) then  
+            room:setPlayerFlag(player, "yunshu" .. dead_player:objectName()) 
             return self:objectName() .. "->" .. dead_player:objectName()
         end  
         return ""  
