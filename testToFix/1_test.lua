@@ -1650,7 +1650,7 @@ sgs.LoadTranslationTable{
 
 jielieren = sgs.CreateTriggerSkill{
 	name = "jielieren",
-	events = {sgs.CardUsed},--, sgs.Pindian},
+	events = {sgs.CardUsed},
 	can_trigger = function(self, event, room, player, data)
 		if skillTriggerable(player, self:objectName()) and event == sgs.CardUsed and not player:isKongcheng() then
 			local use = data:toCardUse()
@@ -1665,54 +1665,23 @@ jielieren = sgs.CreateTriggerSkill{
 					return self:objectName() .. "->" .. table.concat(target_list, "+")
 				end
 			end
-		--[[elseif skillTriggerable(player, self:objectName()) and event == sgs.Pindian then
-			local pindian = data:toPindian()
-			if pindian.reason == "jielieren" then
-				return self:objectName() .. "->" .. pindian.to:objectName()
-			end]]
 		end
 		return false
 	end,
 
 	on_cost = function(self, event, room, skill_target, data, player)
-		--[[if event == sgs.Pindian then 
-			return true
-		elseif event == sgs.CardUsed then]]
+		if player:isKongcheng() or skill_target:isKongcheng() then return false end
 		if player:askForSkillInvoke(self:objectName(), data) then
 			room:broadcastSkillInvoke("lieren", player)
 			return true
 		end
-		--end
 		return false
 	end,
 
 	on_effect = function(self, event, room, skill_target, data, player)
-		--if event == sgs.CardUsed then
 		player:setTag("jielieren_cardUsed", data)
 		player:pindian(skill_target, "jielieren")
 		player:removeTag("jielieren_cardUsed")
-		--end
-		--[[local pindian = data:toPindian()
-        if pindian.reason == "jielieren" and event == sgs.Pindian then
-			local winner = nil
-            local loser = nil
-            if pindian.success then
-                winner = pindian.from
-                loser = pindian.to
-            else
-                winner = pindian.to
-                loser = pindian.from
-            end
-            if winner:isAlive() and loser:isAlive() then
-				if winner:objectName() == player:objectName() then
-					local card_id = room:askForCardChosen(player, skill_target, "he", "jielieren", false, sgs.Card_MethodGet)
-					room:obtainCard(player, card_id, false)
-				elseif loser:objectName() == player:objectName() then
-					room:obtainCard(skill_target, pindian.from_card, false)
-					room:obtainCard(player, pindian.to_card, false)
-				end
-            end
-		end]]
 		return false
 	end
 }
@@ -1778,17 +1747,17 @@ jiezhengbing = sgs.CreateOneCardViewAsSkill{
 	view_filter = function(self, selected)
 		return true
 	end,
-	view_as = function(self, card)  
-        local recast_card = jiezhengbingCard:clone()  
-        recast_card:addSubcard(card:getId())  
+	view_as = function(self, card)
+        local recast_card = jiezhengbingCard:clone()
+        recast_card:addSubcard(card:getId())
         recast_card:setSkillName(self:objectName())
 		recast_card:setShowSkill(self:objectName())
-        return recast_card  
+        return recast_card
     end,
 
     enabled_at_play = function(self, player)  
         return not player:hasUsed("#jiezhengbingCard")
-    end 
+    end
 }
 
 jiezhengbingMaxHandcard = sgs.CreateMaxCardsSkill{
@@ -2040,8 +2009,8 @@ sgs.LoadTranslationTable{
     ["jiefenwei"] = "奋威",
 	[":jiefenwei"] = "限定技，当一张锦囊牌指定目标后，若此牌的目标数大于1，你可以令此牌减少任意个目标。",
 	["@jiefenwei-target"] = "奋威：选择为%src使用的【%arg】至少减少一个目标",
-	["$jiefenwei1"] = "哼！敢欺我东吴无人。",
-	["$jiefenwei2"] = "奋勇当先，威名远扬。",
+	["$jiefenwei2"] = "哼！敢欺我东吴无人。",
+	["$jiefenwei1"] = "奋勇当先，威名远扬。",
 }
 
 jiehanzhan = sgs.CreateTriggerSkill{
