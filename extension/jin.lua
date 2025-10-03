@@ -811,7 +811,7 @@ sgs.LoadTranslationTable{
     ["@beini-target"] = "悖逆：选择一名体力不小于你的角色",  
     ["self"] = "你摸牌",  
     ["target"] = "其摸牌",  
-    ["slash"] = "视为使用【杀】",  
+    --["slash"] = "视为使用【杀】",  
     ["getcard"] = "获得一张牌",  
     
     -- 定法技能  
