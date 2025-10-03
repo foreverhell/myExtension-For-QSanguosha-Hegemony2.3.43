@@ -4495,6 +4495,7 @@ shenzi = sgs.CreateTriggerSkill{
       
     can_trigger = function(self, event, room, player, data)
         if skillTriggerable(player, self:objectName()) then
+            if player:hasFlag("shenzi_used") then return "" end
 			local current = room:getCurrent()
 			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
                 if player:objectName()==current:objectName() then return "" end
@@ -4540,6 +4541,7 @@ shenzi = sgs.CreateTriggerSkill{
         end
         if should_draw then
             player:drawCards(1, self:objectName())
+            room:setPlayerFlag(player,"shenzi_used")
         end
         return false  
     end  
@@ -4553,7 +4555,7 @@ sgs.LoadTranslationTable{
     ["qiangwu"] = "枪舞",
     [":qiangwu"] = "出牌阶段开始时，你可以进行一次判定，本回合你使用点数小于判定牌的杀无距离限制，使用点数大于判定牌的杀无次数限制",
     ["shenzi"] = "甚资",
-    [":shenzi"] = "你的回合外，其他角色因弃置而失去基本牌时，你摸1张牌"
+    [":shenzi"] = "每回合限一次。你的回合外，其他角色因弃置而失去基本牌时，你摸1张牌"
 }
 zhouyu_yingfa = sgs.General(extension, "zhouyu_yingfa", "wu", 3)  -- 吴国，4血，男性  
 Xiongmou = sgs.CreateTriggerSkill{  
