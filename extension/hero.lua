@@ -10679,24 +10679,25 @@ xiaoyaoTurned = sgs.CreateTriggerSkill{
             if effect.card and (effect.card:isKindOf("DelayedTrick")) then  
                 return self:objectName()  
             end  
-        elseif event == sgs.TurnedOver then
+        elseif event == sgs.TurnedOver then --叠置事件开始时
             return self:objectName()
         end   
     end,  
       
     on_cost = function(self, event, room, player, data)  
-        return true  
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
     end,  
       
     on_effect = function(self, event, room, player, data)     
         if event == sgs.CardEffected then
             return true
-        elseif event == sgs.TurnedOver then
-            if not player:faceup() then
-                player:turnOver()
-                --player:setFaceUp(true)  
+        elseif event == sgs.TurnedOver then --叠置事件开始时
+            --player:setFaceUp(false)
+            if player:faceup() then --正面朝上
+                player:turnOver() --先翻一次面，触发事件翻回来
                 return false
             end
+            --背面朝上，不需要先翻面
         end
         return true  --返回true，终止效果结算
     end  
@@ -10715,7 +10716,7 @@ sgs.LoadTranslationTable{
 ["xiaoyao"] = "逍遥-蝶",  
 [":xiaoyao"] = "锁定技，你的'蝶'牌不计入手牌上限；若你的'蝶'牌数大于等于3，你使用牌无距离和次数限制；",
 ["xiaoyaoTurned"] = "逍遥",  
-[":xiaoyaoTurned"] = "当延时性锦囊生效时，取消之；当你被叠置时，你平置。"
+[":xiaoyaoTurned"] = "锁定技，当延时性锦囊生效时，取消之；当你被叠置时，你平置。"
 }
 zhubajie = sgs.General(extension, "zhubajie", "wu", 3) --wu,jin  
 
