@@ -1625,7 +1625,7 @@ zhaojieDelay = sgs.CreateTriggerSkill{
             if effect.card and (effect.card:isKindOf("DelayedTrick")) then  
                 return self:objectName()  
             end  
-        elseif event == sgs.TurnedOver then
+        elseif event == sgs.TurnedOver then --叠置事件开始时
             return self:objectName()
         end   
     end,  
@@ -1633,16 +1633,17 @@ zhaojieDelay = sgs.CreateTriggerSkill{
     on_cost = function(self, event, room, player, data)  
         return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
     end,  
-      
+            
     on_effect = function(self, event, room, player, data)     
         if event == sgs.CardEffected then
             return true
-        elseif event == sgs.TurnedOver then
-            if not player:faceup() then
-                player:turnOver()
-                --player:setFaceUp(true)  
+        elseif event == sgs.TurnedOver then --叠置事件开始时
+            --player:setFaceUp(false)
+            if player:faceup() then --正面朝上
+                player:turnOver() --先翻一次面，触发事件翻回来
                 return false
             end
+            --背面朝上，不需要先翻面
         end
         return true  --返回true，终止效果结算
     end  
@@ -3101,7 +3102,7 @@ sgs.LoadTranslationTable{
 }
 ]]
 -- 创建武将：
-wangyi = sgs.General(extension, "wangyi", "wei", 3)  -- 吴国，4血，男性  
+wangyi = sgs.General(extension, "wangyi", "wei", 3, false)  -- 吴国，4血，男性  
 zhenlie = sgs.CreateTriggerSkill{  
     name = "zhenlie",  
     events = {sgs.TargetConfirming}, --sgs.CardEffected
@@ -3178,21 +3179,60 @@ miji = sgs.CreateTriggerSkill{
             msg.arg = lost_hp  
             msg.arg2 = self:objectName()  
             room:sendLog(msg)  
-              
-            player:drawCards(lost_hp, self:objectName())  
+            local ids = sgs.IntList()
+            ids = room:getNCards(lost_hp)
+            room:setPlayerMark(player, "miji_card1", ids:at(0))
+            local dummy = sgs.DummyCard(ids)  
+            player:obtainCard(dummy)
+            dummy:deleteLater()
+			
         end  
           
         return false  
     end  
 }  
+
+mijiAsk = sgs.CreateTriggerSkill{
+    name = "#mijiAsk",
+    events = {sgs.CardsMoveOneTime},
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Discard then
+            local move_datas = data:toList()
+			for _, move_data in sgs.qlist(move_datas) do
+				local move = move_data:toMoveOneTime()
+				if move and move.to and move.to:objectName() == player:objectName()then
+                    local ids = sgs.IntList()
+                    local isCard = false
+					for _, id in sgs.qlist(move.card_ids) do
+						if not isCard then
+                            if player:getMark("miji_card1") == id then
+                                isCard = true
+                            end
+                        end
+                        if isCard then
+                            ids:append(id)
+                        end
+					end
+                    if ids:isEmpty() then return false end
+                    while room:askForYiji(player, ids, self:objectName(), false, false, true, -1, room:getOtherPlayers(player)) do
+                        if player:isDead() then return false end
+                    end
+                end
+            end
+        end
+        return false
+    end
+}
 wangyi:addSkill(zhenlie)
 wangyi:addSkill(miji)
+wangyi:addSkill(mijiAsk)
+extension:insertRelatedSkills("miji", "#mijiAsk")
 sgs.LoadTranslationTable{
     ["wangyi"] = "王异",
     ["zhenlie"] = "贞烈",
     [":zhenlie"] = "你成为杀或非延时性锦囊的目标时，你可以失去一点体力并取消之，然后摸一张牌，弃置来源一张牌",
     ["miji"] = "秘计",  
-    [":miji"] = "弃牌阶段结束后，你可以摸X张牌，X为你已损失的体力值。",  
+    [":miji"] = "弃牌阶段结束后，你可以摸X张牌（X为你已损失的体力值），并任意分配这些牌",  
     ["#mijiDraw"] = "%from 发动了【%arg2】，摸了 %arg 张牌",  
 }
 
