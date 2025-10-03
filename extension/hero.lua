@@ -1215,9 +1215,10 @@ jujianSnatchCard = sgs.CreateSkillCard{
       
     on_use = function(self, room, source, targets)
         local card = room:askForCardChosen(source, targets[1], "h", self:objectName())
+        room:setPlayerMark(source, "jujian_card1", card)
         room:obtainCard(source, card)
-        local give_target = room:askForPlayerChosen(source, room:getAlivePlayers(), self:objectName(), "@jujianSnatch", true)
-        room:obtainCard(give_target, card)
+        --local give_target = room:askForPlayerChosen(source, room:getAlivePlayers(), self:objectName(), "@jujianSnatch", true)
+        --room:obtainCard(give_target, card)
     end
 }
 
@@ -1232,6 +1233,38 @@ jujianSnatch = sgs.CreateOneCardViewAsSkill{
     end,
     enabled_at_play = function(self, player)
         return not player:hasUsed("#jujianSnatchCard") and not player:isKongcheng()
+    end
+}
+
+jujianAsk = sgs.CreateTriggerSkill{
+    name = "#jujianAsk",
+    events = {sgs.CardsMoveOneTime},
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Play then
+            local move_datas = data:toList()
+			for _, move_data in sgs.qlist(move_datas) do
+				local move = move_data:toMoveOneTime()
+				if move and move.to and move.to:objectName() == player:objectName()then
+                    local ids = sgs.IntList()
+                    local isCard = false
+					for _, id in sgs.qlist(move.card_ids) do
+						if not isCard then
+                            if player:getMark("jujian_card1") == id then
+                                isCard = true
+                            end
+                        end
+                        if isCard then
+                            ids:append(id)
+                        end
+					end
+                    if ids:isEmpty() then return false end
+                    while room:askForYiji(player, ids, self:objectName(), false, false, true, -1, room:getOtherPlayers(player)) do
+                        if player:isDead() then return false end
+                    end
+                end
+            end
+        end
+        return false
     end
 }
 
@@ -1257,7 +1290,9 @@ shentan = sgs.CreateOneCardViewAsSkill{
 }  
 --direnjie:addSkill(shentan) 
 direnjie:addSkill("kanpo") 
-direnjie:addSkill(jujianSnatch)  
+direnjie:addSkill(jujianSnatch)
+direnjie:addSkill(jujianAsk)
+extension:insertRelatedSkills("jujianSnatch", "#jujianAsk")  
   
 -- 翻译表  
 sgs.LoadTranslationTable{  
@@ -2584,33 +2619,54 @@ sheri = sgs.CreateTriggerSkill{
               
             -- 如果有红桃牌，使用askForYiji分配  
             if not heart_cards:isEmpty() then  
-                local yiji_cards = sgs.IntList()
-                for _, id in sgs.qlist(heart_cards) do  
-                    player:obtainCard(sgs.Sanguosha:getCard(id), false)
-                end  
-                --[[
-                while room:askForYiji(player, yiji_cards, self:objectName(), true, false, true, -1,   
-                    room:getAlivePlayers()) do  
-                    -- 继续分配剩余的牌  
-                    if not player:isAlive() then break end
-                end  
-                
-                -- 如果还有剩余的红桃牌没有分配，给技能拥有者自己  
-                if yiji_cards:length() > 0 then  
-                    for _, id in sgs.qlist(yiji_cards) do  
-                        player:obtainCard(sgs.Sanguosha:getCard(id), false)  
-                    end  
-                end  
-                ]]
+                room:setPlayerMark(player, "sheri_card1", heart_cards:at(0))
+                local dummy = sgs.DummyCard(heart_cards)  
+                player:obtainCard(dummy)
+                dummy:deleteLater()
             end  
         end     
     end
 }
+
+sheriAsk = sgs.CreateTriggerSkill{
+    name = "#sheriAsk",
+    events = {sgs.CardsMoveOneTime},
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) then
+            local move_datas = data:toList()
+			for _, move_data in sgs.qlist(move_datas) do
+				local move = move_data:toMoveOneTime()
+				if move and move.to and move.to:objectName() == player:objectName()then
+                    local ids = sgs.IntList()
+                    local isCard = false
+					for _, id in sgs.qlist(move.card_ids) do
+						if not isCard then
+                            if player:getMark("sheri_card1") == id then
+                                isCard = true
+                            end
+                        end
+                        if isCard then
+                            ids:append(id)
+                        end
+					end
+                    if ids:isEmpty() then return false end
+                    while room:askForYiji(player, ids, self:objectName(), false, false, true, -1, room:getOtherPlayers(player)) do
+                        if player:isDead() then return false end
+                    end
+                end
+            end
+        end
+        return false
+    end
+}
+
 houyi:addSkill(sheri)
+houyi:addSkill(sheriAsk)
+extension:insertRelatedSkills("sheri", "#sheriAsk")
 sgs.LoadTranslationTable{
 ["houyi"] = "后羿",
 ["sheri"] = "射日",  
-[":sheri"] = "当你使用杀指定目标后，你可以令目标弃置所有红色手牌，并摸等量牌，然后你获得因此弃置的红桃牌",
+[":sheri"] = "当你使用杀指定目标后，你可以令目标弃置所有红色手牌，并摸等量牌，然后你可以任意分配因此弃置的红桃牌",
 }
 
 huamulan = sgs.General(extension, "huamulan", "wu", 3, false)  
@@ -7476,17 +7532,53 @@ luobi = sgs.CreateTriggerSkill{
             msg.arg2 = self:objectName()  
             room:sendLog(msg)  
               
-            player:drawCards(lost_hp, self:objectName())  
+            local ids = sgs.IntList()
+            ids = room:getNCards(lost_hp)
+            room:setPlayerMark(player, "lb_card1", ids:at(0))
+            local dummy = sgs.DummyCard(ids)  
+            player:obtainCard(dummy)
+            dummy:deleteLater()
         end  
           
         return false  
     end  
 }  
-  
+luobiAsk = sgs.CreateTriggerSkill{
+    name = "#luobiAsk",
+    events = {sgs.CardsMoveOneTime},
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Discard then
+            local move_datas = data:toList()
+			for _, move_data in sgs.qlist(move_datas) do
+				local move = move_data:toMoveOneTime()
+				if move and move.to and move.to:objectName() == player:objectName()then
+                    local ids = sgs.IntList()
+                    local isCard = false
+					for _, id in sgs.qlist(move.card_ids) do
+						if not isCard then
+                            if player:getMark("lb_card1") == id then
+                                isCard = true
+                            end
+                        end
+                        if isCard then
+                            ids:append(id)
+                        end
+					end
+                    if ids:isEmpty() then return false end
+                    while room:askForYiji(player, ids, self:objectName(), false, false, true, -1, room:getOtherPlayers(player)) do
+                        if player:isDead() then return false end
+                    end
+                end
+            end
+        end
+        return false
+    end
+}
 -- 添加技能给武将  
 tangbohu:addSkill(fengliu)  
 tangbohu:addSkill(luobi)  
-  
+tangbohu:addSkill(luobiAsk)
+extension:insertRelatedSkills("luobi", "#luobiAsk")
 -- 添加翻译  
 sgs.LoadTranslationTable{  
     ["hero"] = "英雄包",  
@@ -7497,7 +7589,7 @@ sgs.LoadTranslationTable{
     ["#FengliuDraw"] = "%from 的【%arg2】技能被触发，额外摸了 %arg 张牌",  
       
     ["luobi"] = "落笔",  
-    [":luobi"] = "弃牌阶段结束后，你可以摸X张牌，X为你已损失的体力值。",  
+    [":luobi"] = "弃牌阶段结束后，你可以摸X张牌（X为你已损失的体力值），并可以任意分配。",  
     ["#LuobiDraw"] = "%from 发动了【%arg2】，摸了 %arg 张牌",  
       
     ["~tangbohu"] = "吾一生风流，今日竟折于此！"  
