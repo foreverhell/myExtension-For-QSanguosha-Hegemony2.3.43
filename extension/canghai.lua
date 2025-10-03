@@ -1625,7 +1625,7 @@ zhaojieDelay = sgs.CreateTriggerSkill{
             if effect.card and (effect.card:isKindOf("DelayedTrick")) then  
                 return self:objectName()  
             end  
-        elseif event == sgs.TurnedOver then
+        elseif event == sgs.TurnedOver then --叠置事件开始时
             return self:objectName()
         end   
     end,  
@@ -1633,16 +1633,17 @@ zhaojieDelay = sgs.CreateTriggerSkill{
     on_cost = function(self, event, room, player, data)  
         return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
     end,  
-      
+            
     on_effect = function(self, event, room, player, data)     
         if event == sgs.CardEffected then
             return true
-        elseif event == sgs.TurnedOver then
-            if not player:faceup() then
-                player:turnOver()
-                --player:setFaceUp(true)  
+        elseif event == sgs.TurnedOver then --叠置事件开始时
+            --player:setFaceUp(false)
+            if player:faceup() then --正面朝上
+                player:turnOver() --先翻一次面，触发事件翻回来
                 return false
             end
+            --背面朝上，不需要先翻面
         end
         return true  --返回true，终止效果结算
     end  
