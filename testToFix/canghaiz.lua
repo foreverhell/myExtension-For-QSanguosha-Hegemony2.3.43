@@ -6,7 +6,6 @@ sgs.LoadTranslationTable{["canghaiz"] = "沧海篇",}
 --魏势力
 luawangling = sgs.General(canghaiz, "luawangling", "wei", 4)
 luacaozhi = sgs.General(canghaiz, "luacaozhi", "wei", 3)
---caomao = sgs.General(canghaiz, "caomao", "wei", 3)
 
 --蜀势力
 --luaqinmi = sgs.General(canghaiz,"luaqinmi", "shu", 3)
@@ -1046,141 +1045,6 @@ luacaozhi:addSkill(lualuoying)
 luacaozhi:addSkill(luajiushiDamaged)
 canghaiz:insertRelatedSkills("luajiushi", "#luajiushiDamaged")
 
--- 潜龙技能  
---[[qianlong = sgs.CreateTriggerSkill{  
-    name = "qianlong",  
-    events = {sgs.Damaged},  
-    can_trigger = function(self, event, room, player, data)  
-        if player and player:isAlive() and player:hasSkill(self:objectName()) then  
-            local damage = data:toDamage()  
-            return self:objectName()  
-        end  
-        return ""  
-    end,  
-    on_cost = function(self, event, room, player, data)  
-        if player:askForSkillInvoke(self:objectName(), data) then  
-            room:broadcastSkillInvoke(self:objectName())  
-            return true  
-        end  
-        return false  
-    end,  
-    on_effect = function(self, event, room, player, data)  
-        local lost_hp = player:getLostHp() 
-        local cards = room:getNCards(3, false)  
-         
-        local to_get = {}  
-        local moveStruct = sgs.AskForMoveCardsStruct() --自定义观星模板
-        moveStruct = room:askForMoveCards(player, cards, sgs.IntList(), true, self:objectName(), "", "_" ..
-        self:objectName(), 0, lost_hp, false, false)
-        local obtainPile_ids = sgs.IntList()
-        obtainPile_ids = moveStruct.bottom
-        if obtainPile_ids:length() > 0 then
-            local dummy = sgs.DummyCard(obtainPile_ids)  
-            player:obtainCard(dummy)
-            dummy:deleteLater()
-        end
-        local putPile_ids = sgs.IntList()
-        putPile_ids = moveStruct.top
-        local drawPile = room:getDrawPile()
-        if putPile_ids:length() > 0 then
-            for _, id in sgs.qlist(putPile_ids) do
-                room:throwCard(id, player)
-            end
-        end
-        room:doBroadcastNotify(sgs.CommandType.S_COMMAND_UPDATE_PILE, sgs.QVariant(drawPile:length()))
-        --[[for i = 1, math.min(lost_hp, 3) do  
-            room:fillAG(cards, player) 
-            local card_id = room:askForAG(player, cards, true, self:objectName())  
-            if card_id == -1 then 
-                room:clearAG(player)
-                break
-            end  
-            table.insert(to_get, card_id)  
-            cards:removeOne(card_id)  
-            room:clearAG(player)
-        end  
-          
-        if #to_get > 0 then  
-            local dummy = sgs.DummyCard()  
-            for _, id in ipairs(to_get) do  
-                dummy:addSubcard(id)  
-            end  
-            player:obtainCard(dummy)  
-        end  
-          
-        -- 将剩余的牌放回牌堆顶  
-        for _, id in sgs.qlist(cards) do  
-            room:returnToTopDrawPile(id)  
-        end
-          
-        return false  
-    end  
-}  
-  
--- 忿肆技能  
-fensi = sgs.CreateTriggerSkill{  
-    name = "fensi",  
-    events = {sgs.EventPhaseStart},  
-    can_trigger = function(self, event, room, player, data)  
-        if player and player:isAlive() and player:hasSkill(self:objectName())   
-           and player:getPhase() == sgs.Player_Start then  
-            return self:objectName()  
-        end  
-        return ""  
-    end,  
-    on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(),data)  
-    end,  
-    on_effect = function(self, event, room, player, data)  
-        local targets = sgs.SPlayerList()  
-        for _, p in sgs.qlist(room:getAlivePlayers()) do  
-            if p:getHp() >= player:getHp() then  
-                targets:append(p)  
-            end  
-        end  
-          
-        if targets:isEmpty() then return false end  
-          
-        local target = room:askForPlayerChosen(player, targets, self:objectName(), "@fensi-choose", true, true)  
-          
-        if target and target:isAlive() then  
-            local damage = sgs.DamageStruct()  
-            damage.from = player  
-            damage.to = target  
-            damage.damage = 1  
-            room:damage(damage)  
-              
-            if target:objectName() ~= player:objectName() and target:isAlive() then  
-                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)  
-                slash:setSkillName(self:objectName())  
-                local use = sgs.CardUseStruct()  
-                use.card = slash  
-                use.from = target  
-                use.to:append(player)  
-                room:useCard(use, false)  
-            end  
-        end  
-          
-        return false  
-    end  
-}  
-  
-caomao:addSkill(qianlong)  
-caomao:addSkill(fensi)
-
-sgs.LoadTranslationTable{
-    ["caomao"] = "曹髦",  
-    ["#caomao"] = "高贵乡公",  
-    ["qianlong"] = "潜龙",  
-    [":qianlong"] = "当你受到伤害后，你可以展示牌堆顶的三张牌，然后获得其中至多X张（X为已失去的体力值），弃置未获得的牌。",  
-    ["fensi"] = "忿肆",  
-    [":fensi"] = "回合开始时，你可以对一名体力值大于等于你的角色造成1点伤害，若其不为你，其视为对你使用一张杀。",  
-    ["@fensi-choose"] = "忿肆：选择一名体力值大于等于你的角色",
-    ["@qianlong"] = "潜龙：获得至多X张牌（X为你已损失的体力值）",
-    ["qianlong#up"] = "放入弃牌堆",
-    ["qianlong#down"] = "获得的牌",
-}]]
-
 luafenyueCard = sgs.CreateSkillCard{
     name = "luafenyueCard",
     skill_name = "luafenyue",
@@ -1304,7 +1168,7 @@ luajintaoCard = sgs.CreateSkillCard{
         slash:addSubcard(self)
         slash:setSkillName("luajintao")
         slash:deleteLater()
-        room:useCard(sgs.CardUseStruct(slash, source, targets[1]), true)
+        room:useCard(sgs.CardUseStruct(slash, source, targets[1]), false)
     end
 }
 
@@ -1376,7 +1240,7 @@ if not sgs.Sanguosha:getSkill("luajintaoVS") then skills:append(luajintaoVS) end
 sgs.LoadTranslationTable{
     ["luawuban"] = "吴班",  
     ["luajintao"] = "进讨",
-    [":luajintao"] = "出牌阶段开始时，你可以将X张牌当一张【杀】对一名其他角色使用，若此【杀】造成伤害，你摸X张牌（X为你与其的距离）。",
+    [":luajintao"] = "出牌阶段开始时，你可以将X张牌当一张不计入次数的【杀】对一名其他角色使用，若此【杀】造成伤害，你摸X张牌（X为你与其的距离）。",
     ["@luajintao-toSlash"] = "进讨：选择X张牌与一名其他角色（X为你与其的距离）",
     ["$luajintao1"] = "引兵进讨，断不负丞相之望！",
     ["$luajintao2"] = "举兵出征，以期北伐建功！",
