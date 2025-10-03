@@ -821,7 +821,7 @@ sgs.LoadTranslationTable{
 }
 
 
-fengyu = sgs.General(extension, "fengyu", "qun", 3, false)  
+fengyu = sgs.General(extension, "fengyu", "jin", 3, false)  
 
 tiqi = sgs.CreateTriggerSkill{  
     name = "tiqi",  
