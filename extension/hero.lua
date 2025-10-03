@@ -3810,6 +3810,62 @@ sgs.LoadTranslationTable{
     ["#dihuiDamage"] = "%from 的'%arg'效果被触发，伤害从 %arg2 点增加至 %arg3 点"  
 }
 
+linchong = sgs.General(extension, "linchong", "wu", 4)  --或者把虞姬放到qun？
+baotou = sgs.CreateTriggerSkill{
+	name = "baotou",
+	events = {sgs.CardUsed},
+	can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) and event == sgs.CardUsed then
+			local use = data:toCardUse()
+			if use.card:isKindOf("Slash") and use.from == player then
+				local target_list = {}
+				for _, p in sgs.qlist(use.to) do
+					if p ~= player then
+						table.insert(target_list, p:objectName())
+					end
+				end
+				if #target_list > 0 then
+					return self:objectName() .. "->" .. table.concat(target_list, "+")
+				end
+			end
+		end
+		return false
+	end,
+
+	on_cost = function(self, event, room, skill_target, data, player)
+		if player:askForSkillInvoke(self:objectName(), data) then
+			room:broadcastSkillInvoke(self:objectName(), player)
+			return true
+		end
+		return false
+	end,
+
+	on_effect = function(self, event, room, skill_target, data, player)          
+        -- 获取目标的红色手牌  
+        local jinks = sgs.IntList()            
+        for _, card in sgs.qlist(skill_target:getHandcards()) do  
+            if card:isKindOf("Jink") then  
+                jinks:append(card:getEffectiveId())
+            end  
+        end  
+          
+        if not jinks:isEmpty() then  
+            -- 弃置红色手牌  
+            local dummy = sgs.DummyCard(jinks)  
+            room:throwCard(dummy, skill_target, player)  
+            dummy:deleteLater()  
+        end     
+    end
+}
+linchong:addSkill(baotou)  
+  
+-- 翻译表  
+sgs.LoadTranslationTable{  
+    ["linchong"] = "林冲",  
+    ["baotou"] = "豹头",  
+    [":baotou"] = "当你使用杀指定目标后，你可以令目标弃置手牌中所有闪",  
+}
+
 -- 创建武将：唐伯虎  
 linxiangru = sgs.General(extension, "linxiangru", "wu", 3)  -- 吴国，4血，男性  
 
@@ -11112,6 +11168,7 @@ goujian:addCompanion("zhangsunhuanghou")
 guanzhong:addCompanion("qihuangong")
 guanzhong:addCompanion("shangguanwaner")
 guanzhong:addCompanion("wuzetian")
+houyi:addCompanion("linchong")
 qihuangong:addCompanion("shangguanwaner")
 qihuangong:addCompanion("wuzetian")
 jiangziya:addCompanion("wangyangming")
