@@ -95,19 +95,19 @@ luajiushi_skill.name = "luajiushi"
 table.insert(sgs.ai_skills, luajiushi_skill)
 luajiushi_skill.getTurnUseCard = function(self)
     if self.player:hasUsed("#luajiushi") then return false end
-    if not self.player:hasShownAllGenerals() or self.player:hasUsed("Analeptic") then return false end
+    if not self.player:hasShownAllGenerals() or not sgs.Analeptic_IsAvailable(self.player) then return false end
     if self:getCardsNum("Slash") == 0 then return false end
-    return sgs.Card_Parse("#luajiushiCard:.:&luajiushi")
+    return sgs.Card_Parse("analeptic:luajiushi[no_suit:0]=.")
 end
 sgs.ai_use_priority.luajiushiCard = 6
 
-sgs.ai_cardsview.luajiushi = function(self, class_name, player)
+--[[sgs.ai_cardsview.luajiushi = function(self, class_name, player)
 	if class_name == "Analeptic" then
 		if player:hasShownSkill("luajiushi") and player:hasShownAllGenerals() and sgs.Analeptic_IsAvailable(player) then
 			return ("analeptic:luajiushi[no_suit:0]=.")
 		end
 	end
-end
+end]]
 
 --王凌
 sgs.ai_skill_choice["startcommand_luamibei"] = function(self, choices)
@@ -193,11 +193,11 @@ sgs.ai_skill_cardshow.luamibei = function(self, who)
             return c:getEffectiveId()
         elseif c:isKindOf("BurningCamps") and not self.player:isFriendWith(self.player:getNextAlive()) then
             return c:getEffectiveId()
-        elseif card:isKindOf("Duel") then
+        elseif c:isKindOf("Duel") then
             return c:getEffectiveId()
-        elseif card:isKindOf("Snatch") or card:isKindOf("Dismantlement") then
+        elseif c:isKindOf("Snatch") or c:isKindOf("Dismantlement") then
             return c:getEffectiveId()
-        elseif card:isKindOf("Analeptic") then
+        elseif c:isKindOf("Analeptic") then
             return c:getEffectiveId()
         end
     end
@@ -362,3 +362,109 @@ sgs.ai_skill_choice.luafenyuePindian = function(self, choices, data)
     end
 end
 sgs.ai_use_priority.luafenyueCard = 7.2
+
+--吴班
+sgs.ai_skill_invoke.luajintao = function(self, data)
+    local cards = sgs.QList2Table(self.player:getCards("he"))
+    self:sort(self.enemies, "hp")
+    for _, enemy in pairs(self.enemies) do
+        if self.player:distanceTo(enemy) > 0 and #cards >= self.player:distanceTo(p) then
+            if enemy:hasArmorEffect("Vine") then
+                if self.player:getWeapon() and (self.player:getWeapon():objectName() == "Fan" or 
+                self.player:getWeapon():objectName() == "QinggangSword") then
+                    return true
+                elseif #self.enemies == 1 then
+                    return false
+                end
+            end
+        end
+    end
+    return true
+end
+sgs.ai_skill_use["@@luajintaoVS"] = function(self, prompt)
+    local cards = self.player:getCards("h")
+	cards = sgs.QList2Table(cards)
+    self:sortByUseValue(cards)
+    self:sort(self.enemies, "hp")
+    local target, sec_target
+    for _, p in ipairs(self.enemies) do
+        if self:damageIsEffective(p, nil, self.player) and not self:needDamagedEffects(p, self.player) and
+        not self:needToLoseHp(p, self.player) and self.player:distanceTo(p) > 0 and #cards >= self.player:distanceTo(p) then
+            if p:getHp() == 1 and self:isWeak(p) then
+                target = p
+                break
+            end
+            if p:getHp() == 2 and self.isWeak(p) then
+                sec_target = p
+                break
+            end
+        end
+    end
+    
+    if not target then
+        if sec_target then
+            local jintaoCard = {}
+            for i = 1, self.player:distanceTo(sec_target) do
+                table.insert(jintaoCard, cards[i])
+            end
+            return "#luajintaoCard:" .. table.concat(jintaoCard, "+") .. ":&luajintaoVS->" .. sec_target:objectName()
+        end
+        for _, p in ipairs(self.enemies) do
+            if self:damageIsEffective(p, nil, self.player) and not self:needDamagedEffects(p, self.player) and
+            not self:needToLoseHp(p, self.player) and self.player:distanceTo(p) > 0 and #cards >= self.player:distanceTo(p) then
+                local jintaoCard = {}
+                for i = 1, self.player:distanceTo(p) do
+                    table.insert(jintaoCard, cards[i])
+                end
+                return "#luajintaoCard:" .. table.concat(jintaoCard, "+") .. ":&luajintaoVS->" .. p:objectName()
+            end
+        end
+    else
+        local jintaoCard = {}
+        for i = 1, self.player:distanceTo(target) do
+            table.insert(jintaoCard, cards[i])
+        end
+        return "#luajintaoCard:" .. table.concat(jintaoCard, "+") .. ":&luajintaoVS->" .. target:objectName()
+    end
+end
+
+--陈宫
+sgs.ai_skill_invoke.luachengxu = function(self, data)
+    if self.player:hasFlag("luachengxu2slash") then
+        local target = self.player:getTag("luachengxu2slash"):toPlayer()
+        if not self.player:isFriend(target) and self:damageIsEffective(target, nil, self.player) then
+            if target:hasArmorEffect("Vine") then
+                if self.player:getWeapon() and (self.player:getWeapon():objectName() == "Fan" or 
+                self.player:getWeapon():objectName() == "QinggangSword") then
+                    return true
+                else
+                    return false
+                end
+            end
+        end
+    elseif self.player:hasFlag("luachengxu2discard") then
+        local target = self.player:getTag("luachengxu2discard"):toPlayer()
+        local jiangwaifeiyi = sgs.findPlayerByShownSkillName("shoucheng")
+        if not self.player:isFriend(target) then
+            if target:getMark("@firstshow") > 0 and target:getPhase() <= sgs.Player_Play then
+                return false
+            elseif jiangwaifeiyi and target:isFriendWith(jiangwaifeiyi) and target:getPhase() == sgs.Player_NotActive then
+                if (target:getArmor() or target:getTreasure() or target:getOffensiveHorse()) and not 
+                target:hasSkills(sgs.lose_equip_skill) then
+                    return true
+                else
+                    return false
+                end
+            else
+                return true
+            end
+        end
+    else
+        return true
+    end
+    return false
+end
+sgs.ai_skill_invoke.luazhichi = function(self, data)
+    return true
+end
+sgs.ai_skill_cardchosen.luachengxu = sgs.ai_skill_cardchosen.jieqizhi
