@@ -31,7 +31,7 @@ sgs.ai_skill_use_func["#jiejianglveCard"] = function(card, use, self)
     use.card = card
 end
 
-sgs.ai_use_priority.jiejianglveCard = 8.4
+sgs.ai_use_priority.jiejianglveCard = 7.2
 
 sgs.ai_skill_choice["startcommand_jiejianglve"] = function(self, choices)
     Global_room:writeToConsole(choices)
@@ -143,8 +143,8 @@ end
 sgs.ai_skill_choice.jiezhiren = function(self, choices, data)
     for _, p in pairs(self.enemies) do
         if p:isFemale() then
-            if p:getTreasure() or p:getArmor() then
-                if p:getArmor() then
+            if p:getTreasure() or p:getArmor() or p:getOffensiveHorse() then
+                if p:getArmor() and p:getEquips():length() == 1 then
                     local armor = p:getArmor()
                     if armor:objectName() == "PeaceSpell" and p:getHp() <= 1 then
                         continue
@@ -233,7 +233,7 @@ sgs.ai_skill_playerchosen.jiejingheCard = function(self, targets)
                 if p:objectName() ~= self.player:objectName() and self.player:isFriendWith(p) and p:getHandcardNum() >= 3 then
                     if not p:getCards("j"):isEmpty() then
                         table.insert(maybeResult1, p)
-                    elseif p:hasShownSkill("lirang") then
+                    elseif p:hasSkill("lirang") then
                         table.insert(maybeResult1, p)
                     else
                         table.insert(maybeResult2, p)
@@ -287,7 +287,8 @@ sgs.ai_skill_playerchosen.jiejingheCard = function(self, targets)
 end
 sgs.ai_skill_invoke.guizhu = function(self, data)
     local yuanshu = sgs.findPlayerByShownSkillName("weidi")
-	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then return false end
+	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not 
+    yuanshu:hasUsed("WeidiCard") then return false end
     return true
 end
 
@@ -303,14 +304,12 @@ end
 end]]
 sgs.ai_skill_playerchosen.jieyinbing = sgs.ai_skill_playerchosen.juedi
 
---沮授
---sgs.ai_skill_invoke.luaxuyuan = true
-
 --徐晃
 sgs.ai_skill_invoke.jiejiezi = function(self, data)
     if self.player:hasShownSkill("jiejiezi") then return true end
 	local yuanshu = sgs.findPlayerByShownSkillName("weidi")
-	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then return false end
+	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not yuanshu:hasUsed("WeidiCard")
+    then return false end
 	return true
 end
 
@@ -329,7 +328,8 @@ end
 --孙坚
 sgs.ai_skill_invoke.jiepolu = function(self, data)
     local yuanshu = sgs.findPlayerByShownSkillName("weidi")
-	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then return false end
+	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not yuanshu:hasUsed("WeidiCard")
+    then return false end
     if #self.friends_noself > 0 then return true end
     return false
 end
@@ -480,7 +480,8 @@ sgs.ai_skill_invoke.jiefenwei = function(self, data)
             for _, p in pairs(tos) do
                 if not self:isFriendWith(p) and not self.player:isFriendWith(p) then
                     table.insert(result, p)
-                elseif card:isKindOf("AmazingGrace") and yuanshu and yuanshu:getPhase() <= sgs.Player_Play then
+                elseif card:isKindOf("AmazingGrace") and yuanshu and yuanshu:getPhase() <= sgs.Player_Play and not
+                yuanshu:hasUsed("WeidiCard") then
                     table.insert(result, p)
                 end
             end
@@ -496,7 +497,7 @@ sgs.ai_skill_invoke.jiefenwei = function(self, data)
                 for _, p in pairs(tos) do
                     if not self:isFriendWith(p) and not self.player:isFriendWith(p) then
                         table.insert(result, p)
-                    elseif yuanshu and yuanshu:getPhase() <= sgs.Player_Play then
+                    elseif yuanshu and yuanshu:getPhase() <= sgs.Player_Play and not yuanshu:hasUsed("WeidiCard") then
                         table.insert(result, p)
                     end
                 end
@@ -537,7 +538,8 @@ sgs.ai_skill_invoke.jiefenwei = function(self, data)
         elseif card:isKindOf("AmazingGrace") or card:isKindOf("GodSalvation") then
             local yuanshu = sgs.findPlayerByShownSkillName("weidi")
             for _, p in pairs(tos) do
-                if card:isKindOf("AmazingGrace") and yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then
+                if card:isKindOf("AmazingGrace") and yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play 
+                and not yuanshu:hasUsed("WeidiCard") then
                     table.insert(result, p)
                 elseif not self:isFriend(p) then
                     table.insert(result, p)
@@ -553,7 +555,8 @@ sgs.ai_skill_invoke.jiefenwei = function(self, data)
             elseif not self:isFriend(use.from) and #tos >= 3 then
                 local yuanshu = sgs.findPlayerByShownSkillName("weidi")
                 for _, p in pairs(tos) do
-                    if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then
+                    if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play 
+                    and not yuanshu:hasUsed("WeidiCard") then
                         table.insert(result, p)
                     elseif not self:isFriend(p) then
                         table.insert(result, p)
@@ -608,7 +611,8 @@ sgs.ai_skill_playerchosen.jiefenwei = function(self, targets)
             for _, p in pairs(tos) do
                 if not self:isFriendWith(p) and not self.player:isFriendWith(p) then
                     table.insert(result, p)
-                elseif card:isKindOf("AmazingGrace") and yuanshu and yuanshu:getPhase() <= sgs.Player_Play then
+                elseif card:isKindOf("AmazingGrace") and yuanshu and yuanshu:getPhase() <= sgs.Player_Play and not 
+                yuanshu:hasUsed("WeidiCard") then
                     table.insert(result, p)
                 end
             end
@@ -624,7 +628,7 @@ sgs.ai_skill_playerchosen.jiefenwei = function(self, targets)
                 for _, p in pairs(tos) do
                     if not self:isFriendWith(p) and not self.player:isFriendWith(p) then
                         table.insert(result, p)
-                    elseif yuanshu and yuanshu:getPhase() <= sgs.Player_Play then
+                    elseif yuanshu and yuanshu:getPhase() <= sgs.Player_Play and not yuanshu:hasUsed("WeidiCard") then
                         table.insert(result, p)
                     end
                 end
@@ -657,7 +661,8 @@ sgs.ai_skill_playerchosen.jiefenwei = function(self, targets)
         elseif card:isKindOf("AmazingGrace") or card:isKindOf("GodSalvation") then
             local yuanshu = sgs.findPlayerByShownSkillName("weidi")
             for _, p in pairs(tos) do
-                if card:isKindOf("AmazingGrace") and yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then
+                if card:isKindOf("AmazingGrace") and yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play 
+                and not yuanshu:hasUsed("WeidiCard") then
                     table.insert(result, p)
                 elseif not self:isFriend(p) then
                     table.insert(result, p)
@@ -673,7 +678,8 @@ sgs.ai_skill_playerchosen.jiefenwei = function(self, targets)
             elseif not self:isFriend(use.from) and #tos >= 3 then
                 local yuanshu = sgs.findPlayerByShownSkillName("weidi")
                 for _, p in pairs(tos) do
-                    if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then
+                    if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not 
+                    yuanshu:hasUsed("WeidiCard") then
                         table.insert(result, p)
                     elseif not self:isFriend(p) then
                         table.insert(result, p)
@@ -829,7 +835,7 @@ end
 sgs.ai_skill_askforyiji.jieqingjian = sgs.ai_skill_askforyiji.yiji
 
 --臧霸
-function sgs.ai_skill_invoke.jiehengjiang(self, data)
+sgs.ai_skill_invoke.jiehengjiang = function(self, data)
 	local current = self.room:getCurrent()
 	if self:isFriend(current) then
 		return false
@@ -871,4 +877,162 @@ sgs.ai_skill_cardchosen.jielierenPindian = function(self, who, flags, method, di
     else
         return self:askForCardChosen(who, flags, "jielieren", method, disable_list)
     end
+end
+
+--王基
+sgs.ai_skill_invoke.jinqu = function(self, data)
+    local handcardNum = self.player:getHandcardNum()
+    local x = player:getMark("#qizhi-turn")
+    local isJinqu = false
+    if x == 1 then
+        if handcardNum == 0 and not self.needKongcheng() and not self.player:getMark("##mingfa") then
+            isJinqu = true
+        end
+    elseif x >= 2 then
+        if x >= handcardNum then
+            if handcardNum == 0 and self.needKongcheng() then
+                isJinqu = false
+            else
+                isJinqu = true
+            end
+        else
+            isJinqu = false
+        end
+    end
+    if isJinqu then
+        return true
+    else
+        return false
+    end
+end
+sgs.ai_skill_playerchosen.jieqizhi = function(self, targets)
+    local maybeResult1 = {}
+    for _, p in sgs.qlist(targets) do
+        if p:objectName() == self.player:objectName() and not self.player:isNude() then
+            return p
+        end
+        if p:getTreasure() and not self.player:isFriendWith(p) and not p:hasSkills(sgs.lose_equip_skill) then
+            table.insert(maybeResult1, p)
+        elseif p:getArmor() and not self.player:isFriendWith(p) and not p:hasSkills(sgs.lose_equip_skill) then
+            table.insert(maybeResult1, p)
+        elseif p:getOffensiveHorse() and not self.player:isFriendWith(p) and not p:hasSkills(sgs.lose_equip_skill) then
+            table.insert(maybeResult1, p)
+        end
+    end
+    if #maybeResult1 > 0 then
+        return maybeResult1[1]
+    end
+    return ""
+end
+sgs.ai_skill_cardchosen.jieqizhi = function(self, who, flags, method, disable_list)
+    if who:objectName() == self.player:objectName() then
+        local cards = self.player:getCards("he")
+        cards = sgs.QList2Table(cards)
+        self:sortByUseValue(cards)
+        return cards[1]
+    end
+    if who:getTreasure() and not self.player:isFriendWith(who) and not who:hasSkills(sgs.lose_equip_skill) then
+        return who:getTreasure():getId()
+    elseif who:getArmor() and not self.player:isFriendWith(who) and not who:hasSkills(sgs.lose_equip_skill) then
+        return who:getArmor():getId()
+    elseif who:getOffensiveHorse() and not self.player:isFriendWith(who) and not who:hasSkills(sgs.lose_equip_skill) then
+        return who:getOffensiveHorse():getId()
+    end
+    return self:askForCardChosen(who, flags, "jieqizhi", method, disable_list)
+end
+
+--颜良＆文丑
+sgs.ai_skill_invoke.jieshuangxiong = function(self, data)
+	if self.player:isSkipped(sgs.Player_Play) or (self.player:getHp() < 2 and not (self:getCardsNum("Slash") > 1 and self.player:getHandcardNum() >= 3)) or #self.enemies == 0 then
+		return false
+	end
+	if self.player:hasSkill("luanji") then
+		local dummy_use = { isDummy = true }
+		local archeryattack = sgs.cloneCard("archery_attack")
+		self:useTrickCard(archeryattack, dummy_use)
+		if self.player:getHandcardNum() >= 5 and dummy_use.card then
+			return false
+		end
+	end
+	if not self:willShowForAttack() and self.player:getHandcardNum() < 5 then return false end
+
+	local duel = sgs.cloneCard("duel")
+
+	local dummy_use = { isDummy = true }
+	self:useTrickCard(duel, dummy_use)
+	
+	if (self.player:getHandcardNum() >= 3 and dummy_use.card) and not self.player:isCardLimited(duel, sgs.Card_MethodUse) then
+		return true
+	end
+	return false
+end
+
+sgs.ai_skill_askforag.jieshuangxiong = function(self, card_ids)
+    local cards = CardList2Table(self.player:getCards("h"))
+    local black, red = 0
+    for _, card in pairs(cards) do
+        if card:isBlack() then
+            black = black + 1
+        else
+            red = red + 1
+        end
+    end
+    local card1 = sgs.Sanguosha:getCard(card_ids:at(0))
+    local card2 = sgs.Sanguosha:getCard(card_ids:at(1))
+    if black >= red then
+        if card1:isRed() then
+            return card1:getId()
+        elseif card2:isRed() then
+            return card2:getId()
+        else
+            return card1:getId()
+        end
+    else
+        if card1:isBlack() then
+            return card1:getId()
+        elseif card2:isBlack() then
+            return card2:getId()
+        else
+            return card1:getId()
+        end
+    end
+end
+
+sgs.ai_cardneed.jieshuangxiong = function(to, card, self)
+	return not self:willSkipDrawPhase(to)
+end
+
+sgs.ai_view_as.jieshuangxiongVS = function(card, player, card_place)
+    local suit = card:getSuitString()
+	local number = card:getNumberString()
+	local card_id = card:getEffectiveId()
+	local card_str = ("duel:jieshuangxiongVS[%s:%s]=%d&"):format(suit, number, card_id)
+	local skillcard = sgs.Card_Parse(card_str)
+	assert(skillcard)
+	return skillcard
+end
+
+local jieshuangxiong_skill = {}
+jieshuangxiong_skill.name = "jieshuangxiongVS"
+table.insert(sgs.ai_skills, jieshuangxiong_skill)
+jieshuangxiong_skill.getTurnUseCard = function(self)
+	if not self.player:hasFlag("jieshuangxiong_Black") and not self.player:hasFlag("jieshuangxiong_Red") then return nil end
+	local black_mark = self.player:hasFlag("jieshuangxiong_Red")
+	local red_mark = self.player:hasFlag("jieshuangxiong_Black")
+
+	local cards = self.player:getCards("h")
+	for _, id in sgs.qlist(self.player:getHandPile()) do
+		cards:prepend(sgs.Sanguosha:getCard(id))
+	end
+	cards = sgs.QList2Table(cards)
+	self:sortByUseValue(cards, true)
+
+	local card
+	for _, acard in ipairs(cards) do
+		if (acard:isRed() and red_mark) or (acard:isBlack() and black_mark) then
+			card = acard
+			break
+		end
+	end
+    return card
 end
