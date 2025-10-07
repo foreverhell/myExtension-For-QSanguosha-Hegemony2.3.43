@@ -225,7 +225,7 @@ caozhang_xcx:addSkill(JiangChiClear)
 -- 关联技能  
 sgs.insertRelatedSkills(extension, "jiangchi", "#jiangchi_targetmod", "#jiangchi_clear")
 if not sgs.Sanguosha:getSkill("jiangchiDamage") then
-    skills:append(jiangchiDamage)
+    skills:append(JiangChiDamage)
 end
 sgs.LoadTranslationTable{
     ["caozhang_xcx"] = "曹彰",  
