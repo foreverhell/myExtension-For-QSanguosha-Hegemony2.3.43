@@ -1053,7 +1053,7 @@ luafenyueCard = sgs.CreateSkillCard{
 		return #targets == 0 and not to_select:isKongcheng() and to_select:objectName() ~= Self:objectName()
 	end,
 	on_use = function(self, room, source, targets)
-    	room:broadcastSkillInvoke("luafenyue", source)
+    	--room:broadcastSkillInvoke("luafenyue", source)
         room:addPlayerMark(source, "#luafenyue_times", 1)
 		source:pindian(targets[1], "luafenyue")
 	end
@@ -1292,14 +1292,14 @@ luachengxu = sgs.CreateTriggerSkill{
                     skill_owner:getMark("luachengxu_slash") > 0 and skill_owner:canSlash(player, false) then
                         room:setPlayerFlag(skill_owner, "luachengxu2slash") --给AI传数据
                         local d = sgs.QVariant()
-                        d.setValue(player)
+                        d:setValue(player)
                         skill_owner:setTag("luachengxu2slash", d)
                         return self:objectName(), skill_owner
                     elseif skill_owner:objectName() ~= player:objectName() and isChengxu_discard and 
                     skill_owner:getMark("luachengxu_discard") > 0 and skill_owner:canDiscard(player, "he") then
                         room:setPlayerFlag(skill_owner, "luachengxu2discard") --给AI传数据
                         local d = sgs.QVariant()
-                        d.setValue(player)
+                        d:setValue(player)
                         skill_owner:setTag("luachengxu2discard", d)
                         return self:objectName(), skill_owner
                     end
@@ -1325,8 +1325,8 @@ luachengxu = sgs.CreateTriggerSkill{
             local id = room:askForCardChosen(skill_owner, player, "he", self:objectName(), false, sgs.Card_MethodDiscard)
             room:throwCard(id, player, skill_owner)
             if player:isAlive() and player:canDiscard(skill_owner, "he") and not skill_owner:isNude() then
-                if player:askForSkillInvoke(self:objectName(), data) then
-                    room:broadcastSkillInvoke(self:objectName(), skill_owner)
+                if player:askForSkillInvoke("luachengxu", data) then
+                    room:broadcastSkillInvoke("luachengxu", skill_owner)
                     room:doAnimate(1, player:objectName(), skill_owner:objectName())
                     local id2 = room:askForCardChosen(player, skill_owner, "he", self:objectName(), false, sgs.Card_MethodDiscard)
                     room:throwCard(id2, skill_owner, player)
@@ -1339,8 +1339,8 @@ luachengxu = sgs.CreateTriggerSkill{
             skill_owner:removeTag("luachengxu2slash")
             room:useCard(sgs.CardUseStruct(slash, skill_owner, player), false)
             if player:isAlive() and player:canSlash(skill_owner, false) then
-                if player:askForSkillInvoke(self:objectName(), data) then
-                    room:broadcastSkillInvoke(self:objectName(), skill_owner)
+                if player:askForSkillInvoke("luachengxu", data) then
+                    room:broadcastSkillInvoke("luachengxu", skill_owner)
                     room:useCard(sgs.CardUseStruct(slash, player, skill_owner), false)
                 end
             end
@@ -1380,14 +1380,21 @@ luazhichi = sgs.CreateTriggerSkill{
                 end
             elseif event == sgs.TargetConfirming and player:getMark("luazhichi_times") < 2 then
                 local use = data:toCardUse()
-                local damageCard = {"slash", "thunder_slash", "fire_slash", "duel", "archeryAttack", "savageAssault", 
-                "burningCamps", "drowning", "fire_attack"}
-                if table.contains(damageCard, use.card:getName()) or (use.card and use.card:isKindOf("Slash")) then
+                local damageCard = {"Slash", "Duel", "ArcheryAttack", "SavageAssault", "BurningCamps", "Drowning", "FireAttack"}
+                for i = 1, #damageCard do
+                    if use.card and use.card:isKindOf(damageCard[i])  then
+                        room:addPlayerMark(player, "luazhichi_times", 1)
+                        if player:getMark("luazhichi_times") == 2 then
+                            return self:objectName()
+                        end
+                    end
+                end
+                --[[if table.contains(damageCard, use.card:getName()) or (use.card and use.card:isKindOf("Slash")) then
                     room:addPlayerMark(player, "luazhichi_times", 1)
                     if player:getMark("luazhichi_times") == 2 then
                         return self:objectName()
                     end
-                end
+                end]]
             end
         end
         return false
