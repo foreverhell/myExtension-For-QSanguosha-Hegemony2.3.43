@@ -31,8 +31,8 @@ linlang = sgs.CreateTriggerSkill{
         local caozhi_xianxia = ask_who--room:findPlayerBySkillName(self:objectName())  
         local judge = data:toJudge()  
         
-        local choice = room:askForChoice(caozhi_xianxia, "linlang", "obtain+move+cancel")  
-        if choice == "obtain" then
+        local choice = room:askForChoice(caozhi_xianxia, "linlang", "obtainCard+move+cancel")  
+        if choice == "obtainCard" then
             -- 获得判定牌  
             caozhi_xianxia:obtainCard(judge.card)  
         elseif choice == "move" then
@@ -59,10 +59,11 @@ linlang = sgs.CreateTriggerSkill{
             if targets:isEmpty() then return false end
             local from_player = room:askForPlayerChosen(caozhi_xianxia, targets, self:objectName(), "@linlang-move-from")  
             if not from_player then return false end
-            local to_player = room:askForPlayerChosen(caozhi_xianxia, room:getAlivePlayers(), self:objectName(), "@linlang-move-to")  
+            local to_player = room:askForPlayerChosen(caozhi_xianxia, room:getOtherPlayers(from_player), self:objectName(), "@linlang-move-to")  
             if from_player and to_player then
                 local card_id = room:askForCardChosen(caozhi_xianxia,from_player,"ej",self:objectName())
                 local card = sgs.Sanguosha:getCard(card_id)
+                if card:isRed()~=judge.card:isRed() then return false end
                 if card:isKindOf("EquipCard") then
                     -- 移动装备牌  
                     room:moveCardTo(card, to_player, sgs.Player_PlaceEquip)  
@@ -135,6 +136,7 @@ caozhi_xianxia:addSkill(linlang)
 caozhi_xianxia:addSkill(luoyingTurn)
 
 sgs.LoadTranslationTable{
+["xianxia"] = "线下",
 ["#caozhi_xianxia"] = "八斗之才",  
 ["caozhi_xianxia"] = "曹植",   
 ["illustrator:caozhi_xianxia"] = "插画师名称",  
@@ -142,6 +144,8 @@ sgs.LoadTranslationTable{
 [":linlang"] = "当一名角色的判定牌生效后，若判定牌为锦囊牌，你可以选择（1）获得该判定牌（2）移动场上一张与此牌颜色相同的牌。",  
 ["luoyingTurn"] = "落英",  
 [":luoyingTurn"] = "当你受到伤害后，你可以摸X张牌并叠置，X为你已失去的体力值。当你从叠置状态恢复时，你可以进行一次判定，若判定牌为梅花，你立即获得一个出牌阶段。",
+["@linlang-move-from"] = "移动来源",
+["@linlang-move-to"] = "移动目标"
 }
 
 cuifei = sgs.General(extension, "cuifei", "wei", 3, false) -- 蜀势力，4血，男性（默认）  
@@ -149,6 +153,7 @@ cuifei = sgs.General(extension, "cuifei", "wei", 3, false) -- 蜀势力，4血�
 yiyong = sgs.CreateTriggerSkill{
 	name = "yiyong",
 	events = {sgs.CardUsed},
+    frequency = sgs.Skill_Frequent,
 	can_trigger = function(self, event, room, player, data)
 		if skillTriggerable(player, self:objectName()) then
 			local use = data:toCardUse()
@@ -175,7 +180,16 @@ yiyong = sgs.CreateTriggerSkill{
 yashang = sgs.CreateMasochismSkill{  
     name = "yashang",  
     frequency = sgs.Skill_Compulsory,  
-      
+	can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) then
+			return self:objectName()
+		end
+		return false
+	end,
+
+	on_cost = function(self, event, room, player, data)
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data)
+	end,
     on_damaged = function(self, player, damage)
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return false end
         local room = player:getRoom()  
