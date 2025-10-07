@@ -364,14 +364,16 @@ yacai = sgs.CreateTriggerSkill{
                     use.card:isKindOf("SavageAssault") or   
                     use.card:isKindOf("ArcheryAttack") or  
                     use.card:isKindOf("FireAttack") or  
-                    use.card:isKindOf("BurningCamps")
+                    use.card:isKindOf("BurningCamps") or  
+                    use.card:isKindOf("Drowning")
 
             local recast_damage = to_recast:isKindOf("Slash") or   
                     to_recast:isKindOf("Duel") or   
                     to_recast:isKindOf("SavageAssault") or   
                     to_recast:isKindOf("ArcheryAttack") or  
                     to_recast:isKindOf("FireAttack") or  
-                    to_recast:isKindOf("BurningCamps")
+                    to_recast:isKindOf("BurningCamps") or  
+                    to_recast:isKindOf("Drowning")
 
             if used_damage == recast_damage then  
                 -- 额外结算一次基本牌  
