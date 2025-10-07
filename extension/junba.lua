@@ -4651,7 +4651,7 @@ XiongmouYinCard = sgs.CreateSkillCard{
                         card:isKindOf("SavageAssault") or 
                         card:isKindOf("FireAttack") or 
                         card:isKindOf("BurningCamps") or  
-                        card:isKindOf("FloodingSevenArmies")) then  
+                        card:isKindOf("Drowning")) then  
                     damage_tricks:append(card_id) 
                 end  
             end  
