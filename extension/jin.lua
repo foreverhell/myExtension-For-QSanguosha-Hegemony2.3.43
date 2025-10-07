@@ -1859,14 +1859,16 @@ bingxin = sgs.CreateTriggerSkill{
         player:drawCards(1, self:objectName())  
           
         -- 视为使用一张基本牌  
-        choices = {"analeptic"}
+        --choices = {"analeptic"}
         if sgs.Slash_IsAvailable(player) then
             table.insert(choices, "slash")
         end
         if player:isWounded() then
             table.insert(choices, "peach")
         end
-          
+        if sgs.Analeptic_IsAvailable(player) then
+            table.insert(choices, "analeptic")
+        end
         if #choices > 0 then  
             local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"))  
             if choice and choice ~= "" then  
