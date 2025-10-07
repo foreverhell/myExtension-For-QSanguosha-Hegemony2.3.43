@@ -3610,7 +3610,7 @@ yaoyue = sgs.CreateTargetModSkill{
     name = "yaoyue",   
     pattern = "Slash#SingleTargetTrick",  --同类模式用#并列，不同类用|并列  
     extra_target_func = function(self, player, card)  
-        if player:hasSkill(self:objectName()) then  
+        if player:hasShownSkill(self:objectName()) then  
             return 1
         else  
             return 0  
@@ -3643,7 +3643,7 @@ yaoyue = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data)  
         local use = data:toCardUse()  
-        local target = use.to[1]  
+        local target = use.to:first()
           
         local extra_target = room:askForPlayerChosen(player, room:getOtherPlayers(target), self:objectName())
         use.to:append(extra_target) --无中生有不知道能不能生效；延时锦囊不能生效
