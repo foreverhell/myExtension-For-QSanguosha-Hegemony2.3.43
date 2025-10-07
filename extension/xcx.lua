@@ -1,5 +1,6 @@
 extension = sgs.Package("xcx", sgs.Package_GeneralPack)  
-  
+local skills = sgs.SkillList()
+
 -- 创建武将蒙恬  
 bianfuren_xcx = sgs.General(extension, "bianfuren_xcx", "wei", 3, false) -- 蜀势力，4血，男性（默认）  
 
@@ -217,12 +218,15 @@ JiangChiClear = sgs.CreateTriggerSkill{
     end  
 }
 caozhang_xcx:addSkill(JiangChi)  
-caozhang_xcx:addSkill(JiangChiDamage)  
+--caozhang_xcx:addSkill(JiangChiDamage)  
 caozhang_xcx:addSkill(JiangChiTargetMod)  
 caozhang_xcx:addSkill(JiangChiClear)  
   
 -- 关联技能  
 sgs.insertRelatedSkills(extension, "jiangchi", "#jiangchi_targetmod", "#jiangchi_clear")
+if not sgs.Sanguosha:getSkill("jiangchiDamage") then
+    skills:append(jiangchiDamage)
+end
 sgs.LoadTranslationTable{
     ["caozhang_xcx"] = "曹彰",  
     ["#caozhang_xcx"] = "黄须儿",  
@@ -760,21 +764,21 @@ sgs.LoadTranslationTable{
 
 shen_zhugeliang_xcx = sgs.General(extension, "shen_zhugeliang_xcx", "shu", 3) -- 蜀势力，4血，男性（默认）  
 
-qixing_xcx = sgs.CreateTriggerSkill{  
-    name = "qixing_xcx",  
+qixingXCX = sgs.CreateTriggerSkill{  
+    name = "qixingXCX",  
     events = {sgs.EventPhaseStart,sgs.Dying},  
     frequency = sgs.Skill_Limited,  
-    limit_mark = "@qixing_xcx",  
+    limit_mark = "@qixingXCX",  
     can_trigger = function(self, event, room, player, data)  
         if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
             if (player and player:isAlive() and player:hasSkill(self:objectName())) then
-                room:setPlayerMark(player,"@qixing_xcx",1)
+                room:setPlayerMark(player,"@qixingXCX",1)
             end
             return ""
         end
         local dying = data:toDying()  
         if dying.who and dying.who:objectName() == player:objectName()   
-               and player:hasSkill(self:objectName()) and player:getMark("@qixing_xcx") > 0  then
+               and player:hasSkill(self:objectName()) and player:getMark("@qixingXCX") > 0  then
             return self:objectName()
         end
         return ""
@@ -783,7 +787,7 @@ qixing_xcx = sgs.CreateTriggerSkill{
         return room:askForSkillInvoke(player, self:objectName(), data)  
     end,  
     on_effect = function(self, event, room, player, data)  
-        room:removePlayerMark(player, "@qixing_xcx")  
+        room:removePlayerMark(player, "@qixingXCX")  
         local judge = sgs.JudgeStruct()  
         judge.who = player  
         judge.pattern = "."  
@@ -893,16 +897,16 @@ jifeng_card = sgs.CreateSkillCard{
         end  
     end  
 }
-shen_zhugeliang_xcx:addSkill(qixing_xcx)  
+shen_zhugeliang_xcx:addSkill(qixingXCX)  
 shen_zhugeliang_xcx:addSkill(tianfaTrick)  
 shen_zhugeliang_xcx:addSkill(jifeng)  
 sgs.LoadTranslationTable{
 ["#shen_zhugeliang_xcx"] = "神机妙算",  
 ["shen_zhugeliang_xcx"] = "神诸葛亮",  
 ["illustrator:shen_zhugeliang_xcx"] = "画师名",  
-["qixing_xcx"] = "七星",  
-[":qixing_xcx"] = "每轮限一次，当你进入濒死状态时，你可以进行判定，若判定牌大于7，你回复1点体力。",  
-["@qixing_xcx"] = "七星",  
+["qixingXCX"] = "七星",  
+[":qixingXCX"] = "每轮限一次，当你进入濒死状态时，你可以进行判定，若判定牌大于7，你回复1点体力。",  
+["@qixingXCX"] = "七星",  
 ["tianfaTrick"] = "天罚",  
 [":tianfaTrick"] = "你的出牌阶段，你每使用2张锦囊，你获得1个'罚'标记；回合结束时，你可以对至多X名其他角色造成1点伤害，X为'罚'标记的数量，然后你移除所有'罚'标记。",  
 ["@tianfaTrick_mark"] = '罚',  
@@ -1228,4 +1232,5 @@ sgs.LoadTranslationTable{
 ["yuhuaXCX"] = "羽化",  
 [":yuhuaXCX"] = "你的非基本牌不计入手牌上限。"
 }
+sgs.Sanguosha:addSkills(skills)
 return {extension}
