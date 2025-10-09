@@ -4262,8 +4262,12 @@ minghui = sgs.CreateTriggerSkill{
         if not xing_zhangchunhua or not xing_zhangchunhua:isAlive() or not xing_zhangchunhua:hasSkill(self:objectName()) then  
             return ""  
         end  
-          
+        if xing_zhangchunhua:getMark("minghui_min") ~= 0 and xing_zhangchunhua:getMark("minghui_max") ~= 0 then return "" end
         if player:getPhase() == sgs.Player_Finish then  
+            if player == xing_zhangchunhua then
+                room:setPlayerMark(player,"minghui_min",0)
+                room:setPlayerMark(player,"minghui_max",0)
+            end
             local all_players = room:getAlivePlayers()  
             local min_handcard = 999  
             local max_handcard = 0  
@@ -4282,7 +4286,8 @@ minghui = sgs.CreateTriggerSkill{
             local xing_zhangchunhua_handcard = xing_zhangchunhua:getHandcardNum()  
               
             -- 检查是否为全场最少或最多  
-            if xing_zhangchunhua_handcard == min_handcard or xing_zhangchunhua_handcard == max_handcard then  
+            if (xing_zhangchunhua_handcard == min_handcard and xing_zhangchunhua:getMark("minghui_min") == 0) 
+            or (xing_zhangchunhua_handcard == max_handcard and xing_zhangchunhua:getMark("minghui_max") == 0) then  
                 return self:objectName(), xing_zhangchunhua:objectName()
             end  
         end  
@@ -4321,8 +4326,8 @@ minghui = sgs.CreateTriggerSkill{
             -- 手牌数全场最少，选择一名角色视为对其使用杀  
             local target = room:askForPlayerChosen(xing_zhangchunhua, room:getOtherPlayers(xing_zhangchunhua), self:objectName(), "@minghui-slash")  
             if target then  
-                room:askForUseSlashTo(xing_zhangchunhua, target, "", false, false, false)  
-                --[[
+                room:setPlayerMark(xing_zhangchunhua,"minghui_min",1)
+                --room:askForUseSlashTo(xing_zhangchunhua, target, "", false, false, false)  
                 local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
                 slash:setSkillName(self:objectName())  
                 local use = sgs.CardUseStruct()  
@@ -4330,24 +4335,22 @@ minghui = sgs.CreateTriggerSkill{
                 use.from = xing_zhangchunhua  
                 use.to:append(target)  
                 room:useCard(use, false)  
-                ]]
             end  
               
         elseif xing_zhangchunhua_handcard == max_handcard then  
             -- 手牌数全场最多，弃置至不为全场最多  
             local discard_num = xing_zhangchunhua_handcard - second_max_handcard + 1  
-            if discard_num > 0 and xing_zhangchunhua:getHandcardNum() > 0 then  
-                room:askForDiscard(xing_zhangchunhua, self:objectName(), discard_num, discard_num, false, false)  
-            end  
-              
-            -- 选择一名角色回复1点体力  
-            local target = room:askForPlayerChosen(xing_zhangchunhua, all_players, self:objectName(), "@minghui-recover")  
-            if target and target:isWounded() then  
-                local recover = sgs.RecoverStruct()  
-                recover.who = xing_zhangchunhua  
-                recover.recover = 1  
-                room:recover(target, recover)  
-            end  
+            if discard_num > 0 and xing_zhangchunhua:getHandcardNum() > 0 and room:askForDiscard(xing_zhangchunhua, self:objectName(), discard_num, discard_num, true, false) then  
+                room:setPlayerMark(xing_zhangchunhua,"minghui_max",1)              
+                -- 选择一名角色回复1点体力  
+                local target = room:askForPlayerChosen(xing_zhangchunhua, all_players, self:objectName(), "@minghui-recover")  
+                if target and target:isWounded() then  
+                    local recover = sgs.RecoverStruct()  
+                    recover.who = xing_zhangchunhua  
+                    recover.recover = 1  
+                    room:recover(target, recover)  
+                end  
+            end
         end  
           
         return false  
@@ -4372,7 +4375,7 @@ sgs.LoadTranslationTable{
     ["liangyan_discard:1"] = "弃1张牌",  
     ["liangyan_discard:2"] = "弃2张牌",  
     ["minghui"] = "明慧",  
-    [":minghui"] = "任意角色回合结束时，若你的手牌数全场最少，你可以对一名其他角色使用一张【杀】；若你的手牌数全场最多，你可以将手牌数弃置至不为全场最多，然后令一名角色回复1点体力。",  
+    [":minghui"] = "每轮每项限一次。任意角色回合结束时，若你的手牌数全场最少，你可以视为对一名其他角色使用一张【杀】；若你的手牌数全场最多，你可以将手牌数弃置至不为全场最多，然后令一名角色回复1点体力。",  
     ["@minghui-slash"] = "明慧：选择一名角色，对其使用【杀】",  
     ["@minghui-recover"] = "明慧：选择一名角色令其回复1点体力"  
 }
