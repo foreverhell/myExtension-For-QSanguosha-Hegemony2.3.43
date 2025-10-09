@@ -314,7 +314,7 @@ xiahui = sgs.CreateMaxCardsSkill{
     name = "xiahui",  
     frequency = sgs.Skill_Compulsory,  
     extra_func = function(self, target)  
-        if target:hasSkill(self:objectName()) then  
+        if target:hasShownSkill(self:objectName()) then  
             local black_count = 0  
             local cards = target:getHandcards()  
             for _, card in sgs.qlist(cards) do  
