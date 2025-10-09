@@ -1389,12 +1389,6 @@ luazhichi = sgs.CreateTriggerSkill{
                         end
                     end
                 end
-                --[[if table.contains(damageCard, use.card:getName()) or (use.card and use.card:isKindOf("Slash")) then
-                    room:addPlayerMark(player, "luazhichi_times", 1)
-                    if player:getMark("luazhichi_times") == 2 then
-                        return self:objectName()
-                    end
-                end]]
             end
         end
         return false
