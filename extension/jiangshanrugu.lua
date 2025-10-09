@@ -1105,7 +1105,7 @@ YanshaCard = sgs.CreateSkillCard{
         -- 所有未被选择的角色可以弃置装备视为使用杀  
         local all_players = room:getAllPlayers()  
         for _, player in sgs.qlist(all_players) do  
-            if not selected_players:contains(player) and not player:getEquips():isEmpty() then  
+            if not selected_players:contains(player) then --and not player:getEquips():isEmpty() then  
                 if room:askForSkillInvoke(player, "yansha_slash", sgs.QVariant()) and room:askForCard(player,"EquipCard","@yansha-discard",sgs.QVariant(),sgs.Card_MethodDiscard) then  
                     --local equip_id = room:askForCardChosen(player, player, "e", "yansha")  
                     --room:throwCard(equip_id, player, player)  
@@ -1194,7 +1194,7 @@ sgs.LoadTranslationTable{
     ["shuai_liubiao"] = "衰刘表",  
     ["illustrator:shuai_liubiao"] = "未知",  
     ["yansha"] = "宴杀",  
-    [":yansha"] = "出牌阶段限一次，你可以选择任意名角色，对这些角色使用一张【五谷丰登】，所有未被选择的角色可以弃置一张装备区的装备，视为对其中1个被选择的角色使用杀。",  
+    [":yansha"] = "出牌阶段限一次，你可以选择任意名角色，对这些角色使用一张【五谷丰登】，所有未被选择的角色可以弃置一张装备，视为对其中1个被选择的角色使用杀。",  
     ["qingping"] = "清平",  
     [":qingping"] = "结束阶段开始时，若你攻击范围内的角色手牌数均大于0且小于等于你，你可以摸X张牌，X为你攻击范围内的角色数。",  
     ["yansha_slash"] = "是否弃置一张装备牌，视为使用【杀】",  
