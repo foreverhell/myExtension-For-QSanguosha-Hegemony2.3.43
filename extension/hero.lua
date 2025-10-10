@@ -791,6 +791,7 @@ benyueCard = sgs.CreateSkillCard{
         ex_nihilo:setSkillName("benyue")  
         local use = sgs.CardUseStruct(ex_nihilo, source, source)  
         room:useCard(use)  
+        ex_nihilo:deleteLater()
     end  
 }   
 benyue = sgs.CreateOneCardViewAsSkill{  
@@ -1167,7 +1168,8 @@ zhonghu = sgs.CreateTriggerSkill{
                     use.from = ask_who  
                     use.to:append(damage.from)  
                     use.card = slash  
-                    room:useCard(use, false)  
+                    room:useCard(use, false)
+                    slash:deleteLater()
                 end  
             end
         end  
@@ -1314,15 +1316,15 @@ lijianSlash = sgs.CreateTriggerSkill{
                 -- 赢家视为对输家使用一张杀  
                 local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
                 slash:setSkillName("lijianSlash")  
-                  
                 if winner:canSlash(loser, slash, false) then  
                     local use = sgs.CardUseStruct()  
                     use.from = winner  
                     use.to:append(loser)  
                     use.card = slash  
                       
-                    room:useCard(use, false)  
+                    room:useCard(use, false)    
                 end  
+                slash:deleteLater()
             end  
         end  
           
@@ -1706,6 +1708,7 @@ quancaiWuzhongshengyouCard = sgs.CreateSkillCard{
         ex_nihilo:setSkillName("quancai")  
         local use = sgs.CardUseStruct(ex_nihilo, source, source)  
         room:useCard(use)  
+        ex_nihilo:deleteLater()
     end  
 }  
   
@@ -1725,6 +1728,7 @@ quancaiShunshoupiangyangCard = sgs.CreateSkillCard{
         snatch:setSkillName("quancai")  
         local use = sgs.CardUseStruct(snatch, effect.from, effect.to)  
         room:useCard(use)  
+        snatch:deleteLater()
     end  
 }  
   
@@ -1741,6 +1745,7 @@ quancaiJuedouCard = sgs.CreateSkillCard{
         duel:setSkillName("quancai")  
         local use = sgs.CardUseStruct(duel, effect.from, effect.to)  
         room:useCard(use)  
+        duel:deleteLater()
     end  
 }  
   
@@ -1951,7 +1956,8 @@ shefu2 = sgs.CreateTriggerSkill{
             slash:setSkillName(self:objectName())  
             if fanzeng_player:canSlash(player, slash, false) then  
                 room:useCard(sgs.CardUseStruct(slash, fanzeng_player, player))  
-            end  
+            end
+            slash:deleteLater()
         end  
         return false  
     end  
@@ -3594,6 +3600,7 @@ mingcha_card = sgs.CreateSkillCard{
         if not to_discard:isEmpty() then  
             local dummy = sgs.DummyCard(to_discard)  
             room:obtainCard(source, dummy)  
+            dummy:deleteLater()
         end  
     end  
 }  
@@ -4602,6 +4609,7 @@ Lumang = sgs.CreateTriggerSkill{
         use.to:append(ask_who)   
         use.card = duel  
         room:useCard(use) 
+        duel:deleteLater()
         return false  
     end  
 }
@@ -5670,8 +5678,6 @@ haoling = sgs.CreateTriggerSkill{
 					local log = sgs.LogMessage()
 					if room:askForUseSlashTo(target_askSlash, skill_target, "@jieAskForSlash", true, false, false) then
 						target_askSlash:drawCards(1, self:objectName())
-					--[[else
-						player:drawCards(1, self:objectName())]]
 					end
 				end
 			end
@@ -6088,6 +6094,7 @@ yaoji = sgs.CreateTriggerSkill{
             use.to:append(target)  
               
             room:useCard(use)  
+            slash:deleteLater()
         end            
         return false  
     end  
@@ -6767,9 +6774,7 @@ fanji = sgs.CreateTriggerSkill{
         if source then  
             --[[
             local prompt = string.format("@fanji-slash:%s:%s:", source:objectName(), player:objectName())  
-            if room:askForUseSlashTo(player, source, prompt, false, false, false) then  
-                return true  
-            end  
+            room:askForUseSlashTo(player, source, prompt, false, false, false)
             ]]
             local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
             slash:setSkillName("fanji")  
@@ -6778,6 +6783,7 @@ fanji = sgs.CreateTriggerSkill{
             use.from = player  
             use.to:append(source)  
             room:useCard(use) 
+            slash:deleteLater()
         end  
         return false  
     end  
@@ -7328,6 +7334,8 @@ zhuolue = sgs.CreateViewAsSkill{
         return new_card  
     end,  
     enabled_at_play = function(self, player)
+        return not player:isKongcheng()
+        --[[
         local room = player:getRoom()
         local can_use = false
         for _,p in room:getOtherPlayers(player) do
@@ -7350,6 +7358,7 @@ zhuolue = sgs.CreateViewAsSkill{
         end  
           
         return red_count > 0 or black_count > 0  
+        ]]
     end  
 }  
   
@@ -7409,7 +7418,7 @@ sgs.LoadTranslationTable{
     ["hero"] = "英雄",  
     ["simayi_hero"] = "司马懿",  
     ["zhuolue"] = "卓略",  
-    [":zhuolue"] = "出牌阶段，若你的体力值不为全场最高：你可以弃置所有黑色牌，视为使用一张【南蛮入侵】；你可以弃置所有红色牌，视为使用一张【桃】。",  
+    [":zhuolue"] = "出牌阶段：你可以弃置所有黑色牌，视为使用一张【南蛮入侵】；你可以弃置所有红色牌，视为使用一张【桃】。",  
     ["langgu"] = "狼顾",  
     [":langgu"] = "你受到伤害时，你可以摸一张牌，然后展示所有手牌，若手牌颜色都相同，你回复一点体力。"  
 }  
@@ -7475,7 +7484,7 @@ xiyuan = sgs.CreateTriggerSkill{
                     dummy:addSubcard(id)  
                 end  
                 room:throwCard(dummy, target, target, self:objectName())  
-                  
+                dummy:deleteLater()
                 -- 检查是否有4种花色  
                 local suit_count = 0  
                 for _ in pairs(suits) do  
@@ -8541,7 +8550,7 @@ jiangmen = sgs.CreateTriggerSkill{
             local slash = sgs.Sanguosha:cloneCard("slash")  
             local residue = sgs.Sanguosha:correctCardTarget(sgs.TargetModSkill_Residue, player, slash) + 1  
             room:setPlayerMark(player, "@jiangmen", residue)  
-              
+            slash:deleteLater()
             -- 日志  
             local msg = sgs.LogMessage()  
             msg.type = "#jiangmenEffect"  
@@ -8780,6 +8789,7 @@ Tianji = sgs.CreateTriggerSkill{
             room:setPlayerMark(player, "@tianji_sum", sum)  
               
             if sum >= 13 then  
+                -- 重置点数和  
                 room:setPlayerMark(player, "@tianji_sum", 0)
                 return self:objectName()  
             end  
@@ -8793,8 +8803,9 @@ Tianji = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data)  
-        -- 重置点数和  
         local ids = room:getNCards(3, false)  
+        --[[
+        --从摸牌堆3张选1张
         local card_ids = sgs.IntList()  
         for _, id in sgs.qlist(ids) do  
             card_ids:append(id)  
@@ -8806,7 +8817,11 @@ Tianji = sgs.CreateTriggerSkill{
           
         if id ~= -1 then  
             room:obtainCard(player, id)  
-        end       
+        end
+        ]]
+        --观星3，然后摸1张
+        room:askForGuanxing(player, ids, sgs.Room_GuanxingUpOnly)
+        room:drawCards(player,1,self:objectName())
         return false  
     end  
 }  
@@ -8818,10 +8833,10 @@ sgs.LoadTranslationTable{
 ["wuyong"] = "吴用",  
 ["illustrator:wuyong"] = "待定",  
 ["shensuan"] = "神算",  
-[":shensuan"] = "回合结束时,你可以弃置一张手牌,然后进行判定,直到判定牌点数和大于等于你弃置的牌,你获得所有判定牌。",  
-["@shensuan"] = "你可以发动'神算',弃置一张手牌",  
+[":shensuan"] = "回合结束时，你可以弃置一张手牌，然后进行判定，直到判定牌点数和大于等于你弃置的牌，你获得所有判定牌。",  
+["@shensuan"] = "你可以发动'神算'，弃置一张手牌",  
 ["tianji"] = "天机",  
-[":tianji"] = "每当你使用或打出的牌点数和大于等于13时,你可以观看牌堆顶3张牌并获得其中1张。",
+[":tianji"] = "每当你使用或打出的牌点数和大于等于13时，你可以观看牌堆顶3张牌并以任意顺序牌列，然后摸1张牌。",
 }
 
 wuzetian = sgs.General(extension, "wuzetian", "qun", 4, false)  
@@ -10753,6 +10768,7 @@ Taiji = sgs.CreateTriggerSkill{
         use.from = player  
         use.to:append(target)  
         room:useCard(use) 
+        slash:deleteLater()
         return false  
     end,  
 }
@@ -11015,6 +11031,7 @@ chuhai = sgs.CreateTriggerSkill{
                 use.from = player  
                 use.to:append(target)  
                 room:useCard(use)  
+                duel:deleteLater()
             end  
         end  
         player:skip(sgs.Player_Draw)
