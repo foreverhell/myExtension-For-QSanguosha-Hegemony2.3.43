@@ -1220,7 +1220,7 @@ sgs.LoadTranslationTable{
     ["dianwei_hero"] = "典韦",  
     ["illustrator:dianwei_hero"] = "未知",  
     ["zhonghu"] = "忠护",  
-    [":zhonghu"] = "每轮限一次，任意角色出牌阶段开始时，你可以指定1名角色，令其获得1个'护'标记，直到你下回合开始。拥有'护'标记的角色受到伤害后，你可以弃置1张手牌，视为对伤害来源使用1张杀。",  
+    [":zhonghu"] = "每轮限一次，任意角色出牌阶段开始时，你可以指定1名角色，令其获得1个'护'标记，直到你下回合开始。该角色受到伤害后，你可以弃置1张手牌，视为对伤害来源使用1张杀。",  
     ["@zhonghu"] = "忠护",  
     ["@zhonghu-invoke"] = "忠护：你可以选择一名角色，令其获得'护'标记",  
     ["kuangzhan"] = "狂战",  
@@ -8702,6 +8702,128 @@ sgs.LoadTranslationTable{
     ["@beide-choose"] = "背德：你可以指定一名其他角色也成为此杀的目标"  
 }
 
+wuyong = sgs.General(extension, "wuyong", "qun", 3)  
+
+-- 神算触发  
+Shensuan = sgs.CreateTriggerSkill{  
+    name = "shensuan",  
+    events = {sgs.EventPhaseEnd},  
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill("shensuan")   
+            and player:getPhase() == sgs.Player_Finish   
+            and not player:isKongcheng() then  
+            return self:objectName()  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(),data)
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        local card = room:askForCard(player, ".|.|.|hand", self:objectName(), data, sgs.Card_MethodDiscard)
+        if not card then return false end
+        -- 获取弃置牌的花色
+        local sum = 0
+        local point = card:getNumber()
+        local judge_cards = sgs.IntList()
+        repeat  
+            local judge = sgs.JudgeStruct()  
+            judge.pattern = "."  
+            judge.who = player  
+            judge.reason = self:objectName()  
+            room:judge(judge)  
+
+            sum = sum + judge.card:getNumber()
+            judge_cards:append(judge.card:getId())  
+        until sum >= point
+        if not judge_cards:isEmpty() then  
+            -- 获得所有红色判定牌  
+            --[[
+            local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
+            for _, id in sgs.qlist(judge_cards) do  
+                dummy:addSubcard(id)  
+            end  
+            ]]
+            local dummy = sgs.DummyCard(judge_cards)  
+            room:obtainCard(player, dummy, false)  
+            dummy:deleteLater()  
+        end
+
+        return false  
+    end  
+}  
+  
+-- 天机技能  
+Tianji = sgs.CreateTriggerSkill{  
+    name = "tianji",  
+    events = {sgs.CardUsed, sgs.CardResponded},  
+    frequency = sgs.Skill_Frequent,  
+    can_trigger = function(self, event, room, player, data)  
+        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
+            return ""  
+        end  
+          
+        local card = nil  
+        if event == sgs.CardUsed then  
+            card = data:toCardUse().card  
+        elseif event == sgs.CardResponded then  
+            local response = data:toCardResponse()  
+            if response.m_isUse then  
+                card = response.m_card  
+            end  
+        end  
+
+        if card and not card:hasFlag("tianji_used") then  
+            card:setFlags("tianji_used")
+
+            local sum = player:getMark("@tianji_sum") + card:getNumber()  
+            room:setPlayerMark(player, "@tianji_sum", sum)  
+              
+            if sum >= 13 then  
+                room:setPlayerMark(player, "@tianji_sum", 0)
+                return self:objectName()  
+            end  
+        end  
+          
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(), data)  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        -- 重置点数和  
+        local ids = room:getNCards(3, false)  
+        local card_ids = sgs.IntList()  
+        for _, id in sgs.qlist(ids) do  
+            card_ids:append(id)  
+        end  
+          
+        room:fillAG(card_ids, player)  
+        local id = room:askForAG(player, card_ids, false, self:objectName())  
+        room:clearAG(player)  
+          
+        if id ~= -1 then  
+            room:obtainCard(player, id)  
+        end       
+        return false  
+    end  
+}  
+  
+wuyong:addSkill(Shensuan)
+wuyong:addSkill(Tianji)
+sgs.LoadTranslationTable{
+["#wuyong"] = "智多星",  
+["wuyong"] = "吴用",  
+["illustrator:wuyong"] = "待定",  
+["shensuan"] = "神算",  
+[":shensuan"] = "回合结束时,你可以弃置一张手牌,然后进行判定,直到判定牌点数和大于等于你弃置的牌,你获得所有判定牌。",  
+["@shensuan"] = "你可以发动'神算',弃置一张手牌",  
+["tianji"] = "天机",  
+[":tianji"] = "每当你使用或打出的牌点数和大于等于13时,你可以观看牌堆顶3张牌并获得其中1张。",
+}
+
 wuzetian = sgs.General(extension, "wuzetian", "qun", 4, false)  
 
 nvhuang = sgs.CreateTriggerSkill{  
@@ -9522,7 +9644,7 @@ chuyou = sgs.CreateTriggerSkill{
             phase_name = "出牌阶段"  
         end  
           
-        if player:askForSkillInvoke(self, data) then  
+        if player:askForSkillInvoke(self:objectName(), data) then  
             room:broadcastSkillInvoke(self:objectName(), player)  
             return true  
         end  
