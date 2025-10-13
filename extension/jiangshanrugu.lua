@@ -276,6 +276,7 @@ pingtaoCard = sgs.CreateSkillCard{
                 use.from = source  
                 use.to:append(target)
                 room:useCard(use)
+                slash:deleteLater()
             end  
         else  
             local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_SuitToBeDecided, -1)  
@@ -285,6 +286,7 @@ pingtaoCard = sgs.CreateSkillCard{
             use.from = source  
             use.to:append(target)  
             room:useCard(use)  
+            slash:deleteLater()
         end  
     end  
 }  
@@ -796,6 +798,7 @@ baohe = sgs.CreateTriggerSkill{
             end  
                 
             room:useCard(use)  
+            slash:deleteLater()
         end            
         return false  
     end  
@@ -916,7 +919,7 @@ longlin = sgs.CreateTriggerSkill{
             local duel = sgs.Sanguosha:cloneCard("duel")  
             duel:setSkillName(self:objectName())  
             duel:setShowSkill(self:objectName())  
-                
+            duel:deleteLater()
             if not use.from:isCardLimited(duel, sgs.Card_MethodUse) and not use.from:isProhibited(ask_who, duel) then  
                 local duel_use = sgs.CardUseStruct()  
                 duel_use.card = duel  
