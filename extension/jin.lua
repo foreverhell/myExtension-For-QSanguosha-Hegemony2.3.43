@@ -320,7 +320,7 @@ luanchang = sgs.CreateTriggerSkill{
             -- 使用万箭齐发  
             local archery_attack = sgs.Sanguosha:cloneCard("archery_attack", sgs.Card_NoSuit, 0)  
             archery_attack:setSkillName(self:objectName())  
-              
+            archery_attack:deleteLater()
             local use = sgs.CardUseStruct()  
             use.card = archery_attack  
             use.from = player  
@@ -699,6 +699,7 @@ BeiniCard = sgs.CreateSkillCard{
                 use.from = other  
                 use.to:append(drawer)  
                 room:useCard(use)  
+                slash:deleteLater()
             elseif other_choice == "getcard" then  
                 -- 获得一张牌  
                 local card_id = room:askForCardChosen(other, drawer, "hej", "beini")  
@@ -852,6 +853,7 @@ xiongshuCard = sgs.CreateSkillCard{
             -- 令目标角色对其攻击范围内所有角色使用杀  
             local slash = sgs.Sanguosha:cloneCard("slash")  
             slash:setSkillName("xiongshu")  
+            slash:deleteLater()
             local use = sgs.CardUseStruct()  
             use.card = slash  
             use.from = target  
@@ -1424,7 +1426,7 @@ yingshi = sgs.CreateTriggerSkill{
         -- 视为first_target对second_target使用知己知彼  
         local zhiji_card = sgs.Sanguosha:cloneCard("known_both")  
         zhiji_card:setSkillName(self:objectName())  
-          
+        zhiji_card:deleteLater()
         local use = sgs.CardUseStruct()  
         use.card = zhiji_card  
         use.from = first_target  
@@ -1469,6 +1471,7 @@ shunfu_card = sgs.CreateSkillCard{
             use.to:append(targets[i])  
                           
             room:useCard(use)  
+            slash:deleteLater()
         end  
     end  
 }  
@@ -1547,6 +1550,7 @@ duanqiu = sgs.CreateTriggerSkill{
                 use.to:append(target)  
                   
                 room:useCard(use)  
+                duel:deleteLater()
             end  
         end  
           
@@ -1874,7 +1878,8 @@ bingxin = sgs.CreateTriggerSkill{
             if choice and choice ~= "" then  
                 local virtual_card = sgs.Sanguosha:cloneCard(choice, sgs.Card_NoSuit, -1)  
                 virtual_card:setSkillName(self:objectName())  
-                  
+                virtual_card:deleteLater()
+
                 local use = sgs.CardUseStruct()  
                 use.card = virtual_card  
                 use.from = player  
@@ -2551,6 +2556,7 @@ neiji = sgs.CreateTriggerSkill{
             if duel_user and duel_target then  
                 local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, 0)  
                 duel:setSkillName("_" .. self:objectName())  
+                duel:deleteLater()
                 if not duel_user:isCardLimited(duel, sgs.Card_MethodUse) and not duel_user:isProhibited(duel_target, duel) then  
                     room:useCard(sgs.CardUseStruct(duel, duel_user, duel_target))  
                 end  
@@ -2653,9 +2659,11 @@ yilieCard = sgs.CreateSkillCard{
       
     on_use = function(self, room, source, targets) 
         --room:setPlayerFlag(source, "yilie_used")
-        choices = {"analeptic"}
         if sgs.Slash_IsAvailable(source) then
             table.insert(choices, "slash")
+        end
+        if sgs.Analeptic_IsAvailable(source) then
+            table.insert(choices, "analeptic")
         end
         if source:isWounded() then
             table.insert(choices, "peach")
@@ -2663,6 +2671,7 @@ yilieCard = sgs.CreateSkillCard{
         choice=room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
         card = sgs.Sanguosha:cloneCard(choice)  
         card:setSkillName("yilie")
+        card:deleteLater()
         if choice=="slash" then
             local targets = sgs.SPlayerList()  
             for _, p in sgs.qlist(room:getOtherPlayers(source)) do  
