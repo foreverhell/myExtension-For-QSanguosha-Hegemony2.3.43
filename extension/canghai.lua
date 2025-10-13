@@ -381,6 +381,7 @@ ZhenyingCard = sgs.CreateSkillCard{
             use.from = smaller_player  
             use.to:append(larger_player)  
             room:useCard(use)  
+            duel:deleteLater()
         end  
     end  
 }  
@@ -443,7 +444,8 @@ mouzhu_card = sgs.CreateSkillCard{
             local choices = {}  
             local slash = sgs.Sanguosha:cloneCard("slash")  
             local duel = sgs.Sanguosha:cloneCard("duel")  
-              
+            slash:deleteLater()
+            duel:deleteLater()
             if not target:isCardLimited(slash, sgs.Card_MethodUse) then  
                 table.insert(choices, "slash")  
             end  
@@ -460,7 +462,7 @@ mouzhu_card = sgs.CreateSkillCard{
                 elseif choice == "duel" then  
                     card_to_use = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, 0)  
                 end  
-                  
+                card_to_use:deleteLater()
                 if card_to_use then  
                     card_to_use:setSkillName("_mouzhu")  
                     -- 这里可能要让目标选择使用目标
@@ -724,7 +726,7 @@ sigong = sgs.CreateTriggerSkill{
         use.from = ask_who  
         use.to:append(source)  
         room:useCard(use)  
-
+        duel:deleteLater()
         return false  
     end  
 }  
@@ -1079,7 +1081,7 @@ MizhaoTrigger = sgs.CreateTriggerSkill{
                 -- 赢家视为对输家使用一张杀  
                 local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
                 slash:setSkillName("mizhao")  
-                  
+                slash:deleteLater()
                 if winner:canSlash(loser, slash, false) then  
                     local use = sgs.CardUseStruct()  
                     use.from = winner  
@@ -1730,6 +1732,7 @@ guiyin = sgs.CreateTriggerSkill{
         use.to:append(ask_who) -- 技能拥有者作为目标  
           
         room:useCard(use)  
+        lure_tiger:deleteLater()
     end  
 }
 
@@ -1787,6 +1790,7 @@ yinyi_card = sgs.CreateSkillCard{
                     end  
                       
                     room:useCard(use, false)  
+                    iron_chain:deleteLater()
                 end  
             end  
         end  
@@ -2152,6 +2156,7 @@ shuomengTrigger = sgs.CreateTriggerSkill{
                 local card = sgs.Sanguosha:cloneCard("befriend_attacking", sgs.Card_NoSuit, 0)  
                 card:setSkillName("_shuomeng")  
                 room:useCard(sgs.CardUseStruct(card, winner, loser)) 
+                card:deleteLater()
             end  
         end  
           
@@ -2161,12 +2166,15 @@ shuomengTrigger = sgs.CreateTriggerSkill{
 
 qianya = sgs.CreateTriggerSkill{
     name = "qianya",
-    --frequency = sgs.Skil_Compulsory,
+    frequency = sgs.Skill_Compulsory,
     events = {sgs.DamageInflicted, sgs.EventPhaseStart}, 
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then return "" end  
         if event == sgs.DamageInflicted then 
-            return self:objectName()     
+            local damage = data:toDamage() 
+            if damage.card then
+                return self:objectName()
+            end
         elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then  
             return self:objectName()
         end  
@@ -2181,7 +2189,7 @@ qianya = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data)  
         if event == sgs.DamageInflicted then  
             local damage = data:toDamage()  
-            if damage.card and (damage.card:isKindOf("Slash") or damage.card:isKindOf("TrickCard")) then
+            if damage.card then--and (damage.card:isKindOf("Slash") or damage.card:isKindOf("TrickCard")) then
                 damage.damage = 0
                 damage.prevented = true
                 data:setValue(damage)   
@@ -2272,6 +2280,7 @@ YanzhuCard = sgs.CreateSkillCard{
             use.from = effect.from  
             use.to:append(target)  
             room:useCard(use)  
+            slash:deleteLater()
         end  
     end  
 }  
@@ -2956,7 +2965,6 @@ guixiang = sgs.CreateTriggerSkill{
                     -- 基本牌或普通锦囊牌：视为使用它  
                     card_to_use = sgs.Sanguosha:cloneCard(judge_card:objectName(), sgs.Card_SuitToBeDecided, -1)  
                 end  
-                  
                 if card_to_use then  
                     use_target = room:askForPlayerChosen(target, room:getAlivePlayers(), self:objectName()) 
                     card_to_use:setSkillName(self:objectName())  
@@ -2965,6 +2973,7 @@ guixiang = sgs.CreateTriggerSkill{
                     use.from = target  
                     use.to:append(use_target)  
                     room:useCard(use)  
+                    card_to_use:deleteLater()
                 end  
             end  
         end  
@@ -3013,7 +3022,7 @@ XumingCard = sgs.CreateSkillCard{
         use.from = source  
         use.to:append(target)  
         room:useCard(use)  
-        
+        yuanjiao:deleteLater()
         -- 让玩家选择遍历方向  
         local direction = room:askForChoice(source, "xuming_direction", "clockwise+counterclockwise")  
           
@@ -3291,7 +3300,7 @@ fushuCard = sgs.CreateSkillCard{
         -- 令目标视为使用远交近攻  
         local yuanjiao = sgs.Sanguosha:cloneCard("befriend_attacking", sgs.Card_NoSuit, 0)  
         yuanjiao:setSkillName("fushu")  
-   
+        yuanjiao:deleteLater()
         -- 选择与目标势力相同的角色作为伤害目标  
         local same_kingdom_players = sgs.SPlayerList()
         local different_kingdom_players = sgs.SPlayerList()  
