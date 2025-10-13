@@ -677,6 +677,7 @@ zhanjueDuelCard = sgs.CreateSkillCard{
     will_throw = true,  
     filter = function(self, targets, to_select)  
         local duel = sgs.Sanguosha:cloneCard("duel")  
+        duel:deleteLater()
         return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()   
                and not sgs.Self:isProhibited(to_select, duel)  
     end,  
@@ -689,7 +690,7 @@ zhanjueDuelCard = sgs.CreateSkillCard{
         -- 创建决斗牌  
         local duel = sgs.Sanguosha:cloneCard("duel")  
         duel:setSkillName("zhanjueDuel")  
-          
+        duel:deleteLater()
         -- 使用决斗  
         if not source:isCardLimited(duel, sgs.Card_MethodUse) and not source:isProhibited(target, duel) then  
             local use = sgs.CardUseStruct(duel, source, target)  
