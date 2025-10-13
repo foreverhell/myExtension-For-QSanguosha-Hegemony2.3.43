@@ -289,7 +289,7 @@ lizi = sgs.CreateTriggerSkill{
         new_card:addSubcard(to_use:getId())  
         new_card:setSkillName(self:objectName())  
         new_card:setShowSkill(self:objectName())  
-          
+        new_card:deleteLater()
         -- 使用转换后的牌  
         local use = sgs.CardUseStruct()  
         use.card = new_card  
