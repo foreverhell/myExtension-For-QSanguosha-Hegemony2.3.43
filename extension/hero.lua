@@ -7860,7 +7860,59 @@ qiji = sgs.CreateTriggerSkill{
     events = {},  -- 没有触发事件，纯视为技  
 }
 
+bingsheng = sgs.CreateTriggerSkill{  
+    name = "bingsheng",  
+    events = {sgs.CardUsed},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        local source = room:findPlayerBySkillName(self:objectName())  
+        if not (source and source:isAlive() and source:hasSkill(self:objectName())) then  
+            return ""  
+        end            
+        local current = room:getCurrent()
+        local use = data:toCardUse()  
+        if current ~= use.from then return "" end
+        -- 检查是否是杀  
+        local card = use.card            
+        if card and card:isKindOf("Slash") and card:isRed() then  
+            return self:objectName(), source:objectName()
+        end  
+          
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:notifySkillInvoked(ask_who, self:objectName())  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        --local source = room:findPlayerBySkillName(self:objectName())  
+        ask_who:drawCards(1, self:objectName())  
+        local use = data:toCardUse()
+        if not use.from:hasFlag("bingsheng_slash") and room:askForDiscard(ask_who, self:objectName(), 1, 1, true, true) then
+            room:setPlayerFlag(use.from, "bingsheng_slash")
+        end
+        return false  
+    end  
+}
+
+bingsheng_targetmod = sgs.CreateTargetModSkill{  
+    name = "#bingsheng-slash",  
+    residue_func = function(self, player, card)  
+        if player:hasFlag("bingsheng_slash") and card and card:isKindOf("Slash") then  
+            return 1 
+        end  
+        return 0  
+    end  
+}
 sunwu:addSkill(qiji)
+sunwu:addSkill(bingsheng)  
+sunwu:addSkill(bingsheng_targetmod)
 -- 添加技能翻译  
 sgs.LoadTranslationTable{  
     ["sunwu"] = "孙武",
@@ -7868,6 +7920,8 @@ sgs.LoadTranslationTable{
     ["qiji"] = "奇计",  
     [":qiji"] = "出牌阶段限1次，你可以弃置两张手牌，令一名角色体力值与你相同。",  
     ["qijiCard"] = "强行",  
+    ["bingsheng"] = "兵圣",  
+    [":bingsheng"] = "任意角色在其出牌阶段使用红色杀时，你可以摸1张牌；然后你可以弃置1张牌，令其本回合使用杀次数+1（至多+1）",  
 }
 
 suqin = sgs.General(extension, "suqin", "shu", 3)  
