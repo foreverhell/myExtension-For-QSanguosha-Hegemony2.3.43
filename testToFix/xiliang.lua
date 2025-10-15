@@ -393,7 +393,7 @@ dizai = sgs.CreateTriggerSkill{
 
 				local skill_owners = room:findPlayersBySkillName(self:objectName())
 				for _, skill_owner in sgs.qlist(skill_owners) do
-					if skill_owner:hasShownSkill(self:objectName()) and player:inSiegeRelation(skill_owner, damage.to) then
+					if skill_owner and skill_owner:isAlive() and skill_owner:hasShownSkill(self:objectName()) and player:inSiegeRelation(skill_owner, damage.to) then
 						table.insert(skill_list, self:objectName())
 						table.insert(name_list, skill_owner:objectName())
 					end
@@ -404,7 +404,7 @@ dizai = sgs.CreateTriggerSkill{
 		return ""
 	end,
 	on_cost = function(self, event, room, player, data, skill_owner)
-		if skill_owner and skill_owner:hasShownSkill(self:objectName()) then
+		if skill_owner and skill_owner:isAlive() and skill_owner:hasShownSkill(self:objectName()) then
 			room:sendCompulsoryTriggerLog(skill_owner, self:objectName())
             room:broadcastSkillInvoke(self:objectName(), skill_owner)
 			return true
