@@ -2,7 +2,7 @@
 extension = sgs.Package("canghai",sgs.Package_GeneralPack)  
 
 -- 创建董允武将  
-dongyun = sgs.General(extension, "dongyun", "shu", 4)
+dongyun = sgs.General(extension, "dongyun", "shu", 3)
 
 -- 秉正技能实现  
 Bingzheng = sgs.CreateTriggerSkill{  
@@ -173,6 +173,199 @@ sgs.LoadTranslationTable{
     [":sheyan"] = "当你每回合首次成为普通锦囊的目标时，你可以令此牌的目标＋1或-1，目标数至少为1。",  
 }  
 
+guanping = sgs.General(extension, "guanping", "shu", 4)  
+
+zuolie = sgs.CreateTriggerSkill{  
+    name = "zuolie",  
+    events = {sgs.CardUsed},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        local source = room:findPlayerBySkillName(self:objectName())  
+        if not (source and source:isAlive() and source:hasSkill(self:objectName())) then  
+            return ""  
+        end
+        if source:hasFlag("zuolie_used") then return "" end
+        local current = room:getCurrent()
+        local use = data:toCardUse()  
+        if current ~= use.from then return "" end
+        -- 检查是否是杀  
+        local card = use.card  
+        if card and card:isKindOf("Slash") then  
+            return self:objectName(), source:objectName()
+        end  
+          
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:notifySkillInvoked(ask_who, self:objectName())  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local use = data:toCardUse() 
+        local card = room:askForCard(ask_who, ".|red", "@zuolie-discard", data, sgs.Card_MethodDiscard)  
+        if card then  
+            room:setPlayerFlag(ask_who, "zuolie_used")
+            room:setPlayerFlag(use.from, "zuolie_slash")
+            if card:getSuit()==use.card:getSuit() then
+                ask_who:drawCards(1, self:objectName())
+            end
+        end
+        return false  
+    end  
+}
+
+zuolie_targetmod = sgs.CreateTargetModSkill{  
+    name = "#zuolie-slash",  
+    residue_func = function(self, player, card)  
+        if player:hasFlag("zuolie_slash") and card and card:isKindOf("Slash") then  
+            return 1 
+        end  
+        return 0  
+    end  
+}
+
+
+
+jiezhong = sgs.CreateTriggerSkill{  
+    name = "jiezhong",  
+    frequency = sgs.Skill_Limited,  
+    limit_mark = "@jiezhong",  
+    events = {sgs.EventPhaseStart},  
+    can_trigger = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart then  
+            if player and player:isAlive() and player:hasSkill(self:objectName())   
+                and player:getPhase() == sgs.Player_Start
+                and player:getMark("@jiezhong") > 0 then  
+                return self:objectName()
+            end
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart then  
+            return player:askForSkillInvoke(self:objectName(),data)
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart then  
+            local target = room:askForPlayerChosen(player, room:getAlivePlayers(),   
+                self:objectName(), "@jiezhong-invoke")  
+            if target then
+                local num = target:getMaxHp() - target:getHandcardNum()
+                if num > 0 then
+                    target:drawCards(num, self:objectName())
+                end
+                room:removePlayerMark(player, "@jiezhong")
+            end
+        end  
+        return false  
+    end  
+}
+guanping:addSkill(zuolie)  
+guanping:addSkill(zuolie_targetmod)
+guanping:addSkill(jiezhong)
+sgs.LoadTranslationTable{
+    ["guanping"] = "关平",
+    ["zuolie"] = "佐烈",  
+    [":zuolie"] = "每回合限一次。一名角色于其出牌阶段使用杀时，你可以弃置1张红色牌，令其本回合使用杀次数+1，若弃置的牌与此杀花色相同，你摸1张牌",  
+    ["jiezhong"] = "竭忠",
+    [":jiezhong"] = "限定技。准备阶段，你可以令一名角色摸牌至体力上限"
+}
+
+gongsunyuan = sgs.General(extension, "gongsunyuan", "qun", 4)  
+
+huaierCard = sgs.CreateSkillCard{  
+    name = "huaierCard",  
+    target_fixed = true,  
+    will_throw = false,  
+    on_use = function(self, room, source, targets)   
+        --展示所有手牌
+        room:showAllCards(source)         
+        -- 选择一种颜色  
+        local handcards = source:getHandcards()  
+        if handcards:isEmpty() then return end  
+          
+        local red_cards = {}  
+        local black_cards = {}  
+          
+        for _, card in sgs.qlist(handcards) do  
+            if card:isRed() then  
+                table.insert(red_cards, card:getEffectiveId())  
+            elseif card:isBlack() then  
+                table.insert(black_cards, card:getEffectiveId())  
+            end  
+        end  
+          
+        local choices = {}  
+        if #red_cards > 0 then table.insert(choices, "red") end  
+        if #black_cards > 0 then table.insert(choices, "black") end  
+        if #choices ~= 2 then return false end
+        if #choices > 0 then  
+            local choice = room:askForChoice(source, "huaier", table.concat(choices, "+"))  
+            local cards_to_bottom = {}  
+              
+            if choice == "red" then  
+                cards_to_bottom = red_cards  
+            else  
+                cards_to_bottom = black_cards  
+            end  
+              
+            if #cards_to_bottom > 0 then  
+                -- 将选定的牌置于弃牌堆  
+                local move = sgs.CardsMoveStruct()  
+                move.card_ids = sgs.IntList()  
+                for _, id in ipairs(cards_to_bottom) do  
+                    move.card_ids:append(id)  
+                end  
+                move.from = source  
+                move.from_place = sgs.Player_PlaceHand  
+                move.to = nil  
+                move.to_place = sgs.Player_DiscardPile  
+                move.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT, source:objectName(), "huaier", "")  
+                room:moveCardsAtomic(move, true)  
+
+                local targets = room:askForPlayersChosen(source, room:getOtherPlayers(source),   
+                    self:objectName(), 0, #cards_to_bottom, "@huaier-choose", true)
+                for _, target in sgs.qlist(targets) do
+                    local card_id = room:askForCardChosen(source, target, "hej", self:objectName())
+                    room:obtainCard(source, card_id)
+                end
+                if targets:length() >= 2 then
+                    room:loseHp(source, 1)
+                end
+            end  
+        end  
+    end  
+}  
+  
+-- 备预视为技能  
+huaier = sgs.CreateZeroCardViewAsSkill{  
+    name = "huaier",  
+    view_as = function(self)  
+        card = huaierCard:clone()  
+        card:setSkillName(self:objectName())
+        card:setShowSkill(self:objectName())
+        return card
+    end,  
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#huaierCard")  
+    end  
+}
+
+gongsunyuan:addSkill(huaier)
+
+sgs.LoadTranslationTable{  
+    ["gongsunyuan"] = "公孙渊",
+    ["huaier"] = "怀二",  
+    [":huaier"] = "出牌阶段限一次。你可以展示所有手牌，若包含2种颜色，你可以弃置其中1中颜色所有手牌，然后获得至多等量名其他角色各1张牌，若获得的牌数大于等于2，你失去1点体力",  
+}
 handang = sgs.General(extension, "handang", "wu", 4)  
 
 GongqiCard = sgs.CreateSkillCard{  
@@ -1903,7 +2096,115 @@ sgs.LoadTranslationTable{
     [":anjian"] = "锁定技，当你使用杀对目标造成伤害时，若你不在其攻击范围内，此伤害+1。"  
 }  
 
+simalang = sgs.General(extension, "simalang", "wei", 3)  
 
+junbing = sgs.CreateTriggerSkill{
+    name = "junbing",
+    events = {sgs.EventPhaseStart},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        -- 任意角色回合结束时都可能触发
+        if player:getPhase() == sgs.Player_Finish then  
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+            if player:getHandcardNum()<=1 and owner:isFriendWith(player) then
+                return self:objectName(), owner:objectName()
+            end
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:askForSkillInvoke(self:objectName()) then
+            return true
+        end
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, dat, ask_who)
+        player:drawCards(1)
+        local num = player:getHandcardNum()
+
+        local move = sgs.CardsMoveStruct()  
+        move.card_ids = player:handCards()  
+        move.to = ask_who  
+        move.to_place = sgs.Player_PlaceHand  
+        move.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GOTCARD, ask_who:objectName(), self:objectName(), "")  
+        room:moveCardsAtomic(move, true)  
+
+        local to_exchange = room:askForExchange(ask_who, self:objectName(), num, num, "@junbing-exchange", "", ".|.|.|hand")  
+        local move = sgs.CardsMoveStruct()  
+        move.card_ids = to_exchange  
+        move.to = player  
+        move.to_place = sgs.Player_PlaceHand  
+        move.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GOTCARD, player:objectName(), self:objectName(), "")  
+        room:moveCardsAtomic(move, true)  
+        return false  
+    end, 
+}
+
+
+qujiCard = sgs.CreateSkillCard{
+    name = "qujiCard",
+	skill_name = "quji",
+    will_throw = false,
+	handling_method = sgs.Card_MethodNone,
+    filter = function(self, targets, to_select, Self)
+        return #targets == 0 and to_select:objectName() ~= Self:objectName() and 
+        Self:distanceTo(to_select) == self:subcardsLength()
+    end,
+    on_use = function(self, room, source, targets)
+        local recover = sgs.RecoverStruct()  
+        recover.who = source  
+        recover.recover = 1  
+        room:recover(targets[1], recover)  
+
+        local card_ids = self:getSubcards()
+        local has_black = false
+        for _, card_id in sgs.qlist(card_ids) do
+            local card = sgs.Sanguosha:getCard(card_id)
+            if card:isBlack() then
+                has_black = true
+                break
+            end
+        end
+        if has_black then
+            room:loseHp(source, 1)
+        end
+    end
+}
+
+quji = sgs.CreateViewAsSkill{
+    name = "quji",
+    view_filter = function(self, selected, to_select)
+        return true
+	end,
+
+    view_as = function(self, cards)
+		if #cards > 0 then
+            local card = qujiCard:clone()
+            for _, c in pairs(cards) do
+                card:addSubcard(c:getId())
+            end
+            card:setSkillName(self:objectName())
+            card:setShowSkill(self:objectName())
+            return card
+        end
+	end,
+
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#qujiCard")  
+    end  
+}
+simalang:addSkill(junbing)
+simalang:addSkill(quji)
+sgs.LoadTranslationTable{  
+    ["simalang"] = "司马朗",
+    ["junbing"] = "郡兵",
+    [":junbing"] = "与你势力相同的角色结束阶段，若该角色手牌数小于等于1，其可以摸1张牌并将所有手牌交给你，然后你交给其等量张牌",
+    ["quji"] = "去疾",
+    [":quji"] = "出牌阶段限一次。你可以弃置任意张牌，并令等量距离的一名其他角色恢复1点体力，若其中包含黑色牌，你失去1点体力"
+}
 -- 创建武将：
 sunluban = sgs.General(extension, "sunluban", "wu", 3, false)  -- 吴国，4血，男性  
 jianhuiCard = sgs.CreateSkillCard{  
@@ -2091,9 +2392,10 @@ shuomengCard = sgs.CreateSkillCard{
     name = "shuomengCard",  
     filter = function(self, targets, to_select)  
         return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()   
-               and (to_select:getKingdom() ~= sgs.Self:getKingdom() or to_select:getRole()=="careerist" or sgs.Self:getRole()=="careerist") 
                and not to_select:isKongcheng()
-    end,  
+               and not sgs.Self:isFriendWith(to_select)
+               --and (to_select:getKingdom() ~= sgs.Self:getKingdom() or to_select:getRole()=="careerist" or sgs.Self:getRole()=="careerist") 
+            end,  
       
     on_effect = function(self, effect)  
         local source = effect.from  
@@ -3305,11 +3607,10 @@ fushuCard = sgs.CreateSkillCard{
         local same_kingdom_players = sgs.SPlayerList()
         local different_kingdom_players = sgs.SPlayerList()  
         for _, p in sgs.qlist(room:getOtherPlayers(target)) do  
-            if p:hasShownOneGeneral() and (p:getKingdom() == target:getKingdom() and p:objectName() ~= target:objectName() and p:getRole()~="careerist") then  
-                --not sgs.isAnjiang(p)
-                --sgs.ai_explicit[p:objectName()] ~= "unknown"
+            --if p:hasShownOneGeneral() and (p:getKingdom() == target:getKingdom() and p:objectName() ~= target:objectName() and p:getRole()~="careerist") then  
+            if p:isFriendWith(target) then
                 same_kingdom_players:append(p)
-            elseif not p:isFriendWith(target) then --p:getKingdom() ~= target:getKingdom() then
+            elseif not p:isFriendWith(target) then
                 different_kingdom_players:append(p)
             end  
         end  
