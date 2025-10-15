@@ -2375,172 +2375,176 @@ sgs.LoadTranslationTable{
 ["shiyuan"] = "诗怨",  
 [":shiyuan"] = "每回合限一次。当你使用牌指定其他角色为目标或成为其他角色使用牌的目标时，若其体力值：大于你，你摸3张牌；等于你，你摸2张牌；小于你，你摸1张牌。"
 }  
---[[
-qi_sunjian = sgs.General(extension, "qi_sunjian", "wu", 3)  
+lusu_mou = sgs.General(extension, "lusu_mou", "wu", 3)  
 
-pingtaoCard = sgs.CreateSkillCard{  
-    name = "pingtaoCard",  
+YinglueCard = sgs.CreateSkillCard{  
+    name = "YinglueCard",  
     target_fixed = false,  
-    will_throw = false,  
-    handling_method = sgs.Card_MethodNone,  
+    will_throw = true,  
     filter = function(self, targets, to_select)  
-        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()  
+        return #targets == 0  
     end,  
     on_use = function(self, room, source, targets)  
         local target = targets[1]  
-        if not target then return end  
+        local choice = room:askForChoice(source, "yinglue", "yinglue_losehp+yinglue_draw")  
           
-        local choices = {}  
-        if not target:isNude() then  
-            table.insert(choices, "pingtao_give")  
-        end  
-        table.insert(choices, "pingtao_slash")  
-          
-        local choice = room:askForChoice(target, "pingtao", table.concat(choices, "+"))  
-          
-        if choice == "pingtao_give" then  
-            local card = room:askForCard(target, ".", "@pingtao-give:" .. source:objectName(), sgs.QVariant(), sgs.Card_MethodNone)  
-            if card then  
-                room:obtainCard(source, card, false)  
-                room:setPlayerFlag(source, "pingtao_extra_slash")
-            else --选了给牌，但是后悔了，没给牌
-                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_SuitToBeDecided, -1)  
-                slash:setSkillName("pingtao")  
-                local use = sgs.CardUseStruct()  
-                use.card = slash  
-                use.from = source  
-                use.to:append(target)
-                room:useCard(use)
-            end  
+        if choice == "yinglue_losehp" then  
+            room:loseHp(target, 1)  
+            room:addPlayerMark(target, "yinglue_draw", 2)  
         else  
-            local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_SuitToBeDecided, -1)  
-            slash:setSkillName("pingtao")  
-            local use = sgs.CardUseStruct()  
-            use.card = slash  
-            use.from = source  
-            use.to:append(target)  
-            room:useCard(use)  
+            room:drawCards(target, 2, "yinglue")  
+            room:addPlayerMark(target, "yinglue_maxcards", 2)  
         end  
     end  
 }  
   
--- 平讨视为技能  
-pingtao = sgs.CreateZeroCardViewAsSkill{  
-    name = "pingtao",  
+YinglueVS = sgs.CreateZeroCardViewAsSkill{  
+    name = "yinglue",  
     view_as = function(self)  
-        local card = pingtaoCard:clone()  
-        card:setShowSkill("pingtao")  
-        return card  
+        card = YinglueCard:clone()  
+        card:setSkillName(self:objectName())
+        card:setShowSkill(self:objectName())
+        return card
     end,  
     enabled_at_play = function(self, player)  
-        return not player:hasUsed("#pingtaoCard")  
+        return not player:hasUsed("#YinglueCard")  
     end  
-}
-
-pingtaoMod = sgs.CreateTargetModSkill{  
-    name = "pingtao-mod",  
-    pattern = "Slash",  
-    residue_func = function(self, player, card)  
-        if player:hasFlag("pingtao_extra_slash") then  
-            return 1  
-        else  
-            return 0  
-        end  
-    end  
-}
-
-juelie = sgs.CreateTriggerSkill{  
-    name = "juelie",  
-    events = {sgs.CardUsed, sgs.DamageCaused},  
+}  
+  
+Yinglue = sgs.CreateTriggerSkill{  
+    name = "yinglue",  
+    view_as_skill = YinglueVS,  
+    events = {sgs.DrawNCards, sgs.EventPhaseStart},  
     can_trigger = function(self, event, room, player, data)  
-        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
-            return ""   
-        end  
-          
-        if event == sgs.CardUsed then  
-            local use = data:toCardUse()  
-            if use.card and use.card:isKindOf("Slash") then  
+        if event == sgs.DrawNCards then  
+            if player:getMark("yinglue_draw") > 0 then  
                 return self:objectName()  
             end  
-        elseif event == sgs.DamageCaused then  
-            local damage = data:toDamage()  
-            if damage.card and damage.card:isKindOf("Slash") then  
-                -- 检查是否手牌数或体力值为全场最少  
-                local min_hp = 999  
-                local min_hand = 999  
-                for _, p in sgs.qlist(room:getAlivePlayers()) do  
-                    min_hp = math.min(min_hp, p:getHp())  
-                    min_hand = math.min(min_hand, p:getHandcardNum())  
-                end  
-                  
-                if player:getHp() == min_hp or player:getHandcardNum() == min_hand then  
-                    return self:objectName()  
-                end  
+        elseif event == sgs.EventPhaseStart then  
+            if player:getPhase() == sgs.Player_Finish and player:getMark("yinglue_maxcards") > 0 then  
+                return self:objectName()  
             end  
         end  
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
-        if event == sgs.CardUsed then  
-            if room:askForSkillInvoke(player, self:objectName(), data) then  
-                room:broadcastSkillInvoke(self:objectName())  
-                return true  
+        return true  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        if event == sgs.DrawNCards then  
+            local count = data:toInt()  
+            data:setValue(count + player:getMark("yinglue_draw"))  
+            room:setPlayerMark(player, "yinglue_draw", 0)  
+        elseif event == sgs.EventPhaseStart then  
+            room:setPlayerMark(player, "yinglue_maxcards", 0)   
+        end  
+        return false  
+    end  
+}  
+  
+YinglueMaxCards = sgs.CreateMaxCardsSkill{  
+    name = "#yinglue_maxcards",  
+    extra_func = function(self, target)  
+        if target:getMark("yinglue_maxcards") > 0 then  
+            return -target:getMark("yinglue_maxcards")  
+        end  
+        return 0  
+    end  
+}
+
+
+Mengshi = sgs.CreateTriggerSkill{  
+    name = "mengshi",  
+    frequency = sgs.Skill_Limited,  
+    limit_mark = "@mengshi",  
+    events = {sgs.EventPhaseStart, sgs.EventPhaseEnd},  
+    can_trigger = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart then  
+            if player and player:isAlive() and player:hasSkill(self:objectName())   
+                and player:getPhase() == sgs.Player_Finish   
+                and player:getMark("@mengshi") > 0 then  
+                return self:objectName(), player:objectName()
             end  
-            return false  
-        elseif event == sgs.DamageCaused then  
-            return player:askForSkillInvoke(self:objectName(),data) -- 锁定技，自动触发  
+        elseif event == sgs.EventPhaseEnd and player:getPhase() == sgs.Player_Finish then  
+            -- 检查盟势标记的两名角色是否存活  
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+            local target1_name = owner:property("mengshi_target1"):toString()  
+            local target2_name = owner:property("mengshi_target2"):toString()  
+            if target1_name ~= "" and target2_name ~= "" then  
+                local target1 = room:findPlayer(target1_name)  
+                local target2 = room:findPlayer(target2_name)  
+                if target1 and target1:isAlive() and target2 and target2:isAlive() then  
+                    return self:objectName(), owner:objectName()
+                end  
+            end  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseStart then  
+            return player:askForSkillInvoke(self:objectName(),data)
+        elseif event == sgs.EventPhaseEnd and player:getPhase() == sgs.Player_Finish then  
+            return true  
         end  
         return false  
     end,  
-    on_effect = function(self, event, room, player, data)  
-        if event == sgs.CardUsed then  
-            local use = data:toCardUse()  
-            local target = use.to:first()  
-            
-            local max_num = math.min(target:getCardCount(true), player:getCardCount(true))
-            local cards = room:askForExchange(player, self:objectName(), max_num, 0)   
-            for _,card in sgs.qlist(cards) do
-                room:throwCard(card, player, player)  
-            end
-            local discard_num = cards:length()  
-            if discard_num > 0 and target and target:isAlive() then    
-                local actual_discard = math.min(discard_num, target:getCardCount(true))  
-                if actual_discard > 0 then
-                    --to_discard = sgs.IntList()
-                    for i=1, actual_discard do
-                        local chosen_card = room:askForCardChosen(player, target, "he", self:objectName())  
-                        room:throwCard(chosen_card, target, player)
-                        --to_discard:append(chosen_card:getId())
-                    end  
-                end  
+    on_effect = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseStart then  
+            local targets = room:askForPlayersChosen(player, room:getOtherPlayers(player),   
+                self:objectName(), 2, 2, "@mengshi-invoke", true)  
+              
+            local target1 = targets:at(0)  
+            local target2 = targets:at(1)  
+              
+            local hp1 = target1:getHp()  
+            local hp2 = target2:getHp()  
+              
+            -- 交换体力值  
+            room:setPlayerProperty(target1, "hp", sgs.QVariant(hp2))  
+            room:setPlayerProperty(target2, "hp", sgs.QVariant(hp1))  
+            room:broadcastProperty(target1, "hp")  
+            room:broadcastProperty(target2, "hp")  
+              
+            -- 失去体力  
+            local diff = math.abs(hp1 - hp2)  
+            if diff > 0 then  
+                room:loseHp(player, diff)  
             end  
-        elseif event == sgs.DamageCaused then  
-            local damage = data:toDamage()  
-            damage.damage = damage.damage + 1  
-            data:setValue(damage)  
+            room:removePlayerMark(player, "@mengshi")
+            -- 记录目标角色  
+            room:setPlayerProperty(player, "mengshi_target1", sgs.QVariant(target1:objectName()))  
+            room:setPlayerProperty(player, "mengshi_target2", sgs.QVariant(target2:objectName()))  
+        elseif event == sgs.EventPhaseEnd and player:getPhase() == sgs.Player_Finish then  
+            -- 回合结束时效果  
+            room:drawCards(ask_who, 1, self:objectName())  
+            local recover = sgs.RecoverStruct()  
+            recover.who = ask_who  
+            recover.recover = 1  
+            room:recover(ask_who, recover)  
         end  
         return false  
     end  
 }
-qi_sunjian:addSkill(pingtao)
-qi_sunjian:addSkill(pingtaoMod)
-qi_sunjian:addSkill(juelie)
 
+
+lusu_mou:addSkill(Yinglue)  
+lusu_mou:addSkill(YinglueMaxCards)  
+lusu_mou:addSkill(Mengshi)  
+extension:insertRelatedSkills("yinglue", "#yinglue_maxcards")  
+  
 sgs.LoadTranslationTable{
-    ["qi_sunjian"] = "起孙坚",
-    ["pingtao"] = "平讨",  
-    [":pingtao"] = "出牌阶段限一次，你可以令一名角色选择一项：1.交给你一张牌，并令你此回合出杀次数+1；2.令你视为对其使用一张杀。",  
-    ["@pingtao-choose"] = "平讨：选择一名角色",  
-    ["@pingtao-give"] = "平讨：交给%src一张牌，并让其获得标记和额外出杀次数",  
-    ["pingtao_give"] = "交给其一张牌",  
-    ["pingtao_slash"] = "令其对你使用杀",  
-      
-    ["juelie"] = "绝烈",  
-    [":juelie"] = "你使用杀指定目标时，你可以弃置任意张牌，然后弃置目标等量的牌；你的杀造成伤害时，若你的手牌数或体力值为全场最少，该伤害+1。",  
-    ["@juelie-discard"] = "绝烈：你可以弃置任意张牌",  
-    ["#juelie_damage"] = "%from 的'%arg'被触发，伤害+1"  
+    ["lusu_mou"] = "谋鲁肃",  
+    ["#lusu_mou"] = "联盟的缔造者",  
+    ["yinglue"] = "英略",  
+    [":yinglue"] = "出牌阶段限一次，你可以令一名角色：1.失去1点体力，下个摸牌阶段摸牌数+2；2.摸2张牌，下个弃牌阶段手牌上限-2。",  
+    ["yinglue_losehp"] = "失去1点体力，下次摸牌+2",  
+    ["yinglue_draw"] = "摸2张牌，下次手牌上限-2",  
+    ["mengshi"] = "盟势",  
+    [":mengshi"] = "限定技，你的结束阶段开始时，你可以选择两名其他角色，令这两名角色交换体力值，然后你失去X点体力（X为这两名角色的体力值之差）。每回合结束时，若这两名角色都存活，你摸一张牌并回复1点体力。",  
+    ["@mengshi"] = "盟势",  
+    ["@mengshi-invoke"] = "盟势：选择两名角色交换体力值",  
 }
-]]
 
 -- 创建武将蒙恬  
 shendanshenyi = sgs.General(extension, "shendanshenyi", "wei", 4) -- 蜀势力，4血，男性（默认）  
