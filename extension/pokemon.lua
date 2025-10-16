@@ -275,6 +275,59 @@ sgs.LoadTranslationTable{
 
 }
 
+
+heiyemoling = sgs.General(extension, "heiyemoling", "wei", 4)  --wei,qun
+
+tongkupingfenCard = sgs.CreateSkillCard{  
+    name = "tongkupingfenCard",  
+    target_fixed = false,  
+    will_throw = true,  
+    filter = function(self, targets, to_select)  
+        return #targets == 0 and tp_select ~= sgs.Self
+    end,  
+      
+    feasible = function(self, targets)  
+        return #targets == 1  
+    end,  
+      
+    on_use = function(self, room, source, targets)  
+        -- 获取目标角色  
+        local target = targets[1]  
+          
+        local hp1 = source:getHp()  
+        local hp2 = target:getHp()  
+        
+        local hp1_new = math.ceil((hp1+hp2)/2)
+        local hp2_new = math.floor((hp1+hp2)/2)
+        -- 交换体力值  
+        room:setPlayerProperty(source, "hp", sgs.QVariant(hp1_new))  
+        room:setPlayerProperty(target, "hp", sgs.QVariant(hp2_new))  
+        room:broadcastProperty(source, "hp")  
+        room:broadcastProperty(target, "hp")  
+    end  
+}  
+  
+-- 创建强行视为技  
+tongkupingfen = sgs.CreateZeroCardViewAsSkill{  
+    name = "tongkupingfen",  
+      
+    view_as = function(self)  
+        local card = tongkupingfenCard:clone()  
+        return card  
+    end,  
+      
+    enabled_at_play = function(self, player)  
+        -- 出牌阶段限一次  
+        return not player:hasUsed("#tongkupingfenCard")  
+    end  
+}  
+heiyemoling:addSkill(tongkupingfen)
+sgs.LoadTranslationTable{
+    ["heiyemoling"] = "黑夜魔灵",
+    ["tongkupingfen"] = "痛苦平分",
+    ["tongkupingfen"] = "出牌阶段限一次。你可以选择一名其他角色，平分你们的体力值，你向上取整，目标向下取整"
+}
+
 kabiShou = sgs.General(extension, "kabiShou", "wei", 4)  
 
 shuijiao = sgs.CreateTriggerSkill{  
