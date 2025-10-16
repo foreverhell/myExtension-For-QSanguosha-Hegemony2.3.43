@@ -277,13 +277,12 @@ sgs.LoadTranslationTable{
 
 
 heiyemoling = sgs.General(extension, "heiyemoling", "wei", 4)  --wei,qun
-
 tongkupingfenCard = sgs.CreateSkillCard{  
     name = "tongkupingfenCard",  
     target_fixed = false,  
     will_throw = true,  
     filter = function(self, targets, to_select)  
-        return #targets == 0 and tp_select ~= sgs.Self
+        return #targets == 0 and to_select ~= sgs.Self
     end,  
       
     feasible = function(self, targets)  
@@ -325,7 +324,7 @@ heiyemoling:addSkill(tongkupingfen)
 sgs.LoadTranslationTable{
     ["heiyemoling"] = "黑夜魔灵",
     ["tongkupingfen"] = "痛苦平分",
-    ["tongkupingfen"] = "出牌阶段限一次。你可以选择一名其他角色，平分你们的体力值，你向上取整，目标向下取整"
+    [":tongkupingfen"] = "出牌阶段限一次。你可以选择一名其他角色，平分你们的体力值，你向上取整，目标向下取整"
 }
 
 kabiShou = sgs.General(extension, "kabiShou", "wei", 4)  
