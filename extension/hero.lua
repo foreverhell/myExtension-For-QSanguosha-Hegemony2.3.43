@@ -6673,7 +6673,7 @@ yingxi = sgs.CreateTriggerSkill{
   
 -- 创建摸牌阶段摸牌+1的技能  
 yingxi_draw = sgs.CreateDrawCardsSkill{  
-    name = "yingxi-draw",  
+    name = "#yingxi-draw",  
     draw_num_func = function(self, player, n)  
         if player:getMark("@yinni") > 0 then  
             return n + 1  
@@ -6684,7 +6684,7 @@ yingxi_draw = sgs.CreateDrawCardsSkill{
   
 -- 创建攻击范围+1的技能  
 yingxi_range = sgs.CreateAttackRangeSkill{  
-    name = "yingxi-range",  
+    name = "#yingxi-range",  
     extra_func = function(self, player)  
         if player:getMark("@yinni") > 0 then  
             return 1  
@@ -6695,7 +6695,7 @@ yingxi_range = sgs.CreateAttackRangeSkill{
   
 -- 创建杀造成伤害+1的技能  
 yingxi_damage = sgs.CreateTriggerSkill{  
-    name = "yingxi-damage",  
+    name = "#yingxi-damage",  
     events = {sgs.DamageCaused},  
     frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)  
@@ -6724,7 +6724,9 @@ nieyinniang:addSkill(yingxi)
 nieyinniang:addSkill(yingxi_draw)  
 nieyinniang:addSkill(yingxi_range)  
 nieyinniang:addSkill(yingxi_damage)  
-    
+extension:insertRelatedSkills("yingxi","#yingxi-draw")
+extension:insertRelatedSkills("yingxi","#yingxi-range")
+extension:insertRelatedSkills("yingxi","#yingxi-damage")
 -- 翻译表  
 sgs.LoadTranslationTable{  
     ["hero"] = "英雄",  
@@ -9767,13 +9769,10 @@ youshuo_card = sgs.CreateSkillCard{
         local mark_name = "youshuo_" .. source:objectName()  
         room:setPlayerMark(first, mark_name .. "_from", 1)  
         room:setPlayerMark(second, mark_name .. "_to", 1)  
-          
-        -- 设置回合结束清理标记  
-        source:setMark("youshuo_clear", 1)  
     end  
 }  
   
-youshuo = sgs.CreateViewAsSkill{  
+youshuoVS= sgs.CreateViewAsSkill{  
     name = "youshuo",  
     view_filter = function(self, selected, to_select)
         -- 只能选择手牌
@@ -9800,12 +9799,11 @@ youshuo = sgs.CreateViewAsSkill{
 }  
 
 -- 游说伤害触发技能  
-youshuo_damage = sgs.CreateTriggerSkill{  
-    name = "youshuo-damage",  
+youshuo = sgs.CreateTriggerSkill{  
+    name = "youshuo",  
     events = {sgs.Damage},  
-    frequency = sgs.Skill_Compulsory,  
-    --global = true,  
-      
+    --frequency = sgs.Skill_Compulsory,
+    view_as_skill = youshuoVS,      
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() then return "" end  
           
@@ -9849,12 +9847,12 @@ youshuo_damage = sgs.CreateTriggerSkill{
   
 -- 游说清理技能  
 youshuo_clear = sgs.CreateTriggerSkill{  
-    name = "youshuo-clear",  
+    name = "#youshuo-clear",  
     events = {sgs.TurnStart},  
-    frequency = sgs.Skill_Compulsory,  
+    --frequency = sgs.Skill_Compulsory,  
       
     can_trigger = function(self, event, room, player, data)  
-        if player and player:getMark("youshuo_clear") > 0 then  
+        if player and player:hasSkill("youshuo") then  
             return self:objectName()  
         end  
         return ""  
@@ -9871,8 +9869,6 @@ youshuo_clear = sgs.CreateTriggerSkill{
             room:setPlayerMark(p, mark_name .. "_from", 0)  
             room:setPlayerMark(p, mark_name .. "_to", 0)  
         end  
-        room:setPlayerMark(player, "youshuo_clear", 0)  
-          
         return false  
     end  
 }  
@@ -9901,7 +9897,7 @@ renming_card = sgs.CreateSkillCard{
         room:throwCard(sgs.Sanguosha:getCard(target_card), target, target)  
         -- 比较花色  
         if source_suit == target_suit then  
-            room:addPlayerMark(target, "@ming", 1)  
+            room:setPlayerMark(target, "@ming", 1)  
         end  
     end  
 }  
@@ -9921,12 +9917,10 @@ renmingVS = sgs.CreateZeroCardViewAsSkill{
   
 -- 天命跳过摸牌阶段  
 renming = sgs.CreateTriggerSkill{  
-    name = "renming-skip",  
+    name = "renming",  
     events = {sgs.EventPhaseStart},  
-    frequency = sgs.Skill_Compulsory,  
-    --view_as_skill = renmingVS,  
-    --global = true,  
-      
+    --frequency = sgs.Skill_Compulsory,  
+    view_as_skill = renmingVS,        
     can_trigger = function(self, event, room, player, data)  
         if player and player:getMark("@ming") > 0 and player:getPhase() == sgs.Player_Start then  
             return self:objectName()  
@@ -9940,18 +9934,16 @@ renming = sgs.CreateTriggerSkill{
       
     on_effect = function(self, event, room, player, data)  
         player:skip(sgs.Player_Draw)  
-        room:removePlayerMark(player, "@ming", 1)  
+        room:setPlayerMark(player, "@ming", 0)  
         return false  
     end  
 }  
   
 
 xiaozhuangtaihou:addSkill(youshuo)  
-xiaozhuangtaihou:addSkill(youshuo_damage)  
 xiaozhuangtaihou:addSkill(youshuo_clear)  
 xiaozhuangtaihou:addSkill(renming)  
-xiaozhuangtaihou:addSkill(renmingVS)  
-  
+extension:insertRelatedSkills("youshuo","#youshuo-clear")
 -- 翻译表  
 sgs.LoadTranslationTable{  
     ["xiaozhuangtaihou"] = "孝庄太后",  
@@ -11108,7 +11100,7 @@ liaodiCard = sgs.CreateSkillCard{
         room:setPlayerMark(source, "@liaodi",card_ids:length())
     end
 }
-liaodi = sgs.CreateViewAsSkill{  
+liaodiVS = sgs.CreateViewAsSkill{  
     name = "liaodi",  
     filter_pattern = "h",  
     view_filter = function(self, selected, to_select)  
@@ -11128,9 +11120,10 @@ liaodi = sgs.CreateViewAsSkill{
         return not player:hasUsed("#liaodiCard")  
     end  
 }  
-liaodiImmuse = sgs.CreateTriggerSkill{  
-    name = "liaodiImmuse",  
+liaodi = sgs.CreateTriggerSkill{  
+    name = "liaodi",  
     events = {sgs.DamageInflicted},  
+    view_as_skill = liaodiVS,
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
@@ -11163,15 +11156,12 @@ liaodiImmuse = sgs.CreateTriggerSkill{
 }  
 zhangliao_hero:addSkill(lianxi)
 zhangliao_hero:addSkill(liaodi)
-zhangliao_hero:addSkill(liaodiImmuse)
 sgs.LoadTranslationTable{
     ["zhangliao_hero"] = "张辽",
     ["lianxi"] = "连袭",
     [":lianxi"] = "你使用牌时，可以发起一次判定。若判定牌为红色，该牌结算2次；若判定牌为黑色，该牌无效",
     ["liaodi"] = "料敌",
-    [":liaodi"] = "出牌阶段限一次。你可以将X张手牌以任意顺序置于牌堆顶，然后获得X个“料”标记",
-    ["liaodiImmuse"] = "料敌-减伤",
-    [":liaodiImmuse"] = "你收到伤害时，你可以移除一个“料”标记，令此伤害-1"
+    [":liaodi"] = "出牌阶段限一次。你可以将X张手牌以任意顺序置于牌堆顶，然后获得X个“料”标记。你受到伤害时，你可以移除一个“料”标记，令此伤害-1",
 }
 
 -- 创建武将：
@@ -11874,8 +11864,6 @@ tianpeng = sgs.CreateTriggerSkill{
 }
 
 zhubajie:addSkill(tianpeng)
-zhubajie:addCompanion("change_duan")
-zhubajie:addCompanion("xuanzang")
 sgs.LoadTranslationTable{
     ["zhubajie"] = "猪八戒",  
     ["#zhubajie"] = "天蓬元帅",  
@@ -12197,6 +12185,7 @@ lvzhi:addCompanion("lvbuwei")
 change:addCompanion("houyi")
 direnjie:addCompanion("wuzetian")
 huoqubing:addCompanion("weizifu")
+--诸子百家
 kongzi:addCompanion("mozi")
 kongzi:addCompanion("xunzi")
 kongzi:addCompanion("zhuangzhou")
@@ -12209,11 +12198,15 @@ zhubajie:addCompanion("change")
 zhubajie:addCompanion("xuanzang")
 --技能联动
 bole:addCompanion("guiguzi")
+--判定系
 dongfangshuo:addCompanion("simaxiangru")
 dongfangshuo:addCompanion("shangguanwaner")
+--回合外出牌系
 goujian:addCompanion("liqingzhao")
+--屯牌换牌系
 goujian:addCompanion("wangzhaojun")
 goujian:addCompanion("zhangsunhuanghou")
+--拼点系
 guanzhong:addCompanion("qihuangong")
 guanzhong:addCompanion("shangguanwaner")
 guanzhong:addCompanion("wuzetian")
@@ -12228,6 +12221,8 @@ xuxiake:addCompanion("zhangsunhuanghou")
 daji:addCompanion("shangzhou")
 dufu:addCompanion("libai")
 gaojianli:addCompanion("jingke")
+liuche:addCompanion("huoqubing")
+liuche:addCompanion("weizifu")
 moxi:addCompanion("xiajie")
 qinqiong:addCompanion("yuchigong")
 shangguanwaner:addCompanion("wuzetian")
