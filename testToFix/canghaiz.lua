@@ -1335,7 +1335,7 @@ luachengxu = sgs.CreateTriggerSkill{
                 local choices = {"yes", "no"}
                 local d = sgs.QVariant()
                 d:setValue(skill_owner)
-                local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"), d, "@luachengxu-discard::".. 
+                local choice = room:askForChoice(player, "luachengxu_choice", table.concat(choices, "+"), d, "@luachengxu-discard::".. 
                 skill_owner:objectName(), "yes+no")
                 if choice == "yes" then
                     room:broadcastSkillInvoke("luachengxu", skill_owner)
@@ -1355,7 +1355,7 @@ luachengxu = sgs.CreateTriggerSkill{
                 local choices = {"yes", "no"}
                 local d = sgs.QVariant()
                 d:setValue(skill_owner)
-                local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"), d, "@luachengxu-slash::".. 
+                local choice = room:askForChoice(player, "luachengxu_choice", table.concat(choices, "+"), d, "@luachengxu-slash::".. 
                 skill_owner:objectName(), "yes+no")
                 if choice == "yes" then
                     room:broadcastSkillInvoke("luachengxu", skill_owner)
