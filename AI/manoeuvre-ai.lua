@@ -55,9 +55,12 @@ sgs.ai_skill_invoke.xibing =  function(self, data)
     return true
   end
 	local eachother_shown = target:hasShownAllGenerals() and self.player:hasShownAllGenerals()
-  if target:hasShownAllGenerals() then--发动技能后双亮
-    if (self.player:hasShownGeneral1() and self.player:inDeputySkills("xibing") and self.player:canShowGeneral("d"))
+  if target:hasShownAllGenerals() then--发动技能后双亮 --这种情况不能发动技能
+    --[[if (self.player:hasShownGeneral1() and self.player:inDeputySkills("xibing") and self.player:canShowGeneral("d"))
     or (self.player:hasShownGeneral2() and self.player:inHeadSkills("xibing") and self.player:canShowGeneral("h")) then
+      eachother_shown = true
+    end]]
+    if self.player:hasShownAllGenerals() then
       eachother_shown = true
     end
   end
@@ -619,13 +622,13 @@ end
 sgs.ai_skill_use_func.WeimengCard = function(card, use, self)
   local target
   local _, friend = self:getCardNeedPlayer(sgs.QList2Table(self.player:getCards("he")))
-  if friend and friend:getHandcardNum() > 1 then
+  if friend and friend:getHandcardNum() > 1 and not friend:hasSkill("weimengzongheng") then
     target = friend
   end
   if not target then
     self:sort(self.friends_noself, "handcard", true)
     for _, f in ipairs(self.friends_noself) do
-      if f:getHandcardNum() > 2 or (self:isWeak(f) and not f:isKongcheng()) then
+      if f:getHandcardNum() > 2 or (self:isWeak(f) and not f:isKongcheng()) and not f:hasSkill("weimengzongheng") then
         target = f
         break
       end
@@ -651,10 +654,39 @@ end
 
 sgs.ai_use_priority.WeimengCard = 5
 
-sgs.ai_skill_choice.weimeng_num = function(self, choices, data)--简单考虑只取最大值
+--[[sgs.ai_skill_choice.weimeng_num = function(self, choices, data)--简单考虑只取最大值
   choices = choices:split("+")
   --return choices[#choices]
-  return #choices
+  --return #choices
+  return self.player:getHp()
+end]]
+
+sgs.ai_skill_cardschosen.weimeng = function(self, who, flags, reason, min_num, max_num, method, disabled_ids)
+  local cards = {}
+  local card_ids = {}
+  cards = CardList2Table(who:getCards("h"))
+  if #cards > self.player:getHp() then
+    --[[local i = 1
+    for _, card in pairs(cards) do
+      table.insert(card_ids, card:getEffectiveId())
+      i = i + 1
+      if i >= self.player:getHp() then
+        break
+      end
+    end]]
+    for i = 1, self.player:getHp() do
+      table.insert(card_ids, cards[i]:getEffectiveId())
+    end
+  end
+  if #card_ids > 0 then
+    return Table2IntList(card_ids)
+  else
+    for _, card in pairs(cards) do
+      table.insert(card_ids, card:getEffectiveId())
+    end
+    return Table2IntList(card_ids)
+  end
+  --return self:askForCardsChosen(who, flags, reason, self.player:getHp(), max_num, disable_list)
 end
 
 sgs.ai_skill_exchange["weimeng_giveback"] = function(self,pattern,max_num,min_num,expand_pile)
@@ -1066,7 +1098,7 @@ sgs.ai_skill_invoke.anyong =  function(self, data)
         n = n + 1
       end
     end
-    if (tp:hasArmorEffect("SilverLion") and (not card or not card:isKindOf("Slash") or not IgnoreArmor(from, tp)))
+    if (tp:hasArmorEffect("SilverLion") or (not card or not card:isKindOf("Slash") or not IgnoreArmor(from, tp)))
     or gongqing_avoid or (tp:hasSkill("qiuan") and tp:getPile("letter"):isEmpty()) then
       n = 1
     else
