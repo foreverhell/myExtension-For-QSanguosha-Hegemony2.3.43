@@ -31,7 +31,7 @@ sgs.ai_skill_use_func["#jiejianglveCard"] = function(card, use, self)
     use.card = card
 end
 
-sgs.ai_use_priority.jiejianglveCard = 7.2
+sgs.ai_use_priority.jiejianglveCard = 9.2
 
 sgs.ai_skill_choice["startcommand_jiejianglve"] = function(self, choices)
     Global_room:writeToConsole(choices)
@@ -224,11 +224,12 @@ sgs.ai_skill_playerchosen.jiejingheCard = function(self, targets)
     if self.player:getMark("jiejinghe_Acquire") > 0 then
         local skill_number = self.player:getMark("jiejinghe_Acquire")
         if skill_number == 3 then
-            local maybeResult1, maybeResult2 = {}
+            local maybeResult1 = {}
+            local maybeResult2 = {}
             local friendsByAction = sgs.SPlayerList()
             local room = self.player:getRoom()
             friendsByAction = room:getAlivePlayers()
-            --room:sortByActionOrder(friendsByAction)
+            room:sortByActionOrder(friendsByAction)
             for _, p in sgs.qlist(friendsByAction) do
                 if p:objectName() ~= self.player:objectName() and self.player:isFriendWith(p) and p:getHandcardNum() >= 3 then
                     if not p:getCards("j"):isEmpty() then
@@ -240,9 +241,9 @@ sgs.ai_skill_playerchosen.jiejingheCard = function(self, targets)
                     end
                 end
             end
-            if #maybeResult1 > 0 then
+            if maybeResult1 then
                 return maybeResult1[1]
-            elseif #maybeResult2 > 0 then
+            elseif maybeResult2 then
                 return maybeResult2[1]
             end
         elseif skill_number == 5 then
@@ -969,16 +970,17 @@ end
 
 sgs.ai_skill_askforag.jieshuangxiong = function(self, card_ids)
     local cards = CardList2Table(self.player:getCards("h"))
-    local black, red = 0
+    local black = 0
+    local red = 0
     for _, card in pairs(cards) do
-        if card:isBlack() then
+        if sgs.Sanguosha:getCard(card):isBlack() then
             black = black + 1
         else
             red = red + 1
         end
     end
-    local card1 = sgs.Sanguosha:getCard(card_ids:at(0))
-    local card2 = sgs.Sanguosha:getCard(card_ids:at(1))
+    local card1 = sgs.Sanguosha:getCard(card_ids[1])
+    local card2 = sgs.Sanguosha:getCard(card_ids[2])
     if black >= red then
         if card1:isRed() then
             return card1:getId()
@@ -1006,13 +1008,33 @@ sgs.ai_view_as.jieshuangxiongVS = function(card, player, card_place)
     local suit = card:getSuitString()
 	local number = card:getNumberString()
 	local card_id = card:getEffectiveId()
-	local card_str = ("duel:jieshuangxiongVS[%s:%s]=%d&"):format(suit, number, card_id)
-	local skillcard = sgs.Card_Parse(card_str)
-	assert(skillcard)
-	return skillcard
+    if card_place == sgs.Player_PlaceHand or player:getHandPile():contains(card_id) then
+        if not player:hasFlag("jieshuangxiong_Black") and not player:hasFlag("jieshuangxiong_Red") then return nil end
+        local black_mark = player:hasFlag("jieshuangxiong_Red")
+        local red_mark = player:hasFlag("jieshuangxiong_Black")
+
+        local cards = {}
+        for _, id in sgs.qlist(player:getHandPile()) do
+            table.insert(cards, sgs.Sanguosha:getCard(id))
+        end
+        self:sortByUseValue(cards, true)
+
+        local c
+        for _, acard in ipairs(cards) do
+            if (acard:isRed() and red_mark) or (acard:isBlack() and black_mark) then
+                c = acard
+                break
+            end
+        end
+        if not c then return nil end
+        local suit = c:getSuitString()
+        local number = c:getNumberString()
+        local card_id = c:getEffectiveId()
+        return ("duel:jieshuangxiong[%s:%s]=%d&s"):format(suit, number, card_id, "#jieshuangxiongVS")
+    end
 end
 
-local jieshuangxiong_skill = {}
+--[[local jieshuangxiong_skill = {}
 jieshuangxiong_skill.name = "jieshuangxiongVS"
 table.insert(sgs.ai_skills, jieshuangxiong_skill)
 jieshuangxiong_skill.getTurnUseCard = function(self)
@@ -1020,11 +1042,10 @@ jieshuangxiong_skill.getTurnUseCard = function(self)
 	local black_mark = self.player:hasFlag("jieshuangxiong_Red")
 	local red_mark = self.player:hasFlag("jieshuangxiong_Black")
 
-	local cards = self.player:getCards("h")
+	local cards = {}
 	for _, id in sgs.qlist(self.player:getHandPile()) do
-		cards:prepend(sgs.Sanguosha:getCard(id))
+		table.insert(cards, sgs.Sanguosha:getCard(id))
 	end
-	cards = sgs.QList2Table(cards)
 	self:sortByUseValue(cards, true)
 
 	local card
@@ -1034,5 +1055,12 @@ jieshuangxiong_skill.getTurnUseCard = function(self)
 			break
 		end
 	end
-    return card
-end
+    if not card then return nil end
+	local suit = card:getSuitString()
+	local number = card:getNumberString()
+	local card_id = card:getEffectiveId()
+	local card_str = ("duel:jieshuangxiong[%s:%s]=%d&s"):format(suit, number, card_id)
+	local skillcard = sgs.Card_Parse(card_str)
+	assert(skillcard)
+	return skillcard
+end]]
