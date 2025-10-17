@@ -736,9 +736,10 @@ jiehengjiang_draw = sgs.CreateTriggerSkill{
 					local move = move_data:toMoveOneTime()
 					local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
 					if reasonx == sgs.CardMoveReason_S_REASON_DISCARD then
-						if move.from_places:contains(sgs.Player_PlaceHand) and move.from and move.from:isAlive() 
-						and move.from:objectName() == current:objectName() then
+						if move.from and move.from_places:contains(sgs.Player_PlaceHand) and move.from:objectName() 
+						== current:objectName() then
 							room:setPlayerMark(current, "jieHengjiangDiscarded", 1)
+							break
 						end
 					end
 				end
@@ -781,13 +782,13 @@ jiehengjiang_draw = sgs.CreateTriggerSkill{
     end
 }
 
-jiehengjiang_fail = sgs.CreateTriggerSkill{
+--[[jiehengjiang_fail = sgs.CreateTriggerSkill{
 	name = "#jiehengjiang-fail",
 	events = {sgs.EventPhaseChanging},
 	priority = -1,
 	can_trigger = function(self, event, room, player, data)
 		local change = data:toPhaseChange()
-		if chage.to == sgs.Player_NotActive then
+		if change.to == sgs.Player_NotActive then
 			if player:getMark("@hengjiang") > 0 or player:getMark("jieHengjiangDiscarded") > 0 then
 				room:setPlayerMark(p, "@hengjiang", 0)
 				room:removePlayerMark(p, "jiehengjiangDiscarded", 1)
@@ -795,7 +796,7 @@ jiehengjiang_fail = sgs.CreateTriggerSkill{
 		end
 		return false
 	end
-}
+}]]
 
 jiehengjiang_maxcard = sgs.CreateMaxCardsSkill{
     name = "#jiehengjiang-maxcard",
@@ -806,12 +807,12 @@ jiehengjiang_maxcard = sgs.CreateMaxCardsSkill{
 
 jiezangba:addSkill(jiehengjiang)
 jiezangba:addSkill(jiehengjiang_draw)
-jiezangba:addSkill(jiehengjiang_fail)
+--jiezangba:addSkill(jiehengjiang_fail)
 jiezangba:addSkill(jiehengjiang_maxcard)
 
 testToFix:insertRelatedSkills("jiehengjiang", "#jiehengjiang-draw")
 testToFix:insertRelatedSkills("jiehengjiang", "#jiehengjiang-maxcard")
-testToFix:insertRelatedSkills("jiehengjiang", "#jiehengjiang-fail")
+--testToFix:insertRelatedSkills("jiehengjiang", "#jiehengjiang-fail")
 
 -- 加载翻译表
 sgs.LoadTranslationTable{
@@ -864,7 +865,7 @@ jiejianglveCard = sgs.CreateSkillCard{
 				room:recover(p, recover)
 			end
 		end
-		if commandIndex ~= 5 then
+		if commandIndex + 1 ~= 5 then
 			source:drawCards(#doCommandPlayer, "jiejianglve")
 		else
 			source:drawCards(1, "jiejianglve")
@@ -940,7 +941,6 @@ jiezhiren = sgs.CreateTriggerSkill{
 		if x < 1 then return false end
 		if player:askForSkillInvoke(self:objectName(), data) then
 			room:broadcastSkillInvoke("zhiren", player)
-			room:doAnimate(1, player:objectName(), card_use.from:objectName())
 			return true
 		end
 		return false
@@ -1271,6 +1271,7 @@ jieyinbing_damaged = sgs.CreateTriggerSkill{
 		if player and player:isAlive() and event == sgs.DamageInflicted then
 			local skill_owners = room:findPlayersBySkillName("jieyinbing")
 			local damage = data:toDamage()
+			if skill_owners:isEmpty() then return false end
 			for _, skill_owner in sgs.qlist(skill_owners) do
 				if skillTriggerable(skill_owner, "jieyinbing") and not skill_owner:getPile("pileOfYinbing"):isEmpty() and
 				damage.damage > 0 then
@@ -1494,8 +1495,14 @@ jienuzhan = sgs.CreateTriggerSkill{
 		if event == sgs.EventPhaseChanging then
 			local change = data:toPhaseChange()
 			if change.to == sgs.Player_NotActive then
-				room:setPlayerMark(player, "##jienuzhan_Trick", 0)
-				room:setPlayerMark(player, "##jienuzhan_Equip", 0)
+				local skill_owners = room:findPlayersBySkillName("jienuzhan")
+				if skill_owners:isEmpty() then return false end
+				for _, p in sgs.qlist(skill_owners) do
+					if p:isAlive() then
+						room:setPlayerMark(p, "##jienuzhan_Trick", 0)
+						room:setPlayerMark(p, "##jienuzhan_Equip", 0)
+					end
+				end
 			end
 		end
 	end,
@@ -2255,6 +2262,7 @@ jiepolu = sgs.CreateTriggerSkill{
 		local x = 0
 		local death = data:toDeath()
 		targets = room:askForPlayersChosen(skill_owner, room:getAlivePlayers(), self:objectName(), 1, 10, "@jiepolu_draw", true)
+		room:sortByActionOrder(targets)
 		if not targets:isEmpty() then
 			room:addPlayerMark(skill_owner, "#jiepolu", 1)
 			x = skill_owner:getMark("#jiepolu")
