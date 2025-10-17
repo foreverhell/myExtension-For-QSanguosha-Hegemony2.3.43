@@ -17,7 +17,8 @@ jiechuYin_card = sgs.CreateSkillCard{
           
         -- 视为对目标使用顺手牵羊  
         local snatch = sgs.Sanguosha:cloneCard("snatch")  
-        snatch:setSkillName("jiechuYin")  
+        snatch:setSkillName("jiechuYin")
+        snatch:deleteLater()  
         local use = sgs.CardUseStruct()  
         use.card = snatch  
         use.from = source  
@@ -32,6 +33,7 @@ jiechuYin_card = sgs.CreateSkillCard{
         -- 目标视为对你使用一张杀  
         local slash = sgs.Sanguosha:cloneCard("slash")  
         slash:setSkillName("jiechuYin")  
+        slash:deleteLater()
         if target:canSlash(source, slash, false) then  
             local use2 = sgs.CardUseStruct()  
             use2.card = slash  
@@ -182,7 +184,7 @@ daojue_skill = sgs.CreateTriggerSkill{
             -- 视为对所有其他角色使用杀  
             local slash = sgs.Sanguosha:cloneCard("slash")  
             slash:setSkillName(self:objectName())  
-              
+            slash:deleteLater()
             local targets = sgs.SPlayerList()  
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
                 if player:canSlash(p, slash, false) then  
@@ -525,6 +527,7 @@ fensi = sgs.CreateTriggerSkill{
             if target:objectName() ~= player:objectName() and target:isAlive() then  
                 local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)  
                 slash:setSkillName(self:objectName())  
+                slash:deleteLater()
                 local use = sgs.CardUseStruct()  
                 use.card = slash  
                 use.from = target  
@@ -1539,6 +1542,7 @@ shuangrui = sgs.CreateTriggerSkill{
         -- 视为对目标使用杀  
         local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
         slash:setSkillName(self:objectName())  
+        slash:deleteLater()
         local use = sgs.CardUseStruct()  
         use.card = slash  
         use.from = player  
@@ -1664,6 +1668,7 @@ jiusiCard = sgs.CreateSkillCard{
         choice=room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
         card = sgs.Sanguosha:cloneCard(choice)  
         card:setSkillName("jiusi")
+        card:deleteLater()
         if choice=="slash" then
             local targets = sgs.SPlayerList()  
             for _, p in sgs.qlist(room:getOtherPlayers(source)) do  
@@ -2615,12 +2620,14 @@ ZhishuCard = sgs.CreateSkillCard{
             -- 势力不同，依次视为使用杀和决斗  
             local slash = sgs.Sanguosha:cloneCard("slash")  
             slash:setSkillName("zhishu")  
+            slash:deleteLater()
             if not source:isCardLimited(slash, sgs.Card_MethodUse) then  
                 room:useCard(sgs.CardUseStruct(slash, source, target), false)  
             end  
               
             local duel = sgs.Sanguosha:cloneCard("duel")  
             duel:setSkillName("zhishu")  
+            duel:deleteLater()
             if not source:isCardLimited(duel, sgs.Card_MethodUse) then  
                 room:useCard(sgs.CardUseStruct(duel, source, target), false)  
             end  
@@ -2637,12 +2644,14 @@ ZhishuCard = sgs.CreateSkillCard{
                 -- 依次视为对自己使用桃和酒  
                 local peach = sgs.Sanguosha:cloneCard("peach")  
                 peach:setSkillName("zhishu")  
+                peach:deleteLater()
                 if not source:isCardLimited(peach, sgs.Card_MethodUse) then  
                     room:useCard(sgs.CardUseStruct(peach, source, source), false)  
                 end  
                   
                 local analeptic = sgs.Sanguosha:cloneCard("analeptic")  
                 analeptic:setSkillName("zhishu")  
+                analeptic:deleteLater()
                 if not source:isCardLimited(analeptic, sgs.Card_MethodUse) then  
                     room:useCard(sgs.CardUseStruct(analeptic, source, source), false)  
                 end  
@@ -3603,12 +3612,13 @@ xiahoushi = sgs.General(extension, "xiahoushi", "shu", 3, false)  -- 吴国，4�
 qiaoshi = sgs.CreateTriggerSkill{  
     name = "qiaoshi",  
     events = {sgs.EventPhaseEnd},  
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         if not (player and player:isAlive() and player:getPhase() == sgs.Player_Finish) then
             return ""
         end
         owner = room:findPlayerBySkillName(self:objectName())
-        if player~=owner and player:getHandcardNum()==owner:getHandcardNum() then  
+        if player~=owner and player:getHandcardNum()==owner:getHandcardNum() and player:isFriendWith(owner) then  
             return self:objectName(),owner:objectName()
         end  
         return ""  
@@ -3701,7 +3711,7 @@ xiahoushi:addSkill(yanyu)
 sgs.LoadTranslationTable{
     ["xiahoushi"] = "夏侯氏",
     ["qiaoshi"] = "樵拾",
-    [":qiaoshi"] = "其他角色回合结束时，若其手牌数和你相同，你可令其与你各摸一张牌，直到花色不相同",
+    [":qiaoshi"] = "其他与你势力相同的角色回合结束时，若其手牌数和你相同，你可令其与你各摸一张牌，直到花色不相同",
     ["yanyu"] = "燕语",
     [":yanyu"] = "出牌阶段，你可以将杀重铸；回合结束时，你可以令一名角色摸X张牌，X为以此法重铸杀的次数，至多为3"
 }
@@ -4109,6 +4119,7 @@ cansi = sgs.CreateTriggerSkill{
                 if player:isAlive() and target:isAlive() then  
                     local card = sgs.Sanguosha:cloneCard(card_name, sgs.Card_NoSuit, 0)  
                     card:setSkillName(self:objectName())  
+                    card:deleteLater()
                     --card:setFlags("cansi_card")  -- 标记为残肆技能产生的卡牌  
                       
                     local use = sgs.CardUseStruct()  
@@ -4434,6 +4445,7 @@ minghui = sgs.CreateTriggerSkill{
                 --room:askForUseSlashTo(xing_zhangchunhua, target, "", false, false, false)  
                 local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
                 slash:setSkillName(self:objectName())  
+                slash:deleteLater()
                 local use = sgs.CardUseStruct()  
                 use.card = slash  
                 use.from = xing_zhangchunhua  
@@ -4830,6 +4842,7 @@ XiongmouYangCard = sgs.CreateSkillCard{
         -- 视为对其使用火攻  
         local fire_attack = sgs.Sanguosha:cloneCard("fire_attack", sgs.Card_NoSuit, 0)  
         fire_attack:setSkillName("xiongmouYang")  
+        fire_attack:deleteLater()
         local use = sgs.CardUseStruct()  
         use.card = fire_attack  
         use.from = source  
@@ -4944,6 +4957,7 @@ cheji_card = sgs.CreateSkillCard{
             local slash_target = room:askForPlayerChosen(source, room:getOtherPlayers(target), "cheji", "@cheji-slash:" .. target:objectName(), true, true)  
             if slash_target then  
                 local slash = sgs.Sanguosha:cloneCard("slash")  
+                slash:deleteLater()
                 local use = sgs.CardUseStruct()  
                 use.card = slash  
                 use.from = target  
