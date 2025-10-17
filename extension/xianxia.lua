@@ -376,13 +376,15 @@ qinggong = sgs.CreateTriggerSkill{
         if not target then return false end  
           
         -- 令目标角色弃置自己两张牌  
+        local dummy = sgs.DummyCard() 
 		if target:canDiscard(player, "he") then
-			room:throwCard(room:askForCardChosen(target, player, "he", self:objectName(), false, sgs.Card_MethodDiscard), player, target)
+			dummy:addSubcard(room:askForCardChosen(target, player, "he", self:objectName()))
 		end
 		if target:canDiscard(player, "he") then
-			room:throwCard(room:askForCardChosen(target, player, "he", self:objectName(), false, sgs.Card_MethodDiscard), player, target)
+			dummy:addSubcard(room:askForCardChosen(target, player, "he", self:objectName()))--必须不是同一张
 		end  
-          
+        room:throwCard(dummy, player, target)
+        dummy:deleteLater()
         -- 跳过弃牌阶段  
         player:skip(sgs.Player_Discard)  
           
@@ -603,7 +605,7 @@ lvjin = sgs.CreateTriggerSkill{
         if target and target:isAlive() and card then  
             -- 将杀交给目标角色  
             target:obtainCard(card)  
-              
+            
             -- 如果目标是女性角色，其摸1张牌  
             if target:hasShownOneGeneral() and target:isFemale() then  
                 target:drawCards(1, self:objectName())  
@@ -647,6 +649,7 @@ muyang = sgs.CreateTriggerSkill{
             local card = sgs.Sanguosha:getCard(card_id)  
             if card:isRed() or card:isKindOf("Slash") then  
                 room:obtainCard(player, card_id)
+                room:showCard(player, card_id)
             --else  
             --    room:throwCard(card_id, nil, player) 
             end  
