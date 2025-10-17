@@ -1260,14 +1260,21 @@ luachengxu = sgs.CreateTriggerSkill{
         if player and player:isAlive() and event == sgs.EventPhaseStart then
 			for _, firstPlayer in sgs.qlist(room:getAlivePlayers()) do
 				if player ~= firstPlayer then return false end
-				if not firstPlayer:hasFlag("fangquanInvoked") and firstPlayer:getPhase() == sgs.TurnStart then
+                if firstPlayer:getPhase() == sgs.Player_Finish and firstPlayer:getMark("ThreatenEmperorExtraTurn") > 0 then
+                    room:setPlayerMark(firstPlayer, "teExtraTurn", 1)
+                end --开挟天子不算新的轮次
+				if not firstPlayer:hasFlag("fangquanInvoked") and firstPlayer:getMark("teExtraTurn") <= 0 and 
+                firstPlayer:getPhase() == sgs.TurnStart then
 					local skill_owners = room:findPlayersBySkillName("luachengxu")
 					if skill_owners:isEmpty() then return false end
 					for _, skill_owner in sgs.qlist(skill_owners) do
 						room:setPlayerMark(skill_owner, "luachengxu_slash", 1)
                         room:setPlayerMark(skill_owner, "luachengxu_discard", 1)
+                        room:setPlayerMark(skill_owner, "teExtraTurn", 0)
 					end
 					break
+                elseif firstPlayer:getPhase() == sgs.TurnStart then
+                    room:setPlayerMark(firstPlayer, "teExtraTurn", 0)
 				end
 			end
         end
