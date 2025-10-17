@@ -3473,10 +3473,10 @@ kaiji = sgs.CreateTriggerSkill{
         if not (player and player:hasSkill(self:objectName())) then return "" end
         if event == sgs.Dying then --有角色濒死
             local dying = data:toDying()  
-            room:setPlayerMark(dying.who,"kaiji",1)
+            room:setPlayerMark(dying.who,"@kaiji",1)
         elseif event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_Start and player:hasSkill(self:objectName()) then
-            for _, p in room:getAlivePlayers() do
-                if p:getMark("kaiji") then
+            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                if p:getMark("@kaiji") then
                     return self:objectName()
                 end
             end
@@ -3491,8 +3491,8 @@ kaiji = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data)  
         --统计濒死但还活着的人数
         local num = 0
-        for _, p in room:getAlivePlayers() do
-            if p:getMark("kaiji") then
+        for _, p in sgs.qlist(room:getAlivePlayers()) do
+            if p:getMark("@kaiji") then
                 num = num + 1
             end
         end
@@ -4281,7 +4281,7 @@ zhongjie_skill = sgs.CreateTriggerSkill{
 }  
 -- 添加技能到武将  
 zhaoyun_wei:addSkill(sushou_skill)
---zhaoyun_wei:addSkill(zhongjie_skill)
+zhaoyun_wei:addSkill(zhongjie_skill)
 
 -- 翻译表  
 sgs.LoadTranslationTable{
