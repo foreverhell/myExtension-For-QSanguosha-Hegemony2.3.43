@@ -110,6 +110,14 @@ sgs.ai_use_priority.luajiushiCard = 6
 end]]
 
 --王凌
+sgs.ai_skill_playerchosen.luamibei = function(self, targets)
+    for _, p in sgs.qlist(targets) do
+        if self.player:isFriendWith(p) then
+            return p
+        end
+    end
+    return targets:at(0)
+end
 sgs.ai_skill_choice["startcommand_luamibei"] = function(self, choices)
     Global_room:writeToConsole(choices)
     choices = choices:split("+")
@@ -256,8 +264,8 @@ sgs.ai_skill_invoke.luashibei = function(self, data)
     return false
 end
 sgs.ai_skill_choice.luashibei = function(self, choices, data)
-    local damage = data:toDamage()
-    local from = damage.from
+    --local damage = data:toDamage()
+    local from = data:toPlayer()
     local equipcards_from = from:getEquips()
     local equipcards_self = self.player:getEquips()
     local hasHorse_self, hasHorse_from = false
@@ -459,10 +467,11 @@ sgs.ai_skill_invoke.luachengxu = function(self, data)
                 return true
             end
         end
-    else
-        return true
     end
     return false
+end
+sgs.ai_skill_choice.luachengxu_choice = function(self, choices)
+	return "yes"
 end
 sgs.ai_skill_invoke.luazhichi = function(self, data)
     return true
