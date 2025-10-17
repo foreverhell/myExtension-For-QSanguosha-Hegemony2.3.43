@@ -559,11 +559,12 @@ function SmartAI:useCardSlash(card, use)
 				enough_pxslash = true
 			  end
 			end
-			if not enough_pxslash and self:getOverflow() <= 0 and not (target:getHp() == 1 and self:isWeak(target))
-			and not (self.player:hasSkill("jili") and self.player:getCardUsedTimes(".") + self.player:getCardRespondedTimes(".") + 1 == self.player:getAttackRange()) then
+			--[[if not enough_pxslash and self:getOverflow() <= 0 and not (target:getHp() == 1 and self:isWeak(target))
+			and not (self.player:hasSkill("jili") and self.player:getCardUsedTimes(".") + 
+			self.player:getCardRespondedTimes(".") + 1 == self.player:getAttackRange()) then
 				self.room:writeToConsole("咆哮屯杀")
 				return false
-			end
+			end]]
 		end
 		local targets = sgs.PlayerList()
 		if use.to and not use.to:isEmpty() then

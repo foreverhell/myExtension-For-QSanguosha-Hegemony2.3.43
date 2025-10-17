@@ -966,7 +966,7 @@ sgs.ai_skill_invoke.jianchu = function(self, data)
 	return not self:isFriend(target) and not self:doNotDiscard(target, "he")
 end
 
-sgs.ai_skill_cardchosen.jianchu = function(self, who, flags, method, disable_list)
+--[[sgs.ai_skill_cardchosen.jianchu = function(self, who, flags, method, disable_list)
 	--if flags:match("e") then
 	if who:hasSkills(sgs.lose_equip_skill) then
 		return self:askForCardChosen(who, "h", "jianchu_dismantlement", method, disable_list)
@@ -988,11 +988,11 @@ sgs.ai_skill_cardchosen.jianchu = function(self, who, flags, method, disable_lis
 		--[[local id = self:askForCardChosen(who, "e", "jianchu_dismantlement", method, disable_list)
 		if id then
 			return id
-		end]]
+		end
 	else
 		return self:askForCardChosen(who, flags, "jianchu_dismantlement", method, disable_list)
 	end
-end
+end]]
 
 function sgs.ai_cardneed.jianchu(to, card, self)
 	return card:isKindOf("Slash") or card:isKindOf("Analeptic")
@@ -1305,7 +1305,7 @@ end
 sgs.ai_skill_choice.duanchang = function(self, choices, data)
 	local who = data:toPlayer()
 	local needToDuanchangSkills = ""
-	if self:isFriend(who) then
+	if self.player:isFriendWith(who) then
 		if who:getHeadSkillList():length() >= who:getDeputySkillList():length() then
 			return "deputy_general"
 		end
@@ -1341,7 +1341,7 @@ xiongyi_skill.getTurnUseCard = function(self)
 		return sgs.Card_Parse("@XiongyiCard=.&xiongyi")
 	end
 	for _, friend in ipairs(self.friends) do
-		if (self:objectiveLevel(friend) == 2 or self.player:isFriendWith(friend)) and self:isWeak(friend) then
+		if (self:objectiveLevel(friend) == 2 and self.player:isFriendWith(friend)) or self:isWeak(friend) then
 			return sgs.Card_Parse("@XiongyiCard=.&xiongyi")
 		end
 	end

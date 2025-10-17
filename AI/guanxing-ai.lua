@@ -73,97 +73,117 @@ local function GuanXing(self, cards)
 	bottom = getIdToCard(self, cards)
 	self:sortByUseValue(bottom, true)
 
-	local judge = sgs.QList2Table(self.player:getJudgingArea())
-	judge = sgs.reverse(judge)
+	if self.player:getPhase() <= sgs.Player_Play then
+		local judge = sgs.QList2Table(self.player:getJudgingArea())
+		judge = sgs.reverse(judge)
 
-	if #judge > 0 then
-		local lightning_index
-		for judge_count, need_judge in ipairs(judge) do
-			judged_list[judge_count] = 0
-			if need_judge:isKindOf("Lightning") then
-				lightning_index = judge_count
-				has_lightning = need_judge
-				continue
-			elseif need_judge:isKindOf("Indulgence") then
-				willSkipPlayPhase = true
-				if self.player:isSkipped(sgs.Player_Play) then continue end
-			elseif need_judge:isKindOf("SupplyShortage") then
-				willSkipDrawPhase = true
-				if self.player:isSkipped(sgs.Player_Draw) then continue end
-			end
-			local judge_str = sgs.ai_judgestring[need_judge:objectName()]
-			if not judge_str then
-				self.room:writeToConsole(debug.traceback())
-				judge_str = sgs.ai_judgestring[need_judge:getSuitString()]
-			end
-			for index, for_judge in ipairs(bottom) do
-				local suit = for_judge:getSuitString()
-				if self.player:hasSkill("hongyan") and suit == "spade" then suit = "heart" end
-				if judge_str == suit then
-					table.insert(up, for_judge)
-					table.remove(bottom, index)
-					judged_list[judge_count] = 1
-					self_has_judged = true
-					if need_judge:isKindOf("SupplyShortage") then willSkipDrawPhase = false
-					elseif need_judge:isKindOf("Indulgence") then willSkipPlayPhase = false
-					end
-					break
+		if #judge > 0 then
+			local lightning_index
+			for judge_count, need_judge in ipairs(judge) do
+				judged_list[judge_count] = 0
+				if need_judge:isKindOf("Lightning") then
+					lightning_index = judge_count
+					has_lightning = need_judge
+					continue
+				elseif need_judge:isKindOf("Indulgence") then
+					willSkipPlayPhase = true
+					if self.player:isSkipped(sgs.Player_Play) then continue end
+				elseif need_judge:isKindOf("SupplyShortage") then
+					willSkipDrawPhase = true
+					if self.player:isSkipped(sgs.Player_Draw) then continue end
 				end
-			end
-		end
-
-		if lightning_index then
-			for index, for_judge in ipairs(bottom) do
-				local cardNumber = for_judge:getNumber()
-				local cardSuit = for_judge:getSuitString()
-				if self.player:hasSkill("hongyan") and cardSuit == "spade" then cardSuit = "heart" end
-				if not (for_judge:getNumber() >= 2 and cardNumber <= 9 and cardSuit == "spade") then
-					local i = lightning_index > #up and 1 or lightning_index
-					table.insert(up, i , for_judge)
-					table.remove(bottom, index)
-					judged_list[lightning_index] = 1
-					self_has_judged = true
-					break
+				local judge_str = sgs.ai_judgestring[need_judge:objectName()]
+				if not judge_str then
+					self.room:writeToConsole(debug.traceback())
+					judge_str = sgs.ai_judgestring[need_judge:getSuitString()]
 				end
-			end
-			if judged_list[lightning_index] == 0 then
-				if #up >= lightning_index then
-					for i = 1, #up - lightning_index + 1 do
-						table.insert(bottom, table.remove(up))
+				for index, for_judge in ipairs(bottom) do
+					local suit = for_judge:getSuitString()
+					if self.player:hasSkill("hongyan") and suit == "spade" then suit = "heart" end
+					if judge_str == suit then
+						table.insert(up, for_judge)
+						table.remove(bottom, index)
+						judged_list[judge_count] = 1
+						self_has_judged = true
+						if need_judge:isKindOf("SupplyShortage") then willSkipDrawPhase = false
+						elseif need_judge:isKindOf("Indulgence") then willSkipPlayPhase = false
+						end
+						break
 					end
 				end
-				up = getBackToId(self, up)
-				bottom = getBackToId(self, bottom)
-				return up, bottom
 			end
-		end
 
-		if not self_has_judged and #judge > 0 then
-			return {}, cards
-		end
-
-		local index
-		if willSkipDrawPhase then
-			for i = #judged_list, 1, -1 do
-				if judged_list[i] == 0 then index = i
-				else break
+			if lightning_index then
+				for index, for_judge in ipairs(bottom) do
+					local cardNumber = for_judge:getNumber()
+					local cardSuit = for_judge:getSuitString()
+					if not notSelf then
+						if self.player:hasSkill("hongyan") and cardSuit == "spade" then 
+							cardSuit = "heart" 
+						end
+					else
+						if nextPlayer:hasSkill("hongyan") and cardSuit == "spade" then 
+							cardSuit = "heart" 
+						end
+					end
+					if (not notSelf) or isFri then
+						if not (for_judge:getNumber() >= 2 and cardNumber <= 9 and cardSuit == "spade") then
+							local i = lightning_index > #up and 1 or lightning_index
+							table.insert(up, i , for_judge)
+							table.remove(bottom, index)
+							judged_list[lightning_index] = 1
+							self_has_judged = true
+							break
+						end
+					else
+						if for_judge:getNumber() >= 2 and cardNumber <= 9 and cardSuit == "spade" then
+							local i = lightning_index > #up and 1 or lightning_index
+							table.insert(up, i , for_judge)
+							table.remove(bottom, index)
+							judged_list[lightning_index] = 1
+							self_has_judged = true
+							break
+						end
+					end
 				end
-			end
-		end
-
-		for i = 1, #judged_list do
-			if judged_list[i] == 0 then
-				if i == index then
+				if judged_list[lightning_index] == 0 then
+					if #up >= lightning_index then
+						for i = 1, #up - lightning_index + 1 do
+							table.insert(bottom, table.remove(up))
+						end
+					end
 					up = getBackToId(self, up)
 					bottom = getBackToId(self, bottom)
 					return up, bottom
 				end
-				table.insert(up, i, table.remove(bottom, 1))
 			end
+
+			if not self_has_judged and #judge > 0 then
+				return {}, cards
+			end
+
+			local index
+			if willSkipDrawPhase then
+				for i = #judged_list, 1, -1 do
+					if judged_list[i] == 0 then index = i
+					else break
+					end
+				end
+			end
+
+			for i = 1, #judged_list do
+				if judged_list[i] == 0 then
+					if i == index then
+						up = getBackToId(self, up)
+						bottom = getBackToId(self, bottom)
+						return up, bottom
+					end
+					table.insert(up, i, table.remove(bottom, 1))
+				end
+			end
+
 		end
-
 	end
-
 	local drawCards = self:imitateDrawNCards(self.player, self.player:getVisibleSkillList(true))
 	local drawCards_copy = drawCards
 	if willSkipDrawPhase then drawCards = 0 end

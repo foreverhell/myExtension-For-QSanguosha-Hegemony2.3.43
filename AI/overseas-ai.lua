@@ -954,9 +954,14 @@ end
 
 sgs.ai_skill_choice.jilei = function(self, choices, data)
 	local dfrom = data:toDamage().from
-    local b_limited = dfrom:getMark("##jilei+BasicCard") > 0
+	local stringMark = dfrom.getStringMark("@jilei-turn")
+
+    --[[local b_limited = dfrom:getMark("##jilei+BasicCard") > 0
     local t_limited = dfrom:getMark("##jilei+TrickCard") > 0
-    local e_limited = dfrom:getMark("##jilei+EquipCard") > 0
+    local e_limited = dfrom:getMark("##jilei+EquipCard") > 0]]
+	local b_limited = table.contains(stringMark, "log_BasicCard")
+    local t_limited = table.contains(stringMark, "log_TrickCard")
+    local e_limited = table.contains(stringMark, "log_EquipCard")
 	if b_limited and t_limited then
         return "EquipCard"
     elseif b_limited and e_limited then
@@ -974,8 +979,8 @@ sgs.ai_skill_choice.jilei = function(self, choices, data)
                 return "BasicCard"
             end
         end
-    end]]--优先jilei锦囊
-    if dfrom:getHp() < 2 and getCardsNum("Peach", dfrom, self.player) > 0 and not b_limited then
+    end]]--优先鸡肋锦囊
+    if (dfrom:getHp() < 2 and getCardsNum("Peach", dfrom, self.player) > 0 and not b_limited) then
 		return "BasicCard"
 	else
 		return "TrickCard"
@@ -1261,23 +1266,23 @@ sgs.ai_skill_use["@@jiansu"] = function(self, prompt, method)
     end
     self:sort(self.friends, "hp")
     for _, p in ipairs(self.friends) do
-        --if p:getHp() <= num and self.player:isFriendWith(p) and p:canRecover() then
-		if p:getHp() <= #money_cards and self.player:isFriendWith(p) and p:canRecover() then
+        if p:getHp() <= num and self.player:isFriendWith(p) and p:canRecover() then
+		--if p:getHp() <= #money_cards and self.player:isFriendWith(p) and p:canRecover() then
             local discards = {}
             for i = 1, p:getHp(), 1 do
                 table.insert(discards, money_cards[i]:getEffectiveId())
             end
-            return "@JiansuCard=" .. table.concat(discards, "+") .. "->" .. p:objectName()
+            return "@JiansuCard=" .. table.concat(discards, "+") .. "&jiansu->" .. p:objectName()
         end
     end
     for _, p in ipairs(self.friends) do
-        --if p:getHp() <= num and self:isFriend(p) and self:isWeak(p) and p:canRecover() then
-		if p:getHp() <= #money_cards and self:isFriend(p) and self:isWeak(p) and p:canRecover() then
+        if p:getHp() <= num and self:isFriend(p) and self:isWeak(p) and p:canRecover() then
+		--if p:getHp() <= #money_cards and self:isFriend(p) and self:isWeak(p) and p:canRecover() then
             local discards = {}
             for i = 1, p:getHp(), 1 do
                 table.insert(discards, money_cards[i]:getEffectiveId())
             end
-            return "@JiansuCard=" .. table.concat(discards, "+") .. "->" .. p:objectName()
+            return "@JiansuCard=" .. table.concat(discards, "+") .. "&jiansu->" .. p:objectName()
         end
     end
     return "."
@@ -1340,8 +1345,8 @@ sgs.ai_skill_invoke.naman = function(self, data)
 			Global_room:writeToConsole("NamanUsedata:"..tostring("data"))
 		end
 	end
-	if use and use.card:isKindOf("FightTogether") and use.to:contains(self.player) and self.player:isChained() then return false end
-	if use and use.card:isKindOf("BurningCamps") and not use.to:contains(self.player) then return false end
+	--if use and use.card:isKindOf("FightTogether") and use.to:contains(self.player) and self.player:isChained() then return false end
+	--if use and use.card:isKindOf("BurningCamps") and not use.to:contains(self.player) then return false end
 	return true
 end
 
@@ -1363,7 +1368,7 @@ sgs.ai_skill_playerchosen["naman_target"] = function(self, targets)
     local targetlist = sgs.QList2Table(targets)
 	local result = {}
 
-    if card:isKindOf("ArcheryAttack") or card:isKindOf("SavageAssault") or card:isKindOf("BurningCamps") then
+    if card:isKindOf("ArcheryAttack") or card:isKindOf("SavageAssault") or card:isKindOf("BurningCamps") or card:isKindOf("Drowning") then
         self:sort(tos, "hp")
         for _, p in ipairs(tos) do
             if self.player:isFriendWith(p) and self:aoeIsEffective(card, p, from) then
@@ -1464,13 +1469,19 @@ sgs.ai_skill_playerchosen["naman_target"] = function(self, targets)
 	elseif card:isKindOf("Duel") then
 		self:sort(tos, "hp")
 		for _, p in ipairs(tos) do
-            if self:isFriend(p) and self:trickIsEffective(card, p, from) then
+            if self.player:isFriendWith(p) and self:slashIsEffective(card, p, from) then
+                table.insert(result, p)
+                return result
+            end
+        end
+		for _, p in ipairs(tos) do
+            if self:isFriend(p) and self:slashIsEffective(card, p, from) then
                 table.insert(result, p)
                 return result
             end
         end
 		for _, p in ipairs(targetlist) do
-            if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) then
+            if not table.contains(tos, p) and not self:isFriend(p) and self:slashIsEffective(card, p, from) then
                 table.insert(result, p)
                 return result
             end
@@ -2326,15 +2337,24 @@ sgs.ai_skill_playerchosen.yanzhong = function(self, targets)
 	local known_suit = {0,0,0,0}
 	targets = sgs.QList2Table(targets)
 	self:sort(targets, "handcard")
+	if self.player:hasFlag("lifu_viewSuit_spade") then
+		known_suit[1] = 1
+	elseif self.player:hasFlag("lifu_viewSuit_club") then
+		known_suit[2] = 1
+	elseif self.player:hasFlag("lifu_viewSuit_heart") then
+		known_suit[3] = 1
+	elseif self.player:hasFlag("lifu_viewSuit_diamond") then
+		known_suit[4] = 1
+	end
 	for _, enemy in ipairs(targets) do
 		if self:isEnemy(enemy) and not enemy:isKongcheng() and not self:doNotDiscard(enemy, "h") then
-			known_suit[1] = getKnownCard(enemy, self.player, "spade", true, "h")
-			known_suit[2] = getKnownCard(enemy, self.player, "club", true, "h")
-			known_suit[3] = getKnownCard(enemy, self.player, "heart", true, "h")
-			known_suit[4] = getKnownCard(enemy, self.player, "diamond", true, "h")
+			known_suit[1] = getKnownCard(enemy, self.player, "spade", true, "h") + known_suit[1]
+			known_suit[2] = getKnownCard(enemy, self.player, "club", true, "h") + known_suit[2]
+			known_suit[3] = getKnownCard(enemy, self.player, "heart", true, "h") + known_suit[3]
+			known_suit[4] = getKnownCard(enemy, self.player, "diamond", true, "h") + known_suit[4]
 			for _, suit in ipairs(known_suit) do
 				if suit == enemy:getHandcardNum() then--如果已知花色等于手牌数
-					self.yanzhong_suit = table.indexOf(known_suit,suit) - 1
+					self.yanzhong_suit = table.indexOf(known_suit, suit) - 1
 					local suit_table = {"♠", "♣", "♥", "♦"}
 					local suit_str = suit_table[(self.yanzhong_suit + 1)]
 					Global_room:writeToConsole("言中已知花色:"..suit_str)
@@ -2345,10 +2365,10 @@ sgs.ai_skill_playerchosen.yanzhong = function(self, targets)
 	end
 	for _, enemy in ipairs(targets) do
 		if self:isEnemy(enemy) and not enemy:isKongcheng() and not self:doNotDiscard(enemy, "h") then
-			known_suit[1] = getKnownCard(enemy, self.player, "spade", true, "h")
+			--[[known_suit[1] = getKnownCard(enemy, self.player, "spade", true, "h")
 			known_suit[2] = getKnownCard(enemy, self.player, "club", true, "h")
 			known_suit[3] = getKnownCard(enemy, self.player, "heart", true, "h")
-			known_suit[4] = getKnownCard(enemy, self.player, "diamond", true, "h")
+			known_suit[4] = getKnownCard(enemy, self.player, "diamond", true, "h")]]--既然循环条件一样，为什么要再赋值一次？
 			--sgs.debugFunc(self.player, 1)
 			local max_suit = math.max(known_suit[1], known_suit[2], known_suit[3], known_suit[4])
 			if 3*max_suit >= enemy:getHandcardNum() then--已知花色大于等于1/3
@@ -2786,15 +2806,15 @@ sgs.ai_skill_invoke.kangkai = function(self, data)
 	if self:isWeak() or self.player:getActualGeneral1Name() == "xunyou" then return true end
 	self:sort(self.friends, "defense")
 	for _, p in ipairs(self.friends) do
-		if self.player:isFriendWith(p) and self:isWeak(p)then return true end
+		if self.player:isFriendWith(p) and self:isWeak(p) then return true end
 	end
 	return false
 end
 
 sgs.ai_skill_playerchosen.kangkai = function(self, targets)
-	--targets = sgs.QList2Table(targets)
-    --self:sort(targets, "defense")
-	for _, p in pairs(self.friends) do
+	targets = sgs.QList2Table(targets)
+    self:sort(targets, "hp")
+	for _, p in pairs(targets) do
         if self.player:objectName() == p:objectName() and #self.friends_noself == 0 then
             return p
 		else
