@@ -98,8 +98,18 @@ sgs.ai_skill_use_func.RendeCard = function(rdcard, use, self)
 	
 	local friends_tables = {}
 	local RendeCard = sgs.Card_Parse("@RendeCard=.&rende")
-	for _, p in ipairs(self.friends_noself) do
+	--[[for _, p in ipairs(self.friends_noself) do
 		if RendeCard:targetFilter(sgs.PlayerList(), p, self.player) then
+			table.insert(friends_tables, p)
+		end
+	end]]
+	local friendsByAction = sgs.SPlayerList()
+	local room = self.player:getRoom()
+	friendsByAction = room:getAlivePlayers()
+	room:sortByActionOrder(friendsByAction)
+	for _, p in sgs.qlist(friendsByAction) do
+		if p:objectName() ~= self.player:objectName() and self.player:isFriendWith(p) and 
+		RendeCard:targetFilter(sgs.PlayerList(), p, self.player) then
 			table.insert(friends_tables, p)
 		end
 	end
