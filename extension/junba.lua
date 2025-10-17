@@ -3434,8 +3434,63 @@ shepan = sgs.CreateTriggerSkill{
         return false  
     end  
 }  
-  
+
+kaiji = sgs.CreateTriggerSkill{  
+    name = "kaiji",  
+    events = {sgs.EventPhaseStart, sgs.Dying},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data) 
+        if not (player and player:hasSkill(self:objectName())) then return "" end
+        if event == sgs.Dying then --有角色濒死
+            local dying = data:toDying()  
+            room:setPlayerMark(dying.who,"kaiji",1)
+        elseif event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_Start and player:hasSkill(self:objectName()) then
+            for _, p in room:getAlivePlayers() do
+                if p:getMark("kaiji") then
+                    return self:objectName()
+                end
+            end
+        end
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(),data)  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        --统计濒死但还活着的人数
+        local num = 0
+        for _, p in room:getAlivePlayers() do
+            if p:getMark("kaiji") then
+                num = num + 1
+            end
+        end
+        if num <= 0 then return false end
+        local targets = sgs.SPlayerList()  
+        -- 收集可选目标  
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if  player:isFriendWith(p) then  
+                targets:append(p)            
+            end  
+        end  
+        local chosen_players = room:askForPlayersChosen(player, targets, self:objectName(), num, num, "请选择玩家", false)
+        local has_diamond = false
+        for _, chosen_player in sgs.qlist(chosen_players) do  
+            room:drawCards(chosen_player, 1)  
+            if chosen_player:getHandcards():last():getSuit() == sgs.Card_Diamond then
+                has_diamond = true
+            end
+        end
+        if has_diamond then
+            room:drawCards(player, 1) 
+        end
+        return false  
+    end  
+}
+
 wangxu:addSkill(shepan)
+wangxu:addSkill(kaiji)
 sgs.LoadTranslationTable{
 ["wangxu"] = "王旭",  
 ["#wangxu"] = "魏之谋士",  
@@ -3445,6 +3500,8 @@ sgs.LoadTranslationTable{
 ["@shepan"] = "慑叛",  
 ["shepan:draw"] = "摸一张牌",  
 ["shepan:put_card"] = "将其手牌置于牌堆顶",
+["kaiji"] = "开济",
+[":kaiji"] = "准备阶段，你可以令至多X名相同势力角色各摸1张牌，X为进入过濒死状态的存活角色数，若有角色因此获得方块牌，你摸一张牌",
 }
 
 wangyue = sgs.General(extension, "wangyue", "shu", 4) -- 蜀势力，4血，男性（默认）  
