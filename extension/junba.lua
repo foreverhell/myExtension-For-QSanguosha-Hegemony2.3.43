@@ -4270,26 +4270,26 @@ zhongjie_skill = sgs.CreateTriggerSkill{
     limit_mark = "@zhongjie",  
       
     can_trigger = function(self, event, room, player, data) 
-        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
-            if player:hasSkill(self:objectName()) then
-                room:setPlayerMark(player, "@zhongjie", 1)  
-            end
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and player:hasSkill(self:objectName()) then
+            room:setPlayerMark(player, "@zhongjie", 1)  
             return ""
-        end
-        -- 寻找拥有忠节技能的角色  
-        local zhongjie_player = room:findPlayerBySkillName(self:objectName()) 
-        if not (zhongjie_player and zhongjie_player:isAlive() and zhongjie_player:hasSkill(self:objectName())) then return "" end
-        if zhongjie_player:getMark("@zhongjie") <= 0 then return "" end
+        else
+            -- 寻找拥有忠节技能的角色  
+            local zhongjie_player = room:findPlayerBySkillName(self:objectName()) 
+            if not (zhongjie_player and zhongjie_player:isAlive() and zhongjie_player:hasSkill(self:objectName())) then return "" end
+            if zhongjie_player:getMark("@zhongjie") <= 0 then return "" end
 
-        local dying = data:toDying()  
-        -- 检查是否因失去体力而濒死（damage为nil表示失去体力）  
-        if dying.damage == nil then  
-            return self:objectName(), zhongjie_player:objectName() 
-        end  
+            local dying = data:toDying()  
+            -- 检查是否因失去体力而濒死（damage为nil表示失去体力）  
+            if dying.damage == nil then  
+                return self:objectName(), zhongjie_player:objectName() 
+            end  
+        end
         return "" 
     end,  
       
     on_cost = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseStart then return false end
         local dying = data:toDying()  
         local _data = sgs.QVariant()  
         _data:setValue(dying.who)  
@@ -4303,6 +4303,7 @@ zhongjie_skill = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseStart then return false end
         local dying = data:toDying()  
         local target = dying.who  
           
