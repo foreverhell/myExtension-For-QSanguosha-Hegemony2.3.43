@@ -987,6 +987,42 @@ zhengnan_skill = sgs.CreateTriggerSkill{
         end  
         return false  
     end,  
+    --第三版
+    on_effect = function(self, event, room, player, data, ask_who)            
+        -- 检查已获得的技能  
+        local available_skills = {}  
+        local skill_names = {"wusheng", "dangxian", "zhiman"}  
+          
+        for _, skill_name in ipairs(skill_names) do  
+            if not ask_who:hasSkill(skill_name) then  
+                table.insert(available_skills, skill_name)  
+            end  
+        end  
+        
+        if #available_skills > 0 then
+            -- 选择一个技能获得  
+            local skill_name = room:askForChoice(ask_who, self:objectName(), table.concat(available_skills, "+"), data)  
+            room:acquireSkill(ask_who, skill_name)  
+        elseif ask_who:isWounded() then
+            -- 回复一点体力
+            local recover = sgs.RecoverStruct()  
+            recover.recover = 1  
+            recover.who = ask_who  
+            room:recover(ask_who, recover)  
+            -- 摸1张牌  
+            ask_who:drawCards(1, self:objectName())  
+        else
+            -- 所有技能都已获得，摸3张牌  
+            ask_who:drawCards(3, self:objectName())  
+        end  
+        local death = data:toDying()
+        local death_player = death.who
+        local mark_name = "zhengnan" .. death_player:objectName()--string.format("zhengnan_%s", dead_player:objectName())  
+        room:setPlayerMark(ask_who,mark_name,1)
+        return false  
+    end  
+    --[[
+    --第二版，灵活性强
     on_effect = function(self, event, room, player, data, ask_who)            
         -- 检查已获得的技能  
         local available_skills = {}  
@@ -1028,7 +1064,9 @@ zhengnan_skill = sgs.CreateTriggerSkill{
         room:setPlayerMark(ask_who,mark_name,1)
         return false  
     end  
+    ]]
     --[[
+    --第一版，和身份局完全一样，最强
     on_effect = function(self, event, room, player, data, ask_who)  
         -- 回复一点体力
         local recover = sgs.RecoverStruct()  
@@ -1089,7 +1127,8 @@ sgs.LoadTranslationTable{
 ["guansuo"] = "关索",  
 ["zhengnan"] = "徵南",   
 --[":zhengnan"] = "每名角色限一次，任意角色进入濒死时，你可以回复一点体力，并从武圣、当先、制蛮中选择一个技能获得，然后摸1张牌；若所有技能都已获得，则摸三张牌。",  
-[":zhengnan"] = "每名角色限一次，任意角色进入濒死时，你可以选择（1）从武圣、当先、制蛮中选择一个技能获得（2）回复一点体力，并摸1张牌（3）摸三张牌。",  
+--[":zhengnan"] = "每名角色限一次，任意角色进入濒死时，你可以选择（1）从武圣、当先、制蛮中选择一个技能获得（2）回复一点体力，并摸1张牌（3）摸三张牌。",  
+[":zhengnan"] = "每名角色限一次，任意角色进入濒死时，你可以从武圣、当先、制蛮中选择一个技能获得；当所有技能都已获得：若你受伤，你回复一点体力，并摸1张牌，否则你摸三张牌。",  
 ["xiefang"] = "撷芳",  
 [":xiefang"] = "你到其他角色的距离-X，X为全场女性角色数。",  
 ["wusheng"] = "武圣",  
