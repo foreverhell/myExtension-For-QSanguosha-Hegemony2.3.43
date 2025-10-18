@@ -2795,15 +2795,23 @@ sgs.LoadTranslationTable{
 --军八中修改为晋势力的武将------------------
 ------------------------------------------
 caofang_junba = sgs.General(extension, "caofang_junba", "jin", 3)  -- 吴国，4血，男性  
+caomao_junba = sgs.General(extension, "caomao_junba", "jin", 3)  -- 吴国，4血，男性  
+haozhao_junba = sgs.General(extension, "haozhao_junba", "jin", 4)  -- 吴国，4血，男性  
 jianshi_junba = sgs.General(extension, "jianshi_junba", "jin", 3, false)  -- 吴国，4血，男性  
 jikang_junba = sgs.General(extension, "jikang_junba", "jin", 3)  
 simaao_junba = sgs.General(extension, "simaao_junba", "jin", 3)  
 simafu_junba = sgs.General(extension, "simafu_junba", "jin", 3)  -- 吴国，4血，男性  
+wangxu_junba = sgs.General(extension, "wangxu_junba", "jin", 3)  
 xiahoushi_junba = sgs.General(extension, "xiahoushi_junba", "jin", 3, false)  -- 吴国，4血，男性  
 zhangchunhua_junba = sgs.General(extension, "zhangchunhua_junba", "jin", 3, false)  -- 吴国，4血，男性  
 zhaoyun_jin = sgs.General(extension, "zhaoyun_jin", "jin", 3)  -- 吴国，4血，男性  
 
 caofang_junba:addSkill("zhimin")
+
+caomao_junba:addSkill("qianlong")  
+caomao_junba:addSkill("fensi")
+
+haozhao_junba:addSkill("zhengu")
 
 jianshi_junba:addSkill("jiusi")
 
@@ -2817,6 +2825,9 @@ simaao_junba:addSkill("yinshi")
 simafu_junba:addSkill("panxiang")
 simafu_junba:addSkill("chenjie")
 
+wangxu_junba:addSkill("shepan")
+wangxu_junba:addSkill("kaiji")
+
 xiahoushi_junba:addSkill("qiaoshi")
 xiahoushi_junba:addSkill("yanyu")
 
@@ -2824,15 +2835,18 @@ zhangchunhua_junba:addSkill("liangyan")
 zhangchunhua_junba:addSkill("minghui")  
 
 zhaoyun_jin:addSkill("sushou")
---zhaoyun_jin:addSkill("zhongjie")
+zhaoyun_jin:addSkill("zhongjie")
 
 sgs.LoadTranslationTable{        
     ["caofang_junba"] = "曹芳",  
+    ["caomao_junba"] = "曹髦",
     ["caoren_junba"] = "星曹仁",
+    ["haozhao_junba"] = "郝昭",
     ["jianshi_junba"] = "剑侍",
     ["jikang_junba"] = "嵇康",  
     ["simaao_junba"] = "司马傲",  
     ["simafu_junba"] = "司马孚",  
+    ["wangxu_junba"] = "王旭",
     ["xiahoushi_junba"] = "夏侯氏",
     ["zhangchunhua_junba"] = "星张春华",  
     ["zhaoyun_jin"] = "晋赵云",
@@ -2868,6 +2882,18 @@ zhuangzhou_jin = sgs.General(extension, "zhuangzhou_jin", "jin", 3) --qun,jin
 zhubajie_jin = sgs.General(extension, "zhubajie_jin", "jin", 3) --wu,jin  
 zuchongzhi_jin = sgs.General(extension, "zuchongzhi_jin", "jin", 3)  --wei,jin
 
+dianwei_jin = sgs.General(extension, "dianwei_jin", "jin", 3)
+mozi_jin = sgs.General(extension, "mozi_jin", "jin", 3)
+suqin_jin = sgs.General(extension, "suqin_jin", "jin", 3)
+--wangyangming_jin = sgs.General(extension, "wangyangming_jin", "jin", 3)
+xunzi_jin = sgs.General(extension, "xunzi_jin", "jin", 3)
+yuchigong_jin = sgs.General(extension, "yuchigong_jin", "jin", 4)
+yuwenhuaji_jin = sgs.General(extension, "yuwenhuaji_jin", "jin", 4)
+zhaokuo_jin = sgs.General(extension, "zhaokuo_jin", "jin", 4)
+zhouchu_jin = sgs.General(extension, "zhouchu_jin", "jin", 4)
+zhuowenjun_jin = sgs.General(extension, "zhuowenjun_jin", "jin", 3)
+zhuzhishan_jin = sgs.General(extension, "zhuzhishan_jin", "jin", 3)
+
 baozhen_jin:addSkill("pingyuan")
 baozhen_jin:addSkill("shenduan")
 
@@ -2890,6 +2916,7 @@ simayi_jin:addSkill("zhuolue")
 simayi_jin:addSkill("langgu")
 
 sunwu_jin:addSkill("qiji")
+sunwu_jin:addSkill("bingsheng")
 
 tangbohu_jin:addSkill("fengliu")
 tangbohu_jin:addSkill("luobi")
@@ -2903,12 +2930,41 @@ yuxuanji_jin:addSkill("feiqing")
 zhuangzhou_jin:addSkill("mengdie")
 zhuangzhou_jin:addSkill("xiaoyao_maxCards")
 zhuangzhou_jin:addSkill("xiaoyao_targetmod")
+zhuangzhou_jin:addSkill("xiaoyaoTurned")
 
 zhubajie_jin:addSkill("tianpeng")
 
 zuchongzhi_jin:addSkill("yuanzhou")
 zuchongzhi_jin:addSkill("jingsuan")
 
+dianwei_jin:addSkill("zhonghu")  
+dianwei_jin:addSkill("kuangzhan")
+
+mozi_jin:addSkill("jianai")  
+mozi_jin:addSkill("feigong")  
+mozi_jin:addSkill("feigongSlash")  
+
+suqin_jin:addSkill("hezong")  
+suqin_jin:addSkill("wangji")
+
+xunzi_jin:addSkill("quyong")  
+
+yuchigong_jin:addSkill("huwei")  
+
+yuwenhuaji_jin:addSkill("cuanni")  
+yuwenhuaji_jin:addSkill("jiandi")  
+yuwenhuaji_jin:addSkill("cuanquan")
+
+zhaokuo_jin:addSkill("zhishangtanbing")
+
+zhouchu_jin:addSkill("gaiguo")  
+zhouchu_jin:addSkill("chuhai")  
+
+zhuowenjun_jin:addSkill("qinxin")
+zhuowenjun_jin:addSkill("xiangshou")
+
+zhuzhishan_jin:addSkill("caoshu")  
+zhuzhishan_jin:addSkill("linmo")
 sgs.LoadTranslationTable{        
     ["baozhen_jin"] = "包拯",  
     ["jifa_jin"] = "姬发",
@@ -2924,5 +2980,15 @@ sgs.LoadTranslationTable{
     ["zhuangzhou_jin"] = "庄周",
     ["zhubajie_jin"] = "猪八戒",
     ["zuchongzhi_jin"] = "祖冲之",
+    ["dianwei_jin"] = "典韦",
+    ["mozi_jin"] = "墨子",
+    ["suqin_jin"] = "苏秦",
+    ["xunzi_jin"] = "荀子",
+    ["yuchigong_jin"] = "尉迟恭",
+    ["yuwenhuaji_jin"] = "宇文化及",
+    ["zhaokuo_jin"] = "赵括",
+    ["zhouchu_jin"] = "周处",
+    ["zhuowenjun_jin"] = "卓文君",
+    ["zhuzhishan_jin"] = "祝枝山",
 }  
 return {extension}
