@@ -441,7 +441,7 @@ LuaLongnu = sgs.CreateTriggerSkill{
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
-        return true -- 锁定技强制触发  
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data) -- 锁定技强制触发  
     end,  
     on_effect = function(self, event, room, player, data)  
         local yin_mark = player:getMark("@yin")  
@@ -544,20 +544,18 @@ LuaJieying = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end  
           
-        if event == sgs.GeneralShown and data.toBool() == player:inHeadSkills(self:objectName()) then
+        if event == sgs.GeneralShown and player:hasShownSkill(self:objectName()) then
             return self:objectName()  
-        elseif event == sgs.EventPhaseEnd then  
-            if player:getPhase() == sgs.Player_Finish then  
-                return self:objectName()  
-            end  
+        elseif event == sgs.EventPhaseEnd and player:getPhase() == sgs.Player_Finish and player:hasShownSkill(self:objectName()) then  
+            return self:objectName()  
         end  
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
         if event == sgs.GeneralShown then  
-            return true -- 游戏开始强制触发  
+            return player:hasShownSkill(self:objectName()) -- 游戏开始强制触发  
         elseif event == sgs.EventPhaseEnd then  
-            return true
+            return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
         end  
         return false  
     end,  
@@ -584,7 +582,7 @@ LuaJieying = sgs.CreateTriggerSkill{
 LuaJieyingMaxCards = sgs.CreateMaxCardsSkill{  
     name = "#LuaJieying-maxcards",  
     extra_func = function(self, player)
-        if player:hasSkill("LuaJieying") and player:isChained() then  
+        if player:hasShownSkill("LuaJieying") and player:isChained() then  
             return 2  
         end  
         return 0  
@@ -639,14 +637,14 @@ LuaJunlue = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Compulsory,  
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end  
+        local damage = data:toDamage()  
+        room:addPlayerMark(player, "@junlue", damage.damage)          
         return self:objectName()
     end,  
     on_cost = function(self, event, room, player, data)  
-        return true -- 锁定技强制触发  
+        return false -- 锁定技强制触发  
     end,  
     on_effect = function(self, event, room, player, data)  
-        local damage = data:toDamage()  
-        room:addPlayerMark(player, "@junlue", damage.damage)  
         return false  
     end  
 }  
@@ -789,7 +787,7 @@ LuaKuangbao = sgs.CreateTriggerSkill{
         return ""
     end,  
     on_cost = function(self, event, room, player, data)  
-        return true -- 锁定技强制触发  
+        return false -- 锁定技强制触发  
     end,  
     on_effect = function(self, event, room, player, data)  
         --local damage = data:toDamage()  
@@ -1109,7 +1107,7 @@ shouma = sgs.CreateTriggerSkill{
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)
-        return true
+        return player:hasShownSkill(self:objectName())
         --[[
         if player:askForSkillInvoke(self:objectName(), data) then  
             room:broadcastSkillInvoke(self:objectName())  
