@@ -3270,7 +3270,7 @@ chishi = sgs.CreateTriggerSkill{
 				local move_datas = data:toList()
 				for _, move_data in sgs.qlist(move_datas) do
 					local move = move_data:toMoveOneTime()
-					if not (move.from and move.from:isAlive() and move.from:getPhase() == sgs.Player_Play and player:isFriendWith(move.from)) then return "" end
+					if not (move.from and move.from:isAlive() and move.from:getPhase() == sgs.Player_Play and player:willBeFriendWith(move.from)) then return "" end
 					if move.from:isKongcheng() then
 						return self:objectName()
 					end
@@ -3678,7 +3678,7 @@ qiaoshi = sgs.CreateTriggerSkill{
             return ""
         end
         owner = room:findPlayerBySkillName(self:objectName())
-        if player~=owner and player:getHandcardNum()==owner:getHandcardNum() and player:isFriendWith(owner) then  
+        if player~=owner and player:getHandcardNum()==owner:getHandcardNum() and owner:willBeFriendWith(player) then  
             return self:objectName(),owner:objectName()
         end  
         return ""  
@@ -3785,7 +3785,7 @@ pojun = sgs.CreateTriggerSkill{
         if player and player:isAlive() and player:hasSkill(self:objectName()) then  
             local damage = data:toDamage()  
             -- 检查是否是杀造成的伤害  
-            if damage.card and damage.card:isKindOf("Slash") and damage.to and damage.to:isAlive() and not player:isFriendWith(damage.to) then  
+            if damage.card and damage.card:isKindOf("Slash") and damage.to and damage.to:isAlive() and not player:willBeFriendWith(damage.to) then  
                 return self:objectName()  
             end  
         end  
@@ -5021,7 +5021,7 @@ cheji_card = sgs.CreateSkillCard{
         end  
           
         -- 处理闪的效果 - 视为使用杀  
-        if has_jink then                
+        if has_jink and target:isAlive() then                
             local slash_target = room:askForPlayerChosen(source, room:getOtherPlayers(target), "cheji", "@cheji-slash:" .. target:objectName(), true, true)  
             if slash_target then  
                 local slash = sgs.Sanguosha:cloneCard("slash")  
@@ -5037,7 +5037,9 @@ cheji_card = sgs.CreateSkillCard{
         -- 处理桃的效果 - 双方各摸2张牌  
         if has_peach then  
             source:drawCards(2, "cheji")  
-            target:drawCards(2, "cheji")  
+            if target:isAlive() then
+                target:drawCards(2, "cheji")  
+            end
         end  
     end  
 }  
@@ -5052,6 +5054,8 @@ cheji = sgs.CreateViewAsSkill{
         for _, c in ipairs(cards) do  
             card:addSubcard(c)  
         end  
+        card:setSkillName(self:objectName())
+        card:setShowSkill(self:objectName())
         return card  
     end,  
       
