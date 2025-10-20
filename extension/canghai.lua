@@ -2956,7 +2956,7 @@ wangyi = sgs.General(extension, "wangyi", "wei", 3, false)  -- 吴国，4血，�
 zhenlie = sgs.CreateTriggerSkill{  
     name = "zhenlie",  
     events = {sgs.TargetConfirming}, --sgs.CardEffected
-    frequency = sgs.Skill_Frequent, 
+    --frequency = sgs.Skill_Frequent, 
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
             return ""  
