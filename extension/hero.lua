@@ -2038,7 +2038,7 @@ shefu2 = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         local fanzeng_player = room:findPlayerBySkillName(self:objectName())  
-        if fanzeng_player and fanzeng_player:isAlive() and player:getPhase() == sgs.Player_Finish and not fanzeng_player:isFriendWith(player) then  
+        if fanzeng_player and fanzeng_player:isAlive() and player:getPhase() == sgs.Player_Finish and not fanzeng_player:willBeFriendWith(player) then  
             return self:objectName(), fanzeng_player:objectName()
         end  
         return ""  
@@ -2195,8 +2195,10 @@ lige = sgs.CreateTriggerSkill{
         if card_id ~= -1 then  
             -- 选择目标角色  
             local targets = sgs.SPlayerList()  
-            for _, p in sgs.qlist(room:getAlivePlayers()) and ask_who:isFriendWith(p) do  
-                targets:append(p)  
+            for _, p in sgs.qlist(room:getAlivePlayers()) do  
+                if ask_who:isFriendWith(p) then
+                    targets:append(p) 
+                end 
             end  
 
             local target = room:askForPlayerChosen(ask_who, targets, self:objectName(),   
@@ -3555,7 +3557,7 @@ zhubao = sgs.CreateTriggerSkill{
                 if damage_count >= 2 then  
                     -- 寻找拥有诛暴技能的角色  
                     local zhubao_player = room:findPlayerBySkillName("zhubao")  
-                    if zhubao_player and zhubao_player:isAlive() and not zhubao_player:isFriendWith(player) then  
+                    if zhubao_player and zhubao_player:isAlive() and not zhubao_player:willBeFriendWith(player) then  
                         return self:objectName(),zhubao_player:objectName()  
                     end  
                 end  
@@ -5354,7 +5356,7 @@ yangbing = sgs.CreateTriggerSkill{
         elseif event == sgs.EventPhaseEnd and player and player:isAlive() and player:getPhase() == sgs.Player_Finish then  
             -- 回合结束时，检查是否有角色拥有养兵技能  
             owner = room:findPlayerBySkillName(self:objectName())
-            if owner and owner:isAlive() and not player:hasFlag("yangbing_damage") and owner:isFriendWith(player) then  
+            if owner and owner:isAlive() and not player:hasFlag("yangbing_damage") and owner:willBeFriendWith(player) then  
                 return self:objectName(), owner:objectName()
             end  
         end  
@@ -5408,7 +5410,7 @@ zhensha = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)  
         local dying = data:toDying()  
         local lvzhi = room:findPlayerBySkillName(self:objectName())  
-        if lvzhi and lvzhi:isAlive() and dying.who:objectName() == player:objectName() and player:getHp() <= 0 and not lvzhi:isFriendWith(player) then  
+        if lvzhi and lvzhi:isAlive() and dying.who:objectName() == player:objectName() and player:getHp() <= 0 and not lvzhi:willBeFriendWith(player) then  
             return self:objectName(), lvzhi:objectName()
         end  
         return ""  
@@ -7049,7 +7051,7 @@ langqiang = sgs.CreateTriggerSkill{
         if event == sgs.EventPhaseStart then  
             if player:getPhase() == sgs.Player_Play then  
                 local invoker = room:findPlayerBySkillName(self:objectName())  
-                if invoker and invoker:isAlive() and not invoker:isNude() and invoker:isFriendWith(player) then  
+                if invoker and invoker:isAlive() and not invoker:isNude() and invoker:willBeFriendWith(player) then  
                     return self:objectName(), invoker:objectName()
                 end  
             end  
@@ -7631,7 +7633,7 @@ jianlie = sgs.CreateTriggerSkill{
         owner = room:findPlayerBySkillName(self:objectName())
         if player:getPhase() == sgs.Player_Finish then  
             for _, p in sgs.qlist(room:getAlivePlayers()) do  
-                if p:getHandcardNum()<2 then  
+                if p:getHandcardNum()<2 and owner:willBeFriendWith(p) then  
                     return self:objectName(), owner:objectName()
                 end  
             end  
@@ -8016,7 +8018,7 @@ beixi = sgs.CreateTriggerSkill{
         if use.from and use.from:isAlive() and use.from:getHandcardNum() <= 2 then  
             -- 寻找拥有背袭技能的角色  
             local beixi_player = room:findPlayerBySkillName(self:objectName())
-            if beixi_player and beixi_player:isAlive() and beixi_player:hasSkill(self:objectName()) and not beixi_player:isFriendWith(use.from) then
+            if beixi_player and beixi_player:isAlive() and beixi_player:hasSkill(self:objectName()) and not beixi_player:willBeFriendWith(use.from) then
                 if use.from:objectName()==beixi_player:objectName() then return "" end
                 return self:objectName(), beixi_player:objectName()
             end
@@ -8866,7 +8868,7 @@ luoyan = sgs.CreateTriggerSkill{
         end 
         local damage = data:toDamage()  
         local from = damage.from
-        if from and from:isAlive() and from:getWeapon() and not player:isFriendWith(from) then  
+        if from and from:isAlive() and from:getWeapon() and not player:willBeFriendWith(from) then  
             return self:objectName()  
         end
         return ""
