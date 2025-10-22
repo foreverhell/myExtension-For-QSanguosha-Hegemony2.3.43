@@ -814,7 +814,8 @@ jiushi = sgs.CreateTriggerSkill{
     end  
 }  
 
-caozhi:addSkill(luoying)
+--caozhi:addSkill(luoying)
+caozhi:addSkill("lualuoying")
 caozhi:addSkill(jiushi)
 sgs.LoadTranslationTable{
     ["caozhi"] = "曹植",
@@ -4438,12 +4439,12 @@ minghui = sgs.CreateTriggerSkill{
         if not xing_zhangchunhua or not xing_zhangchunhua:isAlive() or not xing_zhangchunhua:hasSkill(self:objectName()) then  
             return ""  
         end  
-        if xing_zhangchunhua:getMark("minghui_min") ~= 0 and xing_zhangchunhua:getMark("minghui_max") ~= 0 then return "" end
         if player:getPhase() == sgs.Player_Finish then  
             if player == xing_zhangchunhua then
                 room:setPlayerMark(player,"minghui_min",0)
                 room:setPlayerMark(player,"minghui_max",0)
             end
+            if xing_zhangchunhua:getMark("minghui_min") ~= 0 and xing_zhangchunhua:getMark("minghui_max") ~= 0 then return "" end
             local all_players = room:getAlivePlayers()  
             local min_handcard = 999  
             local max_handcard = 0  
