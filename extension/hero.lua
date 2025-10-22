@@ -1985,7 +1985,7 @@ sgs.LoadTranslationTable{
 }  
 
 -- 创建范增武将  
-fanzeng = sgs.General(extension, "fanzeng", "shu", 3) -- 群雄，3血  
+fanzeng = sgs.General(extension, "fanzeng", "wei", 3) -- 群雄，3血  
   
 -- 奇谋技能实现  
 qimou = sgs.CreateTriggerSkill{  
@@ -2060,12 +2060,14 @@ shefu2 = sgs.CreateTriggerSkill{
         room:moveCardTo(card, nil, sgs.Player_DrawPile, true)                 
 
         if card:getTypeId() == sgs.Card_TypeBasic then  
-            local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_SuitToBeDecided, -1)  
-            slash:setSkillName(self:objectName())  
-            if fanzeng_player:canSlash(player, slash, false) then  
-                room:useCard(sgs.CardUseStruct(slash, fanzeng_player, player))  
+            if fanzeng_player:isNude() or room:askForDiscard(fanzeng_player, self:objectName(), 1, 1, true, true) then
+                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_SuitToBeDecided, -1)  
+                slash:setSkillName(self:objectName())  
+                if fanzeng_player:canSlash(player, slash, false) then  
+                    room:useCard(sgs.CardUseStruct(slash, fanzeng_player, player))  
+                end
+                slash:deleteLater()
             end
-            slash:deleteLater()
         end  
         return false  
     end  
@@ -2086,7 +2088,7 @@ sgs.LoadTranslationTable{
     ["to_discard"] = "置于弃牌堆",  
       
     ["shefu2"] = "设伏",  
-    [":shefu2"] = "其他势力角色的结束阶段，你可以展示牌堆顶一张牌，若为基本牌，视为你对该角色使用一张杀。",  
+    [":shefu2"] = "其他势力角色的结束阶段，你可以展示牌堆顶一张牌，若为基本牌，你可以弃置1张牌（无牌则不弃），视为你对该角色使用一张杀。",  
 }  
 
 gaojianli = sgs.General(extension, "gaojianli", "shu", 3)  
@@ -2879,6 +2881,11 @@ sheri = sgs.CreateTriggerSkill{
             -- 如果有红桃牌，使用askForYiji分配  
             if not heart_cards:isEmpty() then  
                 room:setPlayerMark(player, "sheri_card1", heart_cards:at(0))
+                for _,card_id in sgs.qlist(heart_cards) do
+                    if room:getCardPlace(card_id) ~= sgs.Player_DiscardPile then
+                        heart_cards:removeOne(card_id)
+                    end
+                end
                 local dummy = sgs.DummyCard(heart_cards)  
                 player:obtainCard(dummy)
                 dummy:deleteLater()
@@ -2925,7 +2932,7 @@ extension:insertRelatedSkills("sheri", "#sheriAsk")
 sgs.LoadTranslationTable{
 ["houyi"] = "后羿",
 ["sheri"] = "射日",  
-[":sheri"] = "当你使用杀指定目标后，你可以令目标弃置所有红色手牌，并摸等量牌，然后你可以任意分配因此弃置的红桃牌",
+[":sheri"] = "当你使用杀指定目标后，你可以令目标弃置所有红色手牌，并摸等量牌，然后你可以任意分配因此弃置进入弃牌堆的红桃牌",
 }
 
 huamulan = sgs.General(extension, "huamulan", "wu", 3, false)  
@@ -4783,7 +4790,7 @@ lishimin = sgs.General(extension, "lishimin", "wu", 4)  --wu,jin
 kongju = sgs.CreateProhibitSkill{  --不能指定为目标，不是取消目标
     name = "kongju",  
     is_prohibited = function(self, from, to, card)  
-        if to:hasSkill(self:objectName()) and (card:isKindOf("Snatch") or card:isKindOf("dismantlement") or card:isKindOf("DelayedTrick")) then  
+        if to:hasShownSkill(self:objectName()) and (card:isKindOf("Snatch") or card:isKindOf("dismantlement") or card:isKindOf("DelayedTrick")) then  
             return true  
         end  
         return false  
@@ -4864,7 +4871,7 @@ lizicheng = sgs.General(extension, "lizicheng", "qun", 4)  -- 吴国，4血，�
 Lumang = sgs.CreateTriggerSkill{  
     name = "lumang",  
     events = {sgs.TargetConfirming}, --TargetConfirmed
-    frequency = sgs.Skill_Frequent,
+    --frequency = sgs.Skill_Frequent,
       
     can_trigger = function(self, event, room, player, data)   
         --TargetConfirmed是卡牌使用
@@ -7537,7 +7544,7 @@ qingmin = sgs.CreateTriggerSkill{
 qingmin = sgs.CreateProhibitSkill{  --不能指定为目标，不是取消目标
     name = "qingmin",  
     is_prohibited = function(self, from, to, card)  
-        if to:hasSkill(self:objectName()) and card:isKindOf("Snatch") then  
+        if to:hasShownSkill(self:objectName()) and card:isKindOf("Snatch") then  
             return true  
         end  
         return false  
@@ -10414,7 +10421,7 @@ fengyan = sgs.CreateTriggerSkill{
           
         local judge = data:toJudge() 
         owner = room:findPlayerBySkillName(self:objectName()) 
-        if judge.who:isMale() and judge.card:isBlack() then  
+        if judge.who:isMale() and judge.card:isBlack() and room:getCardPlace(judge.card:getId()) == sgs.Player_DiscardPile then  
             return self:objectName(), owner:objectName()
         end  
           
@@ -10431,7 +10438,9 @@ fengyan = sgs.CreateTriggerSkill{
       
     on_effect = function(self, event, room, player, data, ask_who)  
         local judge = data:toJudge()
-        room:obtainCard(ask_who,judge.card:getId())            
+        if room:getCardPlace(judge.card:getId()) == sgs.Player_DiscardPile then
+            room:obtainCard(ask_who,judge.card:getId())            
+        end
         return false  
     end  
 }  
@@ -10446,7 +10455,7 @@ sgs.LoadTranslationTable{
     ["xiuhua"] = "羞花",  
     [":xiuhua"] = "锁定技，当你的手牌数小于失去的体力时，你摸一张牌。",
     ["fengyan"] = "丰艳",  
-    [":fengyan"] = "男性角色判定结束后，若判定牌为黑色，你可以获得判定牌",
+    [":fengyan"] = "男性角色判定牌进入弃牌堆后，若判定牌为黑色，你可以获得判定牌",
 }  
 
 yuanshitianzun = sgs.General(extension, "yuanshitianzun", "wei", 3)  --wei,jin
@@ -11919,7 +11928,7 @@ sgs.LoadTranslationTable{
     ["~zhuyuanzhang"] = "国运，完了"  
 }  
 
-zhuzhishan = sgs.General(extension, "zhuzhishan", "qun", 3)  
+zhuzhishan = sgs.General(extension, "zhuzhishan", "wu", 3)  --wu, wei
 
 caoshu = sgs.CreateTriggerSkill{  
     name = "caoshu",  
@@ -11999,6 +12008,10 @@ linmo = sgs.CreateTriggerSkill{
         if card:isBlack() then  
             -- 获得该牌  
             room:obtainCard(ask_who, card_id, false)  
+        else
+            if not ask_who:isNude() then
+                room:askForDiscard(ask_who, self:objectName(), 1, 1, false, true)
+            end
         end  
         return false  
     end  
@@ -12014,7 +12027,7 @@ sgs.LoadTranslationTable{
     ["caoshu"] = "草书",  
     [":caoshu"] = "出牌阶段，你每使用或打出2张黑色手牌，你摸1张牌。",  
     ["linmo"] = "临摹",  
-    [":linmo"] = "其他角色出牌阶段开始时，你可以展示其1张手牌，若该牌为黑色，你获得之。",  
+    [":linmo"] = "其他角色出牌阶段开始时，你可以展示其1张手牌：若该牌为黑色，你获得之；若该牌为红色，你需要弃置1张牌（无牌则不弃）",  
 }
 
 zuchongzhi = sgs.General(extension, "zuchongzhi", "wei", 3)  --wei,jin
@@ -12186,12 +12199,12 @@ sgs.LoadTranslationTable{
 lvzhi:addCompanion("lvbuwei")
 change:addCompanion("houyi")
 direnjie:addCompanion("wuzetian")
+guiguzi:addCompanion("suqin")
 huoqubing:addCompanion("weizifu")
 --诸子百家
 kongzi:addCompanion("mozi")
 kongzi:addCompanion("xunzi")
 kongzi:addCompanion("zhuangzhou")
-lishimin:addCompanion("wuzetian")
 mozi:addCompanion("xunzi")
 mozi:addCompanion("zhuangzhou")
 xiangyu:addCompanion("yuji")
@@ -12222,6 +12235,7 @@ xuxiake:addCompanion("zhangsunhuanghou")
 --都联动
 daji:addCompanion("shangzhou")
 dufu:addCompanion("libai")
+fanzeng:addCompanion("xiangyu")
 gaojianli:addCompanion("jingke")
 liuche:addCompanion("huoqubing")
 liuche:addCompanion("weizifu")
