@@ -686,7 +686,7 @@ sgs.ai_skill_cardschosen.weimeng = function(self, who, flags, reason, min_num, m
     end
     return Table2IntList(card_ids)
   end
-  --return self:askForCardsChosen(who, flags, reason, self.player:getHp(), max_num, disable_list)
+  return self:askForCardsChosen(who, flags, reason, self.player:getHp(), max_num, disable_list)
 end
 
 sgs.ai_skill_exchange["weimeng_giveback"] = function(self,pattern,max_num,min_num,expand_pile)
