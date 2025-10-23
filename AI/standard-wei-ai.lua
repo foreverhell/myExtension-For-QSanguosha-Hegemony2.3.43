@@ -21,8 +21,15 @@
 
 --曹操
 sgs.ai_skill_invoke.jianxiong = function(self, data)
-	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1
+	--[[if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1
 	and not self.player:hasShownGeneral1() and self.player:inHeadSkills("jianxiong") and not self:isWeak() then--君主
+		return false
+	end]]
+	local x = self.room:getAllPlayers(true):length()
+	local weiPlayer = self.player:getPlayerNumWithSameKingdom("AI", "wei", 1)
+	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
+	self.player:getRole() ~= "careerist" and not self:isWeak() and self.player:inHeadSkills("jianxiong") and not 
+	(weiPlayer >= x / 2) and not self.player:hasShownGeneral1() then
 		return false
 	end
 	if not self:willShowForMasochism() then return false end
@@ -636,7 +643,7 @@ sgs.ai_skill_use["@@shensu1"] = function(self, prompt)
 	if dummy_use.card and not dummy_use.to:isEmpty() then
 		for _, enemy in sgs.qlist(dummy_use.to) do
 			if self:isEnemy(enemy) and sgs.getDefenseSlash(enemy, self) < 3 then
-				if  enemy:getHp() <= 1 and (not self.player:inMyAttackRange(enemy) or self:getCardsNum("Slash") == 0 or self.player:containsTrick("indulgence")) then
+				if enemy:getHp() <= 1 and (not self.player:inMyAttackRange(enemy) or self:getCardsNum("Slash") == 0 or self.player:containsTrick("indulgence")) then
 					return "@ShensuCard=.->" .. enemy:objectName()
 				end
 				if enemy:getHp() <= 2 and self.player:inMyAttackRange(enemy) and self:getCardsNum("Slash") > 0 then
@@ -1631,7 +1638,7 @@ sgs.ai_skill_use_func.QiangxiCard = function(QiangxiCard, use, self)--新技能�
 					break
 				end
 			end
-			if self:evaluateWeapon(weapon) > 8 then--值是否合适？
+			if self:evaluateWeapon(weapon) > 40 then--值是否合适？
 				need_weapon = true
 			end
 		end
@@ -1705,8 +1712,9 @@ sgs.ai_skill_use_func.QuhuCard = function(QHCard, use, self)
 				or (enemy_max_card and max_point > enemy_number and not allknown and (max_point > 10 + (enemy:hasShownSkill("congjian") and 1 or 0)))
 				or (not enemy_max_card and (max_point > 10 + (enemy:hasShownSkill("congjian") and 2 or 0))) then
 				for _, enemy2 in ipairs(self.enemies) do
-					if (enemy:objectName() ~= enemy2:objectName())
-						and enemy:distanceTo(enemy2) <= enemy:getAttackRange() then
+					if (enemy:objectName() ~= enemy2:objectName()) and enemy:distanceTo(enemy2) <= enemy:getAttackRange()
+					and not (enemy2:hasShownSkill("mingshi") and not enemy:hasShownAllGenerals()) then
+						if enemy:hasShownSkill("kuanggu") and enemy:distanceTo(enemy2) <= 1 then continue end
 						self.quhu_card = max_card:getEffectiveId()
 						use.card = QHCard
 						if use.to then use.to:append(enemy) end
@@ -1828,7 +1836,7 @@ sgs.ai_skill_playerchosen.fangzhu = function(self, targets)
 	local n = self.player:getLostHp()
 	for _, friend in ipairs(self.friends_noself) do
 		if not friend:faceUp() then
-				target = friend
+			target = friend
 			break
 		end
 	end
