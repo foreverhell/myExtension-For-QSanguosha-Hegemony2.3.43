@@ -1345,6 +1345,7 @@ end
 function SmartAI:useCardImperialOrder(card, use)
 	if not card:isAvailable(self.player) then return end
 	--赦令策略
+	if self.player:getKingdom() == "wei" then return end
 	if self.player:hasSkills("wuku|xiongyi|jianglve") or (self:isWeak() and self.player:hasSkill("huibian")) then
 		--势力召唤或自保
 		use.card = card
