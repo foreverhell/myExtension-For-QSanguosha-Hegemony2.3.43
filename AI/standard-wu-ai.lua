@@ -920,17 +920,18 @@ guose_skill.getTurnUseCard = function(self, inclusive)
 	self:sortByUseValue(cards, true)
 	local has_weapon, has_armor = false, false
 
-	for _,acard in ipairs(cards)  do
+	for _, acard in ipairs(cards) do
 		if acard:isKindOf("Weapon") and not (acard:getSuit() == sgs.Card_Diamond) then has_weapon=true end
 	end
 
-	for _,acard in ipairs(cards)  do
+	for _, acard in ipairs(cards) do
 		if acard:isKindOf("Armor") and not (acard:getSuit() == sgs.Card_Diamond) then has_armor=true end
 	end
 
-	for _,acard in ipairs(cards)  do
-		if (acard:getSuit() == sgs.Card_Diamond) and ((self:getUseValue(acard)<sgs.ai_use_value.Indulgence) or inclusive) then
-			local shouldUse=true
+	for _, acard in ipairs(cards) do
+		if acard:getSuit() == sgs.Card_Diamond and (self:getOverflow() > 0) then
+		--if (acard:getSuit() == sgs.Card_Diamond) and ((self:getUseValue(acard)<sgs.ai_use_value.Indulgence) or inclusive) then
+			local shouldUse = true
 
 			if acard:isKindOf("Armor") then
 				if not self.player:getArmor() then shouldUse = false
@@ -2152,6 +2153,8 @@ sgs.ai_skill_invoke.fenji = function(self, data)
 	if self:isFriend(target) then
 		if self:isWeak() and target:objectName() ~= self.player:objectName() then return false end
 		if target:hasShownSkill("kongcheng") and target:isKongcheng() and target:getHp() >= 2 then return false end
+		if target:hasShownSkill("jiebiyue") then return false end
+		if target:hasShownSkill("haoshi") and target:getMark("ThreatenEmperorExtraTurn") > 0 then return false end
 		return true
 	end
 	return false
@@ -2454,7 +2457,7 @@ sgs.ai_skill_use_func.DimengCard = function(card,use,self)
 		end
 	end
 	--缔盟队友
-	if #friends < 2 then return end
+	--[[if #friends < 2 then return end
 	
 	local to_dis = 1
 	if self:getOverflow() > 0 then
@@ -2481,7 +2484,7 @@ sgs.ai_skill_use_func.DimengCard = function(card,use,self)
 			end
 			return
 		end
-	end
+	end]]
 end
 
 sgs.ai_card_intention.DimengCard = function(self,card, from, to)
@@ -2560,7 +2563,7 @@ sgs.ai_skill_use_func.ZhijianCard = function(zjcard, use, self)
 	use.card = zhijian
 end
 
-sgs.ai_card_intention.ZhijianCard = -80
+--sgs.ai_card_intention.ZhijianCard = -80
 sgs.ai_use_priority.ZhijianCard = sgs.ai_use_priority.RendeCard + 0.1
 sgs.ai_cardneed.zhijian = sgs.ai_cardneed.equip
 
