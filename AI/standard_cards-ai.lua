@@ -599,6 +599,10 @@ function SmartAI:useCardSlash(card, use)
 	for _, enemy in ipairs(self.enemies) do
 		if not self:slashProhibit(card, enemy) and sgs.isGoodTarget(enemy, self.enemies, self, true) then
 			if not self:needDamagedEffects(enemy, self.player, true) then
+				if (enemy:hasShownSkill("niepan") and enemy:getMark("@nirvana") > 0) or enemy:hasShownSkills("buqu|bazhen") then
+					table.insert(forbidden, enemy)
+					continue
+				end
 				table.insert(targets, enemy)
 			else
 				table.insert(forbidden, enemy)
@@ -606,6 +610,7 @@ function SmartAI:useCardSlash(card, use)
 		end
 	end
 	if #targets == 0 and #forbidden > 0 then targets = forbidden end
+	self:sort(targets, "hp")
 	local canSlashTargets = {}
 
 	for _, target in ipairs(targets) do
@@ -613,6 +618,7 @@ function SmartAI:useCardSlash(card, use)
 		for _, friend in ipairs(self.friends_noself) do
 			if self:canLiuli(target, friend) and self:slashIsEffective(card, friend) and #targets > 1 and friend:getHp() < 3 then canliuli = true end
 		end
+		if canliuli then continue end
 		if (not use.current_targets or not table.contains(use.current_targets, target:objectName()))
 			and (self.player:canSlash(target, card, not no_distance, rangefix)
 				or (use.isDummy and self.predictedRange and self.player:distanceTo(target, rangefix) <= self.predictedRange))
@@ -759,7 +765,7 @@ sgs.ai_skill_use.slash = function(self, prompt)
 	if type(callback) == "function" then
 		local slash
 		local target
-		if self.player:hasFlag("slashTargetFixToOne")then
+		if self.player:hasFlag("slashTargetFixToOne") then
 			--sgs.ai_skill_cardask["@wushuang-slash-1"] = function(self, data, pattern, target)
 			--sgs.ai_skill_cardask["@tiaoxin-slash"] = function(self, data, pattern, target)
 			--sgs.ai_skill_cardask["collateral-slash"] = function(self, data, pattern, target2, target, prompt)
