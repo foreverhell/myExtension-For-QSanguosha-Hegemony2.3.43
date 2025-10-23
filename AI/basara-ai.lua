@@ -2022,7 +2022,7 @@ end
 
 sgs.ai_skill_use_func.HalfMaxHpCard= function(card, use, self)
 	--Global_room:writeToConsole("阴阳鱼摸牌判断开始")
-	if self.player:isKongcheng() and self:isWeak() and not self:needKongcheng() and self.player:getMark("@firstshow") < 1 then
+	if self.player:isKongcheng() and not self:needKongcheng() and self.player:getMark("@firstshow") < 1 then
 		use.card = card
 		return
 	end
@@ -2030,10 +2030,19 @@ sgs.ai_skill_use_func.HalfMaxHpCard= function(card, use, self)
 		use.card = card
 		return
 	end
+	----------
+	if self.player:getHandcardNum() < self.player:getMaxCards() then
+		use.card = card
+		return
+	end
+	if self.player:hasSkills("jizhi|kuangcai|paoxiao|zhiheng|huoji|zaoyun") and #self.enemies > 0 then
+		use.card = card
+		return
+	end
 	--暂不考虑找进攻牌
 end
 
-sgs.ai_use_priority.HalfMaxHpCard = 0
+sgs.ai_use_priority.HalfMaxHpCard = 8.2
 
 --先驱标记
 local firstshow_skill = {}
@@ -2044,7 +2053,7 @@ firstshow_skill.getTurnUseCard = function(self, inclusive)
 	return sgs.Card_Parse("@FirstShowCard=.&")
 end
 
-sgs.ai_skill_use_func.FirstShowCard= function(card, use, self)
+sgs.ai_skill_use_func.FirstShowCard = function(card, use, self)
 	sgs.ai_use_priority.FirstShowCard = 0.1--挟天子之前
 	--Global_room:writeToConsole("先驱判断开始")
 	local target
@@ -2082,7 +2091,7 @@ sgs.ai_skill_use_func.FirstShowCard= function(card, use, self)
 		end
 	end
 
-	if (self.player:getHandcardNum() < 2 and self:slashIsAvailable())
+	if (self.player:getHandcardNum() < 2 and self:slashIsAvailable()) or (self.player:getHandcardNum() == 0)
 	or (math.min(self.player:getMaxCards(), 4) - self.player:getHandcardNum() > 2) then
 		for _,c in sgs.qlist(self.player:getHandcards()) do
 			local dummy_use = { isDummy = true }
