@@ -447,7 +447,8 @@ end
 sgs.ai_skill_invoke.zhiyu = function(self, data)
 	if not self:willShowForMasochism() then return false end
 	local yuanshu = sgs.findPlayerByShownSkillName("weidi")
-	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() ~= sgs.Player_NotActive then return false end
+	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not yuanshu:hasUsed("WeidiCard")
+	then return false end
 	--[[local damage = data:toDamage()
 	local from = damage.from
 	local cards = self.player:getHandcards()
@@ -1740,9 +1741,6 @@ end
 ]]--
 sgs.ai_skill_invoke.diaodu = function(self, data)
 	--if not self:willShowForAttack() then return false end
-	return true
-end
-sgs.ai_skill_invoke.jiediaoduDrawCard = function(self, data)
 	return true
 end
 
