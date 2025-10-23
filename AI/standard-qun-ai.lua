@@ -747,6 +747,7 @@ luanwu_skill.getTurnUseCard = function(self)
 	end
 
 	if good > bad then return sgs.Card_Parse("@LuanwuCard=.&luanwu") end
+	if self.player:getHp() <= 2 then return sgs.Card_Parse("@LuanwuCard=.&luanwu") end
 end
 
 sgs.ai_skill_use_func.LuanwuCard = function(card, use, self)
@@ -923,7 +924,7 @@ sgs.ai_skill_invoke.weimu = function(self, data)
 	if use.card:isKindOf("ThreatenEmperor") then return false end
 	
 	if self:isWeak() then return true end
-	if not self:willShowForDefence() then return false end
+	--if not self:willShowForDefence() then return false end
 	return true
 end
 
@@ -966,7 +967,7 @@ sgs.ai_skill_invoke.jianchu = function(self, data)
 	return not self:isFriend(target) and not self:doNotDiscard(target, "he")
 end
 
---[[sgs.ai_skill_cardchosen.jianchu = function(self, who, flags, method, disable_list)
+sgs.ai_skill_cardchosen.jianchu = function(self, who, flags, method, disable_list)
 	--if flags:match("e") then
 	if who:hasSkills(sgs.lose_equip_skill) then
 		return self:askForCardChosen(who, "h", "jianchu_dismantlement", method, disable_list)
@@ -984,15 +985,10 @@ end
 		if who:getWeapon() then return who:getWeapon():getEffectiveId() end
 		if who:getOffensiveHorse() then return who:getOffensiveHorse():getEffectiveId() end
 		return self:askForCardChosen(who, "e", "jianchu_dismantlement", method, disable_list)
-
-		--[[local id = self:askForCardChosen(who, "e", "jianchu_dismantlement", method, disable_list)
-		if id then
-			return id
-		end
 	else
 		return self:askForCardChosen(who, flags, "jianchu_dismantlement", method, disable_list)
 	end
-end]]
+end
 
 function sgs.ai_cardneed.jianchu(to, card, self)
 	return card:isKindOf("Slash") or card:isKindOf("Analeptic")
@@ -1000,8 +996,15 @@ end
 
 --张角
 sgs.ai_skill_cardask["@guidao-card"]=function(self, data)
-	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1
-	and not self.player:hasShownGeneral1() and self.player:inHeadSkills("guidao") and not self:isWeak() then--君主
+	local x = self.room:getAllPlayers(true):length()
+	local qunPlayer = self.player:getPlayerNumWithSameKingdom("AI", "qun", 1)
+	--[[if (sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1
+	and not self.player:hasShownGeneral1() and self.player:inHeadSkills("leiji") and not self:isWeak()) then--君主
+		return "."
+	end]]
+	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
+	self.player:getRole() ~= "careerist" and not self.player:hasShownOneGeneral() and not self:isWeak() and not 
+	(qunPlayer >= x / 2) and not self.player:hasShownGeneral1() then
 		return "."
 	end
 	if not (self:willShowForAttack() or self:willShowForDefence() ) then return "." end
@@ -1171,8 +1174,15 @@ function SmartAI:findLeijiTarget(player, leiji_value, slasher)
 end
 
 sgs.ai_skill_playerchosen.leiji = function(self, targets)
-	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1
-	and not self.player:hasShownGeneral1() and self.player:inHeadSkills("leiji") and not self:isWeak() then--君主
+	local x = self.room:getAllPlayers(true):length()
+	local qunPlayer = self.player:getPlayerNumWithSameKingdom("AI", "qun", 1)
+	--[[if (sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1
+	and not self.player:hasShownGeneral1() and self.player:inHeadSkills("leiji") and not self:isWeak()) then--君主
+		return nil
+	end]]
+	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
+	self.player:getRole() ~= "careerist" and self.player:inHeadSkills("leiji") and not self:isWeak() and not 
+	(qunPlayer >= x / 2) and not self.player:hasShownGeneral1() then
 		return nil
 	end
 	self:updatePlayers()
