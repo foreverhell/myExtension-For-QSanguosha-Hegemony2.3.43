@@ -297,7 +297,7 @@ function SmartAI:useCardSupplyShortage(card, use)
 		if self:objectiveLevel(enemy) < 3 then value = value - 10 end
 		if not enemy:faceUp() then value = value - 10 end
 		if enemy:hasShownSkills("shensu") then value = value - enemy:getHandcardNum() end
-		if enemy:hasShownSkills("guanxing|"..sgs.wizard_skill) then value = value - 5 end
+		if enemy:hasShownSkills("jieguanxing|"..sgs.wizard_skill) then value = value - 5 end
 		if not sgs.isGoodTarget(enemy, self.enemies, self) then value = value - 1 end
 		if self:needKongcheng(enemy) then value = value - 1 end
 		return value
@@ -376,7 +376,7 @@ function SmartAI:isGoodChainTarget_(damageStruct)
 	local card = damageStruct.card
 
 	if card and card:isKindOf("Slash") then
-		if from:hasSkill("yinbing") then return end
+		if from:hasSkills("yinbing|jieyinbing") then return end
 		nature = sgs.Slash_Natures[card:getClassName()]
 		damage = self:hasHeavySlashDamage(from, card, to, true)
 	end
