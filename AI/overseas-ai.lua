@@ -1618,7 +1618,9 @@ end
 
 sgs.ai_skill_invoke.shangshi = function(self, data)
 	local yuanshu = sgs.findPlayerByShownSkillName("weidi")
-	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then return false end
+	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not yuanshu:hasUsed("WeidiCard") then 
+		return false 
+	end
 	return true
 end
 
@@ -1947,11 +1949,13 @@ sgs.ai_skill_exchange["yuancong_give"] = function(self,pattern,max_num,min_num,e
 end
 
 sgs.ai_skill_use["@@yuancong_usecard"] = function(self, prompt, method)
-    local cards = self.player:getCards("h")
+    --local cards = self.player:getCards("h")
+	local cards = {}
 	for _, id in sgs.qlist(self.player:getHandPile()) do
-		cards:prepend(sgs.Sanguosha:getCard(id))
+		--cards:prepend(sgs.Sanguosha:getCard(id))
+		table.insert(cards, sgs.Sanguosha:getCard(id))
 	end
-	cards = sgs.QList2Table(cards)
+	--cards = sgs.QList2Table(cards)
 	self:sortByUseValue(cards)
 
     for _, card in ipairs(cards) do
@@ -2777,8 +2781,8 @@ sgs.ai_skill_invoke.qianxue = function(self, data)
 	if not self:willShowForAttack() and not self:willShowForDefence() then
 		return false
 	end
-	--return true
-	return false
+	return true
+	--return false
 end
 
 sgs.ai_skill_cardask["@qianxue-select"] = function(self, data, pattern, target, target2, arg)
