@@ -9177,7 +9177,7 @@ beide = sgs.CreateTriggerSkill{
   
  
 wenjiang:addSkill(beide)  
-wenjiang:addSkill("guanxing")
+wenjiang:addSkill("jieguanxing")
 -- 翻译表  
 sgs.LoadTranslationTable{  
     ["wenjiang"] = "文姜",
