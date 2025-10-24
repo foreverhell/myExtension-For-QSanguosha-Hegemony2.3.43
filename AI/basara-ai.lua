@@ -2031,7 +2031,7 @@ sgs.ai_skill_use_func.HalfMaxHpCard= function(card, use, self)
 		return
 	end
 	----------
-	if self.player:getHandcardNum() < self.player:getMaxCards() then
+	if self.player:getHandcardNum() < self.player:getMaxCards() and self.player:getMark("@firstshow") < 1 then
 		use.card = card
 		return
 	end
