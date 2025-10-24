@@ -1352,6 +1352,7 @@ function SmartAI:useCardImperialOrder(card, use)
 		--野心家降嘲讽
 		use.card = card
 	else
+		if self.player:getKingdom() == "wei" or self.player:hasSkill("jiejianglve") then return end
 		local gameProcess = sgs.gameProcess()
 		local self_kingdom = self.player:getKingdom()
 		--大国大优势不开

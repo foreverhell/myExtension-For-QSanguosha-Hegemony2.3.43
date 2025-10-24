@@ -162,14 +162,14 @@ function SetInitialTables()
 							"paiyi|suzhi|shilu|huaiyi|chenglve|congcha|jinfa|lixia|"..
 							"zhukou|jinghe|guowu|shenwei|wanggui|boyan|kuangcai|"..
 							"miewu|guishu|sidi|danlao|wanglie|zhuidu|jiediaodu|jiejinghe"
-	sgs.masochism_skill = "yiji|fankui|jieming|ganglie|fangzhu|jianxiong|qianhuan|zhiyu|jihun|fudi|" ..
+	sgs.masochism_skill = "yiji|fankui|jieming|ganglie|fangzhu|jianxiong|qianhuan|zhiyu|jihun|fudi|huashen|" ..
 						  "bushi|shicai|quanji|zhaoxin|fankui_simazhao|wanggui|sidi|shangshi|benyu|jiehengjiang"
 	sgs.defense_skill = "qingguo|longdan|kongcheng|niepan|bazhen|kanpo|xiangle|tianxiang|liuli|qianxun|leiji|duanchang|beige|weimu|" ..
-						"tuntian|shoucheng|yicheng|qianhuan|jizhao|wanwei|enyuan|buyi|keshou|qiuan|biluan|jiancai|aocai|" ..
+						"tuntian|shoucheng|yicheng|qianhuan|jizhao|wanwei|enyuan|buyi|keshou|qiuan|biluan|jiancai|aocai|jieyicheng" ..
 						"xibing|zhente|qiao|shejian|yusui|deshao|yuanyu|mingzhe|jilei|shigong|dingke|shefu|taidan"
 	sgs.usefull_skill = "tiandu|qiaobian|xingshang|xiaoguo|wusheng|guanxing|qicai|jizhi|kuanggu|lianhuan|huoshou|juxiang|shushen|zhiheng|keji|" ..
 						"duoshi|xiaoji|hongyan|haoshi|guzheng|zhijian|shuangxiong|guidao|guicai|xiongyi|mashu|lirang|yizhi|shengxi|" ..
-						"xunxun|wangxi|yingyang|hunshang|biyue"
+						"xunxun|wangxi|yingyang|hunshang|biyue|diancai|"
 	sgs.attack_skill = "paoxiao|duanliang|quhu|rende|tieqi|liegong|huoji|lieren|qixi|kurou|fanjian|guose|tianyi|dimeng|duanbing|fenxun|wushuang|" ..
 						"lijian|luanji|kuangfu|huoshui|qingcheng|tiaoxin|shangyi|jiang|chuanxin"
 	sgs.drawcard_skill = "yingzi_sunce|yingzi_zhouyu|haoshi|yingzi_flamemap|haoshi_flamemap|shelie|jieyue|congcha|zisui"
@@ -1910,6 +1910,10 @@ function SmartAI:getDynamicUsePriority(card)
 			for _, p in ipairs(self.friends) do
 				if p:hasShownSkill("yongjue") and self.player:isFriendWith(p) then return 9.5 end
 			end
+			------
+			if self.player:hasFlag("luamibeiNoCommand") then
+				if card:getTag("luamibeiRecord"):toInt() == 1 then return sgs.ai_use_priority.Slash + 0.1 end
+			end
 		end
 	elseif card:isKindOf("AmazingGrace") then
 		local zhugeliang = sgs.findPlayerByShownSkillName("kongcheng")
@@ -2220,6 +2224,8 @@ function SmartAI:isFriend(other, another)
 	local level = self:objectiveLevel(other)
 	if level < 0 then return true
 	elseif level == 0 then return nil end
+	-----不如简单按势力人数判断
+
 	return false
 end
 
@@ -3503,7 +3509,7 @@ function SmartAI:askForNullification(trick, from, to, positive)
 				return null_card
 			end
 		elseif trick:isKindOf("SupplyShortage") then
-			if self:isFriend(to) and not to:isSkipped(sgs.Player_Draw) then
+			if not self:isFriend(to) and not to:isSkipped(sgs.Player_Draw) then
 				if to:hasShownSkills("jieguanxing|jieyizhi") then return nil end
 				return null_card
 			end
@@ -3620,8 +3626,12 @@ function SmartAI:askForCardChosen(who, flags, reason, method, disable_list)
 		end
 
 		if flags:match("e") then
-			if self:needToThrowArmor(who) and canOperate(who:getArmor():getEffectiveId()) then return who:getArmor():getEffectiveId() end
-			if who:getArmor() and self:evaluateArmor(who:getArmor(), who) < -5 	and canOperate(who:getArmor():getEffectiveId()) then return who:getArmor():getEffectiveId() end
+			if self:needToThrowArmor(who) and canOperate(who:getArmor():getEffectiveId()) then 
+				return who:getArmor():getEffectiveId() 
+			end
+			if who:getArmor() and self:evaluateArmor(who:getArmor(), who) < -5 	and canOperate(who:getArmor():getEffectiveId()) then 
+				return who:getArmor():getEffectiveId() 
+			end
 			if who:hasShownSkills(sgs.lose_equip_skill) and self:isWeak(who) then
 				if who:getWeapon() and canOperate(who:getWeapon():getEffectiveId()) then
 					return who:getWeapon():getEffectiveId()
@@ -3656,7 +3666,7 @@ function SmartAI:askForCardChosen(who, flags, reason, method, disable_list)
 				end
 			end
 			if hasweapon and who:getWeapon() then table.insert(disable_list, who:getWeapon():getEffectiveId()) end
-			if hasarmor and who:getArmor() then table.insert(disable_list, who:getArmor():getEffectiveId()) end
+			if hasarmor and who:getArmor():objectName() ~= "PeaceSpell" then table.insert(disable_list, who:getArmor():getEffectiveId()) end
 			if hasoffhorse and who:getOffensiveHorse() then table.insert(disable_list, who:getOffensiveHorse():getEffectiveId()) end
 			if hasdefhorse and who:getDefensiveHorse() then table.insert(disable_list, who:getDefensiveHorse():getEffectiveId()) end
 			if #disable_list >= who:getEquips():length() + who:getHandcardNum() then
@@ -3665,30 +3675,32 @@ function SmartAI:askForCardChosen(who, flags, reason, method, disable_list)
 		end
 
 		local dangerous = self:getDangerousCard(who)
-		if flags:match("e") and dangerous and canOperate(dangerous) then return dangerous end
-		if flags:match("e") and who:getTreasure() and (who:getPile("wooden_ox"):length() > 1 or who:hasTreasure("JadeSeal")) and canOperate(who:getTreasure():getId()) then
-			return who:getTreasure():getId()
-		end
-		if flags:match("e") and who:getArmor() and who:getArmor():isKindOf("EightDiagram") and not self:needToThrowArmor(who) and canOperate(who:getArmor():getEffectiveId()) then
-			return who:getArmor():getId()
-		end
-		if flags:match("e") and who:hasShownSkills("jijiu|beige|weimu|qingcheng") and not self:doNotDiscard(who, "e", false, 1, reason) then
-			if who:getDefensiveHorse() and canOperate(who:getDefensiveHorse():getEffectiveId()) then
-				return who:getDefensiveHorse():getEffectiveId()
+		if not who:hasShownSkills(sgs.lose_equip_skill) then
+			if flags:match("e") and dangerous and canOperate(dangerous) then return dangerous end
+			if flags:match("e") and who:getTreasure() and (who:getPile("wooden_ox"):length() > 1 or who:hasTreasure("JadeSeal")) and canOperate(who:getTreasure():getId()) then
+				return who:getTreasure():getId()
 			end
-			if who:getArmor() and canOperate(who:getArmor():getEffectiveId()) then
-				return who:getArmor():getEffectiveId()
+			if flags:match("e") and who:getArmor() and who:getArmor():isKindOf("EightDiagram") and not self:needToThrowArmor(who) and canOperate(who:getArmor():getEffectiveId()) then
+				return who:getArmor():getId()
 			end
-			if who:getOffensiveHorse() and (not who:hasShownSkill("jijiu") or who:getOffensiveHorse():isRed()) and canOperate(who:getOffensiveHorse():getEffectiveId()) then
-				return who:getOffensiveHorse():getEffectiveId()
+			if flags:match("e") and who:hasShownSkills("jijiu|beige|weimu|qingcheng") and not self:doNotDiscard(who, "e", false, 1, reason) then
+				if who:getDefensiveHorse() and canOperate(who:getDefensiveHorse():getEffectiveId()) then
+					return who:getDefensiveHorse():getEffectiveId()
+				end
+				if who:getArmor() and canOperate(who:getArmor():getEffectiveId()) and not (who:getArmor():isKindOf("PeaceSpell") and who:getHp() == 1) then
+					return who:getArmor():getEffectiveId()
+				end
+				if who:getOffensiveHorse() and (not who:hasShownSkill("jijiu") or who:getOffensiveHorse():isRed()) and canOperate(who:getOffensiveHorse():getEffectiveId()) then
+					return who:getOffensiveHorse():getEffectiveId()
+				end
+				if who:getWeapon() and (not who:hasShownSkill("jijiu") or who:getWeapon():isRed()) and canOperate(who:getWeapon():getEffectiveId()) then
+					return who:getWeapon():getEffectiveId()
+				end
 			end
-			if who:getWeapon() and (not who:hasShownSkill("jijiu") or who:getWeapon():isRed()) and canOperate(who:getWeapon():getEffectiveId()) then
-				return who:getWeapon():getEffectiveId()
+			if flags:match("e") then
+				local valuable = self:getValuableCard(who)
+				if valuable and canOperate(valuable) then return valuable end
 			end
-		end
-		if flags:match("e") then
-			local valuable = self:getValuableCard(who)
-			if valuable and canOperate(valuable) then return valuable end
 		end
 		if flags:match("h") then
 			if who:hasShownSkills("jijiu|qiaobian|jieyin|beige")
@@ -3736,7 +3748,8 @@ function SmartAI:askForCardChosen(who, flags, reason, method, disable_list)
 			if who:getTreasure() and canOperate(who:getTreasure():getEffectiveId()) then
 				return who:getTreasure():getEffectiveId()
 			end
-			if who:getArmor() and not self:needToThrowArmor(who) and canOperate(who:getArmor():getEffectiveId()) then
+			if who:getArmor() and not self:needToThrowArmor(who) and canOperate(who:getArmor():getEffectiveId())
+			and not (who:getArmor():isKindOf("PeaceSpell") and who:getHp() == 1) then
 				return who:getArmor():getEffectiveId()
 			end
 			if who:getDefensiveHorse() and canOperate(who:getDefensiveHorse():getEffectiveId()) then
@@ -3789,7 +3802,7 @@ function SmartAI:askForCardsChosen(targets, flags, reason, min_num, max_num, dis
 	--S_REASON_GOTCARD,S_REASON_GIVE
 	if reason:match("snatch") then method = sgs.Card_MethodGet
 	elseif reason:match("dismantlement") then method = sgs.Card_MethodDiscard end
-	Global_room:writeToConsole("askForCardsChosen:targets:"..type(targets))
+	Global_room:writeToConsole("askForCardsChosen:targets:"..type(targets) .. " for " .. reason)
 	if type(cardchosen) == "function" then
 		if type(targets) == "SPlayerList" and targets:length() == 1 then
 			if min_num == 1 and max_num == 1 then--除疠,聚宝,鞬出
@@ -3800,7 +3813,7 @@ function SmartAI:askForCardsChosen(targets, flags, reason, min_num, max_num, dis
 			card = cardchosen(self, targets, flags, method, disable_list)
 		----------------
 		end
-		Global_room:writeToConsole("askForCardsChosen:card:"..type(card))
+		Global_room:writeToConsole("askForCardsChosen:card:"..type(card) .. " for " .. reason)
 		if type(card) == "table" then return card
 		elseif type(card) == "number" then 
 			if card ~= -1 then return {card} end--鞬出等
@@ -4556,6 +4569,7 @@ function SmartAI:askForPlayersChosen(targets, reason, max_num, min_num)
 	local returns = {}
 	if type(playerchosen) == "function" then
 		local result = playerchosen(self, targets, max_num, min_num)
+		Global_room:writeToConsole("result类型:" ..type(result) .."//" .. reason)
 		if type(result) == "ServerPlayer" then
 			return {result}
 		elseif type(result) == "ClientPlayer" then
@@ -5999,7 +6013,7 @@ function SmartAI:aoeIsEffective(card, to, source)
 	if to:hasArmorEffect("Vine") then return false end
 	if to:isLocked(card) then return false end
 	if to:isRemoved() then return false end
-	if card:isKindOf("SavageAssault") and to:hasShownSkills("huoshou|juxiang")  then
+	if card:isKindOf("SavageAssault") and to:hasShownSkills("huoshou|juxiang") then
 		return false
 	end
 	if to:hasShownSkill("weimu") and card:isBlack() then return false end
@@ -6207,6 +6221,11 @@ function SmartAI:getAoeValue(card)
 					value = value + ((card:isVirtualCard() and card:subcardsLength() * 10) or 10)
 				end
 
+				---------
+				if self.player:getKingdom() == "wei" and not punish then
+					value = 500
+				end
+
 			else
 				value = 0
 				if to:hasShownSkill("juxiang") and not card:isVirtualCard() then value = value + 10 end
@@ -6293,6 +6312,11 @@ function SmartAI:getAoeValue(card)
 					value = value + ((card:isVirtualCard() and card:subcardsLength() * 10) or 10)
 				end
 
+				----------
+				if self.player:getKingdom() == "wei" and not punish then
+					value = 500
+				end
+
 			else
 				value = 0
 				if to:hasShownSkill("juxiang") and not card:isVirtualCard() then value = value + 10 end
@@ -6367,6 +6391,10 @@ function SmartAI:getAoeValue(card)
 		end
 	end
 	--]]
+	----------
+	if self.player:getKingdom() == "wei" and not punish then
+		value = 500
+	end
 	return good - bad
 end
 
@@ -6646,7 +6674,7 @@ function SmartAI:useEquipCard(card, use)
 			end
 		end
 	end
-	local lvfan = sgs.findPlayerByShownSkillName("diaodu")--有吕范则类似枭姬使用武器是否合适？可能得调整优先度。如何先使用装备区的技能卡
+	local lvfan = sgs.findPlayerByShownSkillName("jiediaodu")--有吕范则类似枭姬使用武器是否合适？可能得调整优先度。如何先使用装备区的技能卡
 	if lvfan and self.player:isFriendWith(lvfan) then
 		use_lose_equip_effect = true
 	end
@@ -6827,6 +6855,7 @@ function SmartAI:useEquipCard(card, use)
 				if not friend:getArmor() then return end
 			end
 		end
+		if self.player:hasSkills("bazhen|jgyizhong|taidan") then return end
 		if self:evaluateArmor(card) > self:evaluateArmor() or (isenemy_zzzh and self:getOverflow() > 1) then use.card = card end
 		return
 	elseif card:isKindOf("OffensiveHorse") then

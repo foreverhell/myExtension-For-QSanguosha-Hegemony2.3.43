@@ -192,10 +192,17 @@ local function GuanXing(self, cards)
 	local luoshen_flag = false
 	local next_judge = {}
 	local next_player
-	for _, p in sgs.qlist(Global_room:getOtherPlayers(self.player)) do
+	local room = self.player:getRoom()
+	local current = room:getCurrent()
+	--[[for _, p in sgs.qlist(Global_room:getOtherPlayers(self.player)) do
 		if p:faceUp() then next_player = p break end
 	end
-	next_player = next_player or self.player:faceUp() and self.player or self.player:getNextAlive()
+	next_player = next_player or self.player:faceUp() and self.player or self.player:getNextAlive()]]
+	for _, p in sgs.qlist(Global_room:getOtherPlayers(current)) do
+		if p:faceUp() then next_player = p break end
+	end
+	next_player = next_player or current:faceUp() and current or current:getNextAlive()
+
 	judge = sgs.QList2Table(next_player:getJudgingArea())
 	judge = sgs.reverse(judge)
 	if has_lightning and not next_player:containsTrick("lightning") then table.insert(judge, 1, has_lightning) end

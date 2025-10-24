@@ -98,19 +98,31 @@ sgs.ai_skill_use_func.RendeCard = function(rdcard, use, self)
 	
 	local friends_tables = {}
 	local RendeCard = sgs.Card_Parse("@RendeCard=.&rende")
-	--[[for _, p in ipairs(self.friends_noself) do
-		if RendeCard:targetFilter(sgs.PlayerList(), p, self.player) then
-			table.insert(friends_tables, p)
-		end
-	end]]
+
 	local friendsByAction = sgs.SPlayerList()
 	local room = self.player:getRoom()
+
+	local hasAnjiang = false
+	for _, p in sgs.qlist(room:getAlivePlayers()) do
+		if not p:hasShownOneGeneral() then
+			hasAnjiang = true
+			break
+		end
+	end
+	
 	friendsByAction = room:getAlivePlayers()
 	room:sortByActionOrder(friendsByAction)
 	for _, p in sgs.qlist(friendsByAction) do
 		if p:objectName() ~= self.player:objectName() and self.player:isFriendWith(p) and 
 		RendeCard:targetFilter(sgs.PlayerList(), p, self.player) then
 			table.insert(friends_tables, p)
+		end
+	end
+	if #friends_tables <= 0 and not hasAnjiang then
+		for _, p in ipairs(self.friends_noself) do
+			if RendeCard:targetFilter(sgs.PlayerList(), p, self.player) then
+				table.insert(friends_tables, p)
+			end
 		end
 	end
 	
@@ -122,8 +134,7 @@ sgs.ai_skill_use_func.RendeCard = function(rdcard, use, self)
 		
 		if #self.friends_noself > 0 and not friend then
 			if self.player:hasSkill("kongcheng") or self:needKongcheng() then
-				local can_recover = (self.player:isWounded() and giveNum < 2 
-					and self.player:getHandcardNum() + giveNum >= 2)
+				local can_recover = (self.player:isWounded() and giveNum < 2 and self.player:getHandcardNum() + giveNum >= 2)
 				local need_save = (self.player:isWounded() and self.player:getHp() <= 2 and self:getOverflow() <= 0)
 				if can_recover or not need_save then
 					if self.player:getHandcardNum() < 3 then
@@ -154,7 +165,8 @@ sgs.ai_skill_use_func.RendeCard = function(rdcard, use, self)
 					elseif t1:getHp() == 1 or sgs.card_lack[t1:objectName()]["Jink"] == 1
 							or t1:isCardLimited(sgs.cloneCard("jink"), sgs.Card_MethodResponse) then continue
 					end
-				elseif (card:isKindOf("Snatch") or card:isKindOf("Dismantlement")) and self:getEnemyNumBySeat(self.player, friend) > 0 then
+				elseif (card:isKindOf("Snatch") or card:isKindOf("Dismantlement")) and self:getEnemyNumBySeat(self.player, friend) > 0 and not 
+				self.player:hasSkill("jizhi") then
 					local hasDelayedTrick
 					for _, p in sgs.qlist(dummy_use.to) do
 						if self:isFriend(p) and (self:willSkipDrawPhase(p) or self:willSkipPlayPhase(p)) then hasDelayedTrick = true break end
@@ -179,7 +191,9 @@ sgs.ai_skill_use_func.RendeCard = function(rdcard, use, self)
 			local give_ids = {}
 			for _, card in sgs.qlist(self.player:getHandcards()) do
 				if rende_gives[card:getId()] and rende_gives[card:getId()] == p:objectName() then
-					table.insert(give_ids, card:getId())
+					if not (card:isKindOf("Jink") and self:isWeak(p)) then
+						table.insert(give_ids, card:getId())
+					end
 				end
 			end
 			if #give_ids > 0 then
@@ -190,9 +204,14 @@ sgs.ai_skill_use_func.RendeCard = function(rdcard, use, self)
 	elseif #friends_tables == 1 then--只有最后一名可仁德的队友时
 		local give_ids = {}
 		local keep_cards = {}
+		local hasFriend = false
+		if self.player:isFriendWith(friends_tables[1]) then hasFriend = true end
 		for _, card in sgs.qlist(self.player:getHandcards()) do
 			if rende_gives[card:getId()] and rende_gives[card:getId()] == friends_tables[1]:objectName() then
-				table.insert(give_ids, card:getId())
+				if not (card:isKindOf("Jink") and self:isWeak(friends_tables[1])) then
+					table.insert(give_ids, card:getId())
+				end
+				if not hasFriend and #give_ids >= 2 then break end
 			else
 				table.insert(keep_cards, card)
 			end
@@ -220,7 +239,7 @@ end
 sgs.dynamic_value.benefit.RendeCard = true
 
 --无效,虽然源码确实是@@rende_basic,感觉打包的版本就不对(国战2.3.40版本,主程序日期2023.4.27 22:44)
---桃可以
+--有效了,2025-10
 sgs.ai_skill_use["@@rende_basic"] = function(self, prompt, method)
 
 	Global_room:writeToConsole("仁德使用基本牌")
@@ -1345,6 +1364,7 @@ sgs.ai_skill_invoke.jielieren = function(self, data)
 	--local damage = data:toDamage()
 	--if not damage.to then return end
 	--if not self:isEnemy(damage.to) then return false end
+	if self.player:hasFlag("jielieren2quick") then return false end
 	local use = data:toCardUse()
 	for _, target in sgs.qlist(use.to) do--
 		if not self:isEnemy(target) then return false end--
@@ -1381,7 +1401,29 @@ sgs.ai_skill_invoke.shushen = true
 sgs.ai_skill_playerchosen.shushen = function(self, targets)
 	if #self.friends_noself == 0 then return nil end
 	local yuanshu = sgs.findPlayerByShownSkillName("weidi")
-	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play then return false end
+	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not 
+    yuanshu:hasUsed("WeidiCard") then return false end
+	local friendsByAction = sgs.SPlayerList()
+	local room = self.player:getRoom()
+	
+	friendsByAction = room:getOtherPlayers(self.player)
+	room:sortByActionOrder(friendsByAction)
+	for _, p in sgs.qlist(friendsByAction) do
+		if self.player:isFriendWith(p) and p:hasSkills("kanpo|paoxiao|luajintao|jili|jizhi|kuanggu|tieqi|wusheng|liegong") and
+		not p:needkongcheng() then
+			return p
+		end
+	end
+	for _, p in sgs.qlist(friendsByAction) do
+		if self.player:isFriendWith(p) and not p:needkongcheng() then
+			return p
+		end
+	end
+	for _, p in sgs.qlist(friendsByAction) do
+		if self:isFriend(p) and not p:needkongcheng() then
+			return p
+		end
+	end
 	return self:findPlayerToDraw(false, 1)
 end
 
