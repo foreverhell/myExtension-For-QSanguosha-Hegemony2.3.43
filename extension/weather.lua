@@ -103,8 +103,51 @@ SunnyDraw = sgs.CreateDrawCardsSkill{
         return n
     end  
 }  
-
---雨天，火属性伤害-1
+--晴天，手牌上限+1
+SunnyMaxcards = sgs.CreateMaxCardsSkill{  
+    name = "SunnyMaxcards",  
+    global = true,
+    extra_func = function(self, player)  
+        local room = player:getRoom()  
+        if room:getTag("weather"):toString() == "sunny" then
+            return 1
+        end  
+        return 0
+    end  
+}
+--晴天，攻击范围+1
+SunnyRange = sgs.CreateAttackRangeSkill{  
+    name = "SunnyRange",  
+    global = true,
+    extra_func = function(self, player, include_weapon)  
+        local room = player:getRoom()  
+        if room:getTag("weather"):toString() == "sunny" then
+            return 1
+        end  
+        return 0
+    end  
+}  
+--晴天，回复量+1
+SunnyRecover = sgs.CreateTriggerSkill{  
+    name = "SunnyRecover",  
+    events = {sgs.PreHpRecover},  
+    global = true,      
+    can_trigger = function(self, event, room, player, data)  
+        return self:objectName() 
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        return true
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local recover = data:toRecover()  
+        recover.recover = recover.recover + 1
+        data:setValue(recover)
+        return false        
+    end  
+}
+--雨天，火属性伤害为0
 RainyFireDamage = sgs.CreateTriggerSkill{  
     name = "RainyFireDamage",  
     events = {sgs.DamageCaused},
@@ -153,7 +196,17 @@ RainyThunderDamage = sgs.CreateTriggerSkill{
         return false  
     end  
 }
-
+--雨天，所有角色到其他角色的距离+1
+RainyDistance = sgs.CreateDistanceSkill{
+    name = "RainyDistance",
+    global = true,
+    correct_func = function(self, from, to)
+		if room:getTag("weather"):toString() == "rainy" then
+			return 1
+		end
+		return 0
+	end
+}
 
 Sunny:setParent(extension)
 Rainy:setParent(extension)
@@ -166,21 +219,34 @@ end
 if not sgs.Sanguosha:getSkill("SunnyDraw") then
     skills:append(SunnyDraw)
 end
+if not sgs.Sanguosha:getSkill("SunnyMaxcards") then
+    skills:append(SunnyMaxcards)
+end
+if not sgs.Sanguosha:getSkill("SunnyRange") then
+    skills:append(SunnyRange)
+end
+if not sgs.Sanguosha:getSkill("SunnyRecover") then
+    skills:append(SunnyRecover)
+end
+
 if not sgs.Sanguosha:getSkill("RainyFireDamage") then
     skills:append(RainyFireDamage)
 end
 if not sgs.Sanguosha:getSkill("RainyThunderDamage") then
     skills:append(RainyThunderDamage)
 end
+if not sgs.Sanguosha:getSkill("RainyDistance") then
+    skills:append(RainyDistance)
+end
 sgs.Sanguosha:addSkills(skills)
 sgs.LoadTranslationTable{
     ["weather"] = "天气包",
     ["Sunny"] = "晴天",
-    [":Sunny"] = "装备时，将天气改为晴天，火属性伤害+1，雷属性伤害-1，摸牌+1；失去时，若天气为晴天，则改为无天气",
+    [":Sunny"] = "装备时，将天气改为晴天，火属性伤害+1，雷属性伤害-1，摸牌+1，手牌上限+1，攻击范围+1，治疗量+1；失去时，若天气为晴天，则改为无天气",
     ["Rainy"] = "雨天",
-    ["Rainy"] = "装备时，将天气改为雨天，火属性伤害为0，雷属性伤害+1；失去时，若天气为雨天，则改为无天气",
---晴天，火属性伤害+1，雷属性伤害-1，摸牌+1，手牌上限+1，攻击范围+1，出杀次数+1，治疗量+1
---雨天，火属性伤害为0，雷属性伤害+1，减小攻击距离，反转判定结果
+    ["Rainy"] = "装备时，将天气改为雨天，火属性伤害为0，雷属性伤害+1，所有角色到其他角色的距离+1；失去时，若天气为雨天，则改为无天气",
+--晴天，火属性伤害+1，雷属性伤害-1，摸牌+1，手牌上限+1，攻击范围+1，治疗量+1
+--雨天，火属性伤害为0，雷属性伤害+1，所有角色到其他角色的距离+1，反转判定结果
 --可以考虑添加：
 --冰雹：每轮随机对一名角色造成一点伤害/流失一点体力；伤害视为体力流失；体力流失+1
 --场地
