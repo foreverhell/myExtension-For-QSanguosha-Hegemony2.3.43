@@ -5204,10 +5204,14 @@ kuangchan = sgs.CreatePhaseChangeSkill{
         -- 获取房间对象  
         local room = player:getRoom()  
           
-        -- 询问玩家是否发动技能  
-        --if player:askForSkillInvoke(self:objectName()) then  
-        room:loseHp(player, 1) 
-        --end  
+        --room:loseHp(player, 1) 
+
+        local damage = sgs.DamageStruct()  
+        damage.from = player  
+        damage.to = player  
+        damage.damage = 1  
+        damage.reason = self:objectName() 
+        room:damage(damage)  
         return false  
     end,  
 }
@@ -5224,7 +5228,7 @@ sgs.LoadTranslationTable{
     ["dili"] = "底力",
     [":dili"] = "摸牌阶段，你多摸X张牌，X为你已失去的体力数",
     ["kuangchan"] = "狂禅",
-    [":kuangchan"] = "准备阶段，若你的体力值不小于2，你可以失去一点体力",
+    [":kuangchan"] = "准备阶段，若你的体力值不小于2，你可以对自己造成1点伤害",
 }  
 
 
@@ -9280,7 +9284,7 @@ Tianji = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data)  
-        local ids = room:getNCards(3, false)  
+        --local ids = room:getNCards(3, false)  
         --[[
         --从摸牌堆3张选1张
         local card_ids = sgs.IntList()  
@@ -9297,7 +9301,7 @@ Tianji = sgs.CreateTriggerSkill{
         end
         ]]
         --观星3，然后摸1张
-        room:askForGuanxing(player, ids, sgs.Room_GuanxingUpOnly)
+        --room:askForGuanxing(player, ids, sgs.Room_GuanxingUpOnly)
         room:drawCards(player,1,self:objectName())
         return false  
     end  
@@ -9313,7 +9317,8 @@ sgs.LoadTranslationTable{
 [":shensuan"] = "回合结束时，你可以弃置一张手牌，然后进行判定，直到判定牌点数和大于等于你弃置的牌，你获得所有判定牌。",  
 ["@shensuan"] = "你可以发动'神算'，弃置一张手牌",  
 ["tianji"] = "天机",  
-[":tianji"] = "每当你使用或打出的牌点数和大于等于13时，你可以观看牌堆顶3张牌并以任意顺序牌列，然后摸1张牌。",
+--[":tianji"] = "每当你使用或打出的牌点数和大于等于13时，你可以观看牌堆顶3张牌并以任意顺序牌列，然后摸1张牌。",
+[":tianji"] = "每当你使用或打出的牌点数和大于等于13时，你可以摸1张牌。",
 }
 
 wuzetian = sgs.General(extension, "wuzetian", "qun", 4, false)  
