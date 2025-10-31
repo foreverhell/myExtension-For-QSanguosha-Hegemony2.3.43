@@ -239,7 +239,7 @@ SnowyEffect = sgs.CreateTriggerSkill{
             if room:getCurrent() == room:getAlivePlayers():first() then
                 return self:objectName()
             end
-        elseif evennt == sgs.Damage or event == sgs.PreHpLost then
+        elseif event == sgs.Damage or event == sgs.PreHpLost then
             return self:objectName() 
         end
         return ""
