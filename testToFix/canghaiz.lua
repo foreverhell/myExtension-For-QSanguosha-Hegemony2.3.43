@@ -10,6 +10,7 @@ luacaozhi = sgs.General(canghaiz, "luacaozhi", "wei", 3)
 --蜀势力
 --luaqinmi = sgs.General(canghaiz,"luaqinmi", "shu", 3)
 luawuban = sgs.General(canghaiz, "luawuban", "shu")
+luadongyun = sgs.General(canghaiz, "luadongyun", "shu", 3)
 
 --吴势力
 luayufan = sgs.General(canghaiz, "luayufan", "wu", 3)
@@ -630,7 +631,7 @@ luamibei = sgs.CreateTriggerSkill{
             local players_overHand = sgs.SPlayerList()
             local selfHandNum = player:getHandcardNum()
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
-                if p:getHandcardNum() >= selfHandNum then
+                if p:getHandcardNum() > selfHandNum then
                     players_overHand:append(p)
                 end
             end
@@ -716,7 +717,7 @@ luamibei_cardUsed = sgs.CreateTriggerSkill{
                 for _, card in pairs(cards) do
                     if sgs.Sanguosha:getCard(card).getTag("luamibeiRecord") and 
                     sgs.Sanguosha:getCard(card).getTag("luamibeiRecord"):toInt() == 1 then
-                        card:removeTag("luamibeiRecord")
+                        sgs.Sanguosha:getCard(card):removeTag("luamibeiRecord")
                         return false
                     end
                 end
@@ -1468,9 +1469,158 @@ sgs.LoadTranslationTable{
     ["@luachengxu-discard"] = "乘虚：是否弃置%dest一张牌",
     ["$luachengxu1"] = "既有可乘之隙，何必失此良机？",
     ["$luachengxu2"] = "今敌军远来疲惫，将军可速战之。",
-    ["$luazhichi1"] = "此地不便久留，不若另寻他处。 ",
+    ["$luazhichi1"] = "此地不便久留，不若另寻他处。",
     ["$luazhichi2"] = "暂退三舍，再做计议。",
     ["~luachengong"] = "只恨，当年未能一剑杀了你！",
+}
+
+luabingzheng = sgs.CreateTriggerSkill{  
+    name = "luabingzheng",  
+    events = {sgs.EventPhaseStart},  
+      
+    can_trigger = function(self, event, room, player, data)  
+        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Finish then  
+            return self:objectName()  
+        end  
+        return false
+    end,  
+      
+    on_cost = function(self, event, room, player, data)
+        -- 找出手牌数不等于体力值的角色  
+        local targets = sgs.SPlayerList()  
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if p:getHandcardNum() ~= p:getHp() then  
+                targets:append(p)  
+            end  
+        end  
+          
+        if targets:isEmpty() then return false end  
+          
+        local target = room:askForPlayerChosen(player, targets, self:objectName(), "@luabingzheng-target", true, true)  
+        if target then
+            room:broadcastSkillInvoke(self:objectName(), player)
+            player:setTag("BingzhengTarget", sgs.QVariant(target:objectName()))  
+            return true  
+        end  
+          
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local target_name = player:getTag("BingzhengTarget"):toString()   
+        local target = room:findPlayer(target_name)  
+          
+        if not target or target:isDead() then return false end
+
+        --target没牌时默认摸牌
+        local choice
+        if target:isNude() then
+            choice = "luabingzhengDraw"
+        else
+            -- 选择摸牌或弃牌  
+            choice = room:askForChoice(player, self:objectName(), "luabingzhengDraw+luabingzhengDiscard", data)
+        end
+          
+        if choice == "luabingzhengDraw" then  
+            room:drawCards(target, 1, self:objectName())  
+        elseif choice == "luabingzhengDiscard" then
+            if not target:isNude() then  
+                room:askForDiscard(target, self:objectName(), 1, 1, false, true, "@luabingzheng_forceDiscard")  
+            end  
+        end  
+          
+        -- 检查手牌数是否等于体力值  
+        if target:getHandcardNum() == target:getHp() then  
+            room:drawCards(player, 1, self:objectName())
+            --选择是否交给target一张牌
+            if target:objectName() ~= player:objectName() and not player:isNude() then
+                local result = room:askForExchange(player, "luabingzheng_give", 1, 0, "@luabingzheng-give::" .. target:objectName(), "", ".|.|.|.")
+                if not result:isEmpty() then
+					local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, player:objectName(), target:objectName(), self:objectName(), "")
+					local move = sgs.CardsMoveStruct(result, target, sgs.Player_PlaceHand, reason)
+					room:moveCardsAtomic(move, false)
+				end
+            end
+        end
+        player:removeTag("BingzhengTarget") 
+          
+        return false  
+    end  
+}
+
+luasheyan = sgs.CreateTriggerSkill{
+    name = "luasheyan",
+    events = {sgs.TargetConfirming},
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) then
+            local use = data:toCardUse()
+            if use.card and use.card:isNDTrick() and use.to:contains(player) and not player:hasFlag("luasheyanUsed") then
+                room:setPlayerFlag(player, "luasheyanUsed")
+                return self:objectName()
+            end
+        end
+        return false
+    end,
+
+    on_cost = function(self, event, room, player, data)
+		if player:askForSkillInvoke(self:objectName(), data) then
+			room:broadcastSkillInvoke(self:objectName(), player)
+			return true
+		end
+		return false
+	end,
+
+    on_effect = function(self, event, room, player, data)
+        local use = data:toCardUse()
+        if use.card:isKindOf("ThreatenEmperor") then return false end
+        local targets = room:getUseExtraTargets(use, false)
+        for _, p in sgs.qlist(use.to) do
+            if p:isAlive() then
+                targets:append(p)
+            end
+        end
+        if not targets:isEmpty() then
+            local prompt = "@luasheyan-target:" .. use.from:objectName() .. "::" .. use.card:objectName()
+            if use.to:length() == 1 then
+                targets:removeOne(player)
+            end
+            local target = room:askForPlayerChosen(player, targets, self:objectName(), prompt, true, true)
+            if target then
+                room:doAnimate(1, player:objectName(), target:objectName())
+                if use.to:contains(target) then
+                    sgs.Room_cancelTarget(use, target)
+                else
+                    use.to:append(target)
+                    room:sortByActionOrder(use.to)
+                end
+                data:setValue(use)
+            end
+        end
+        return false
+    end
+}
+
+luadongyun:addSkill(luabingzheng)
+luadongyun:addSkill(luasheyan)
+
+sgs.LoadTranslationTable{
+    ["luadongyun"] = "董允",  
+    ["luabingzheng"] = "秉正",
+    [":luabingzheng"] = "回合结束时，你可以令一名手牌数不等于体力值的角色摸一张牌或弃置一张手牌，然后若其手牌数等于体力值，你摸一张牌且可以" ..
+    "交给其一张牌。",
+    ["luasheyan"] = "舍宴",
+    [":luasheyan"] = "当你每回合首次成为普通锦囊牌的目标时，你可以令此牌的目标增加或减少一个目标（目标数至少为1）。",
+    ["@luabingzheng_discard"] = "秉正：弃置一张牌",
+    ["@luabingzheng-target"] = "秉正：选择一名目标",
+    ["luabingzhengDraw"] = "令其摸一张牌",
+    ["luabingzhengDiscard"] = "令其弃置一张牌",
+    ["@luabingzheng-give"] = "秉正：是否交给%dest一张牌",
+    ["@luasheyan-target"] = "舍宴：选择为%src使用的【%arg】增加或减少一个目标",
+    ["$luabingzheng1"] = "自古，就是邪不胜正！",
+    ["$luabingzheng2"] = "主公面前，岂容小人搬弄是非！",
+    ["$luasheyan1"] = "公事为重，宴席不去也罢。 ",
+    ["$luasheyan2"] = "还是改日吧。",
+    ["~luadongyun"] = "大汉，要亡于宦官之手了。",
 }
 
 sgs.Sanguosha:addSkills(skills)
