@@ -4820,7 +4820,7 @@ zhongjie_skill = sgs.CreateTriggerSkill{
         if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and player:hasSkill(self:objectName()) then
             room:setPlayerMark(player, "@zhongjie", 1)  
             return ""
-        else
+        elseif event == sgs.Dying then
             -- 寻找拥有忠节技能的角色  
             local zhongjie_player = room:findPlayerBySkillName(self:objectName()) 
             if not (zhongjie_player and zhongjie_player:isAlive() and zhongjie_player:hasSkill(self:objectName())) then return "" end
@@ -4829,7 +4829,7 @@ zhongjie_skill = sgs.CreateTriggerSkill{
             local dying = data:toDying()  
             -- 检查是否因失去体力而濒死（damage为nil表示失去体力）  
             if dying.damage == nil then  
-                return self:objectName(), zhongjie_player:objectName() 
+                return self:objectName() .. "->" .. dying.who:objectName() 
             end  
         end
         return "" 
