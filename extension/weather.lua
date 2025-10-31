@@ -136,11 +136,11 @@ SunnyRecover = sgs.CreateTriggerSkill{
         return self:objectName() 
     end,  
       
-    on_cost = function(self, event, room, player, data, ask_who)  
+    on_cost = function(self, event, room, player, data)  
         return true
     end,  
       
-    on_effect = function(self, event, room, player, data, ask_who)  
+    on_effect = function(self, event, room, player, data)  
         local recover = data:toRecover()  
         recover.recover = recover.recover + 1
         data:setValue(recover)
@@ -244,7 +244,7 @@ sgs.LoadTranslationTable{
     ["Sunny"] = "晴天",
     [":Sunny"] = "装备时，将天气改为晴天，火属性伤害+1，雷属性伤害-1，摸牌+1，手牌上限+1，攻击范围+1，治疗量+1；失去时，若天气为晴天，则改为无天气",
     ["Rainy"] = "雨天",
-    ["Rainy"] = "装备时，将天气改为雨天，火属性伤害为0，雷属性伤害+1，所有角色到其他角色的距离+1；失去时，若天气为雨天，则改为无天气",
+    [":Rainy"] = "装备时，将天气改为雨天，火属性伤害为0，雷属性伤害+1，所有角色到其他角色的距离+1；失去时，若天气为雨天，则改为无天气",
 --晴天，火属性伤害+1，雷属性伤害-1，摸牌+1，手牌上限+1，攻击范围+1，治疗量+1
 --雨天，火属性伤害为0，雷属性伤害+1，所有角色到其他角色的距离+1，反转判定结果
 --可以考虑添加：
