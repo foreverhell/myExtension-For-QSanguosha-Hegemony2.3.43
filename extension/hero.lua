@@ -2060,7 +2060,7 @@ shefu2 = sgs.CreateTriggerSkill{
         room:moveCardTo(card, nil, sgs.Player_DrawPile, true)                 
 
         if card:getTypeId() == sgs.Card_TypeBasic then  
-            if fanzeng_player:isNude() or room:askForDiscard(fanzeng_player, self:objectName(), 1, 1, true, true) then
+            if fanzeng_player:isNude() or room:askForDiscard(fanzeng_player, self:objectName(), 1, 1, false, true) then
                 local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_SuitToBeDecided, -1)  
                 slash:setSkillName(self:objectName())  
                 if fanzeng_player:canSlash(player, slash, false) then  
@@ -3715,20 +3715,21 @@ mingcha_card = sgs.CreateSkillCard{
       
     filter = function(self, targets, to_select)  
         return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()   
-               and not to_select:isKongcheng() and sgs.Self:getHandcardNum()>=to_select:getHandcardNum()
+               and not to_select:isKongcheng()
     end,  
       
     on_use = function(self, room, source, targets)  
         local target = targets[1]   
         local discard_num = target:getHandcardNum()  
-        local is_discard = room:askForDiscard(source, "mingcha", discard_num, discard_num, false, false)  --可以在这里限制最大最小值
-
-
-        local all_cards = sgs.IntList()          
-        -- 添加目标的手牌  
-        for _, card in sgs.qlist(target:getHandcards()) do  
-            all_cards:append(card:getId())  
+        local my_discard = room:askForExchange(source, "mingcha", discard_num, 0, "@mingcha-discard","", ".|.|.|hand")  
+        if my_discard:isEmpty() then return false end
+        if not my_discard:isEmpty() then  
+            local dummy = sgs.DummyCard(my_discard)  
+            room:throwCard(dummy, source, source)  
+            dummy:deleteLater()
         end  
+
+        local all_cards = room:askForCardsChosen(source, target, string.rep("h",my_discard:length()), self:objectName(), my_discard:length(), my_discard:length())  
 
         local to_discard = sgs.IntList()  
         local suits = {}  --已经使用的花色
@@ -3790,7 +3791,7 @@ sgs.LoadTranslationTable{
     ["xuefan"] = "削藩",
     [":xuefan"] = "摸牌阶段，每有1名角色血量大于你，你摸牌量+1",
     ["mingcha"] = "明察",
-    [":mingcha"] = "出牌阶段限一次。你可以弃置X张手牌，查看一名角色的所有手牌，获得其中花色互不相同的任意张，X为该角色手牌数量"
+    [":mingcha"] = "出牌阶段限一次。你可以弃置X张手牌，查看一名角色的X张手牌，获得其中花色互不相同的任意张"
 }  
   
 -- 创建武将：唐伯虎  
@@ -4281,7 +4282,7 @@ wanbiCard = sgs.CreateSkillCard{
         end  
 
         -- 让目标角色选择展示的牌  
-        local to_show = room:askForExchange(target, "exchange_show", target:getHandcardNum(), 1, "@exchange-show","","", ".|.|.|hand")  
+        local to_show = room:askForExchange(target, "exchange_show", target:getHandcardNum(), 1, "@exchange-show","", ".|.|.|hand")  
         local shown_ids = {}  
         local hidden_ids = {}  
           
@@ -5181,7 +5182,7 @@ dili = sgs.CreateDrawCardsSkill{
 
 kuangchan = sgs.CreatePhaseChangeSkill{  
     name = "kuangchan", -- 技能名称  
-    frequency = sgs.Skill_Frequent, -- 设置为常规技能  
+    --frequency = sgs.Skill_Frequent, -- 设置为常规技能  
     can_trigger = function(self, event, room, player, data)
         if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start then  
             return self:objectName()
@@ -12192,7 +12193,6 @@ sgs.LoadTranslationTable{
     ["jingsuan"] = "精算",
     [":jingsuan"] = "锁定技。你一回合最多受到1点伤害"
 }
-
 
 --添加珠联璧合
 --人物关系联动
