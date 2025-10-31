@@ -957,7 +957,7 @@ lualuoying = sgs.CreateTriggerSkill{
             if reasonx == sgs.CardMoveReason_S_REASON_DISCARD then
                 local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
                 for _, card_id in sgs.qlist(move.card_ids) do
-                    if sgs.Sanguosha:getCard(card_id):getSuitString() == "club" and card_id ~= 145 then --敕令弃牌时应直接进入弃牌堆替换成诏令
+                    if sgs.Sanguosha:getCard(card_id):getSuitString() == "club" and card_id ~= 144 then --敕令弃牌时应直接进入弃牌堆替换成诏令
                         dummy:addSubcard(card_id)
                     end
                 end
