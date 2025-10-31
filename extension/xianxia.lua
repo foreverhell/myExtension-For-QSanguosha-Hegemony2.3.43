@@ -1532,4 +1532,116 @@ sgs.LoadTranslationTable{
 ["@zuilun-choose"] = "罪论：选择一名其他角色，你与其各失去一点体力",
 }
 
+
+
+--OL
+wuyi = sgs.General(extension, "wuyi", "shu", 4) -- 吴苋，蜀势力，3血，女性
+benxi = sgs.CreateTriggerSkill{  
+    name = "benxi",  
+    events = {sgs.CardUsed, sgs.EventPhaseEnd},  
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
+            return ""  
+        end
+        if event == sgs.CardUsed and player:getPhase()~=sgs.Player_NotActive then
+            local use = data:toCardUse()  
+            if player ~= use.from then return "" end
+            room:addPlayerMark(player,"@benxi",1)
+        elseif event == sgs.EventPhaseEnd and player:getPhase() == sgs.Player_Finish then
+            room:setPlayerMark(player,"@benxi",0)
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        return false  
+    end  
+}
+
+
+benxiMod = sgs.CreateDistanceSkill{
+    name = "#benxi-distance",
+    correct_func = function(self, from, to)
+		if from:hasShownSkill(self:objectName()) then --hasSkill
+			return -from:getMark("@benxi")
+		end
+		return 0
+	end
+}
+
+zhuanzheng1_card = sgs.CreateSkillCard{  
+    name = "zhuanzheng1",  
+    target_fixed = false,  
+    will_throw = false,  
+      
+    filter = function(self, targets, to_select, Self)  
+        return #targets == 0 and to_select:isFriendWith(Self) and Self:distanceTo(to_select)<=1 --sgs.Self
+    end,  
+      
+    feasible = function(self, targets, Self)  
+        return #targets == 1  
+    end,  
+      
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+        local final_num = 1
+        if source == target then
+            final_num = 1
+        else --2个方向遍历
+            local n1 = 0
+            local n2 = 0
+            -- 逆时针遍历  
+            local current = source:getNextAlive()
+            while current ~= target do
+                n1 = n1 + 1
+                current = current:getNextAlive()  
+                if current == source then break end  
+            end  
+
+            -- 顺时针遍历  
+            local current = target:getNextAlive()
+            while current ~= source do  
+                n2 = n2 + 1
+                current = current:getNextAlive()  
+                if current == target then break end  
+            end  
+            local n = math.min(n1,n2)  
+            final_num = math.max(final_num, n)       
+        end
+        source:drawCards(final_num, self:objectName())
+    end  
+}
+
+zhuanzheng1 = sgs.CreateZeroCardViewAsSkill{  
+    name = "zhuanzheng1",  
+      
+    view_as = function(self)  
+        local card = zhuanzheng1_card:clone()  
+        card:setSkillName(self:objectName())
+        card:setShowSkill(self:objectName())
+        return card
+    end,  
+      
+    enabled_at_play = function(self, player)   
+        local used_times = player:usedTimes("#zhuanzheng1")  
+        return used_times < 2
+    end  
+}
+
+wuyi:addSkill(benxi)
+wuyi:addSkill(benxiMod)
+wuyi:addSkill(zhuanzheng1)
+extension:insertRelatedSkills("benxi", "#benxi-distance")
+sgs.LoadTranslationTable{
+    ["wuyi"] = "吴懿",
+    ["benxi"] = "奔袭",
+    [":benxi"] = "锁定技。你回合内使用牌时，本回合你计算与其他角色的距离-1",
+    ["zhuanzheng1"] = "转征",
+    [":zhuanzheng1"] = "出牌阶段限2次。你可以选择1名距离小于等于1的同势力角色，你摸X张牌，X为你与其之间的角色数且至少为1"
+}
 return {extension}
