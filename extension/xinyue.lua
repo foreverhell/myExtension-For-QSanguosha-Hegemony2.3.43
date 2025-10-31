@@ -172,7 +172,7 @@ sgs.LoadTranslationTable{
 ["@kuanyan_yan"] = "宴"
 }
 
-yingyang = sgs.General(extension, "yingyang", "jin", 3) -- 蜀势力，4血，男性（默认）  
+ying4yang = sgs.General(extension, "ying4yang", "jin", 3) -- 蜀势力，4血，男性（默认）  
 guici = sgs.CreateTriggerSkill{  
     name = "guici",  
     events = {sgs.EventPhaseStart},  
@@ -318,13 +318,13 @@ beili = sgs.CreateTriggerSkill{
     end  
 }
 
---yingyang:addSkill(guici)  
-yingyang:addSkill(beili)
+--ying4yang:addSkill(guici)  
+ying4yang:addSkill(beili)
 
 sgs.LoadTranslationTable{
-["#yingyang"] = "文采风流",  
-["yingyang"] = "应玚",  
-["illustrator:yingyang"] = "画师名",  
+["#ying4yang"] = "文采风流",  
+["ying4yang"] = "应玚",  
+["illustrator:ying4yang"] = "画师名",  
 ["guici"] = "瑰词",  
 [":guici"] = "锁定技，你的准备阶段，若你没有阴/阳标记，你选择获得阴标记或阳标记；若你有阴/阳标记，阴/阳标记交替。若你有阳标记，你从牌堆获得4张花色各不相同的牌，并标记为'瑰'；若你有阴标记，你从牌堆获得3张类型各不相同的牌，并标记为'瑰'。",  
 ["@guici_yin"] = "阴",  
@@ -381,11 +381,25 @@ guzhu = sgs.CreateTriggerSkill{
 zhuanzheng = sgs.CreateTriggerSkill{  
     name = "zhuanzheng",  
     events = {sgs.CardsMoveOneTime},  
+    --[[
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return ""  end       
+        local move = data:toMoveOneTime()  
+        if move.from:getHandcardNum() == 0 then  
+            for _, p in sgs.qlist(room:getAlivePlayers()) do  
+                if p:hasSkill(self:objectName()) then  
+                    return self:objectName() .. "->" .. move.from:objectName()
+                end  
+            end  
+        end  
+        return ""  
+    end,  
+    ]]
     can_trigger = function(self, event, room, player, data)  
         local move = data:toMoveOneTime()  
         if player:getHandcardNum() == 0 then  
             for _, p in sgs.qlist(room:getAlivePlayers()) do  
-                if p:hasSkill(self:objectName()) then  
+                if p:hasSkill(self:objectName()) and p:willBeFriendWith(player) then  
                     return self:objectName() .. "->" .. player:objectName()
                 end  
             end  
@@ -473,7 +487,7 @@ sgs.LoadTranslationTable{
 ["guzhu"] = "孤注",  
 [":guzhu"] = "一名角色使用基本牌指定目标后，你可以弃置所有手牌，令此牌额外结算1次。",  
 ["zhuanzheng"] = "专政",  
-[":zhuanzheng"] = "一名角色失去手牌后，若其手牌数为0，你可以失去1点体力，令其将手牌摸至体力上限。"
+[":zhuanzheng"] = "与你势力相同的角色失去手牌后，若其手牌数为0，其可以失去1点体力，然后其将手牌摸至体力上限。"
 }
 -- 返回扩展包  
 return {extension}
