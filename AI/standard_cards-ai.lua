@@ -599,10 +599,6 @@ function SmartAI:useCardSlash(card, use)
 	for _, enemy in ipairs(self.enemies) do
 		if not self:slashProhibit(card, enemy) and sgs.isGoodTarget(enemy, self.enemies, self, true) then
 			if not self:needDamagedEffects(enemy, self.player, true) then
-				if (enemy:hasShownSkill("niepan") and enemy:getMark("@nirvana") > 0) or enemy:hasShownSkills("buqu|bazhen") then
-					table.insert(forbidden, enemy)
-					continue
-				end
 				table.insert(targets, enemy)
 			else
 				table.insert(forbidden, enemy)
