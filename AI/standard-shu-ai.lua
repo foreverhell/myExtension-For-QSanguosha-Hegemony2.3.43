@@ -1406,21 +1406,21 @@ sgs.ai_skill_playerchosen.shushen = function(self, targets)
 	local friendsByAction = sgs.SPlayerList()
 	local room = self.player:getRoom()
 	
-	friendsByAction = room:getOtherPlayers(self.player)
+	friendsByAction = room:getAlivePlayers()
 	room:sortByActionOrder(friendsByAction)
 	for _, p in sgs.qlist(friendsByAction) do
-		if self.player:isFriendWith(p) and p:hasSkills("kanpo|paoxiao|luajintao|jili|jizhi|kuanggu|tieqi|wusheng|liegong") and
-		not p:needkongcheng() then
+		if self.player:isFriendWith(p) and p:hasShownSkills("kanpo|paoxiao|luajintao|jili|jizhi|kuanggu|tieqi|wusheng|liegong") and
+		not p:needKongcheng() and self.player:objectName() ~= p:objectName() then
 			return p
 		end
 	end
 	for _, p in sgs.qlist(friendsByAction) do
-		if self.player:isFriendWith(p) and not p:needkongcheng() then
+		if self.player:isFriendWith(p) and not p:needKongcheng() and self.player:objectName() ~= p:objectName() then
 			return p
 		end
 	end
 	for _, p in sgs.qlist(friendsByAction) do
-		if self:isFriend(p) and not p:needkongcheng() then
+		if self:isFriend(p) and not p:needKongcheng() and self.player:objectName() ~= p:objectName() then
 			return p
 		end
 	end

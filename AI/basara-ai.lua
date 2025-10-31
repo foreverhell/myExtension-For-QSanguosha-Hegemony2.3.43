@@ -1576,9 +1576,9 @@ sgs.ai_skill_choice.GameRule_AskForGeneralShow = function(self, choices)
 	local canCancel = string.find(choices, "cancel")
 	
 	--show_both_generals选项判断
-	local firstShow = ("luanji|niepan|bazhen|jianglve|diaodu|huoshui|qianhuan|chenglve|jinghe|dangxian|wanglie|sidi"):split("|")
+	local firstShow = ("luanji|niepan|bazhen|jianglve|diaodu|huoshui|qianhuan|chenglve|jinghe|dangxian|wanglie|sidi|jiejianglve|jiediaodu|jiejinghe"):split("|")
 	local bothShow = ("luanji+shuangxiong|luanji+huoshui|guanxing+yizhi"):split("|")
-	local followShow = ("wusheng|liegong|bazhen|cunsi|diaodu|xiongyi|huoshui|qianhuan|jihun|chenglve|dangxian|wanglie|sidi"):split("|")
+	local followShow = ("wusheng|liegong|bazhen|cunsi|diaodu|xiongyi|huoshui|qianhuan|jihun|chenglve|dangxian|wanglie|sidi|jiediaodu"):split("|")
 
 	local show_position = self:getGeneralShowOrHide(self.player,(canCancel and true or false),true)
 	if not show_position then return "cancel"
