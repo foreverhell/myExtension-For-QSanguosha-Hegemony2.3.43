@@ -1727,7 +1727,8 @@ luapindiDamaged = sgs.CreateTriggerSkill{
     end,
 
     can_trigger = function(self, event, room, player, data)
-		if skillTriggerable(player, self:objectName()) and not player:isNude() and event == sgs.Damaged then
+		if skillTriggerable(player, self:objectName()) and not player:isNude() and event == sgs.Damaged and 
+        player:getMark("@luapindiTimes") < 3 then
 			return self:objectName()
 		end
 		return false
@@ -1742,7 +1743,6 @@ luapindiDamaged = sgs.CreateTriggerSkill{
 	end,
 
 	on_effect = function(self, event, room, player, data)
-        --room:setPlayerFlag(player, "luapindiTake")
         room:askForUseCard(player, "@@luapindiVS", "@luapindi-toDiscard")
         return false
     end
