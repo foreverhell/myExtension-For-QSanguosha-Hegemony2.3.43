@@ -17,6 +17,7 @@ jiexuchu = sgs.General(testToFix, "xuchu", "wei", 4, true, false, true)
 jiexuchu:addCompanion("caocao")
 jiexuhuang = sgs.General(testToFix, "xuhuang", "wei", 4, true, false, true)
 jiewangji = sgs.General(testToFix, "wangji", "wei", 3, true, false, true)
+
 --蜀势力
 jiewangping = sgs.General(testToFix, "wangping", "shu", 4, true, false, true)
 jieguanyu = sgs.General(testToFix, "guanyu", "shu", 5, true, false, true)
@@ -34,6 +35,7 @@ jiejiangwei = sgs.General(testToFix, "jiangwei", "shu", 4, true, false, true)
 jiejiangwei:setDeputyMaxHpAdjustedValue(-1)
 jiejiangwei:addCompanion("zhugeliang")
 jiejiangwei:addCompanion("xiahouba")
+jiezongyu = sgs.General(testToFix, "zongyux", "shu", 3, true, false, true)
 
 --吴势力
 jielvfan = sgs.General(testToFix, "lvfan", "wu", 3, true, false, true)
@@ -536,11 +538,6 @@ jiediaodu = sgs.CreateTriggerSkill{
 		if not targets:isEmpty() then
 			local target = room:askForPlayerChosen(player, targets, self:objectName(), "@jiediaodu_obtainEquip", true, true)
 			if target then
-				if player:getActualGeneral1Name() == "lvfan" then
-					player:showGeneral(true, false, false)
-				elseif player:getActualGeneral2Name() == "lvfan" then
-					player:showGeneral(false, true, false)
-				end
 				local card_id = room:askForCardChosen(player, target, "e", self:objectName(), false, sgs.Card_MethodGet)
 				local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXTRACTION, player:objectName())
 				room:obtainCard(player, sgs.Sanguosha:getCard(card_id), reason, false)
@@ -560,6 +557,11 @@ jiediaodu = sgs.CreateTriggerSkill{
 					local target_player = room:askForPlayerChosen(player, target_to, self:objectName(),
 					"@jiediaodu_exchangeToEquip", true, true)
 					if target_player then
+						if player:getActualGeneral1Name() == "lvfan" then
+							player:showGeneral(true, false, false)
+						elseif player:getActualGeneral2Name() == "lvfan" then
+							player:showGeneral(false, true, false)
+						end
 						local card = sgs.Sanguosha:getCard(card_id)
 						room:moveCardTo(card, player, target_player, sgs.Player_PlaceHand, reason, false)
 						room:doAnimate(1, player:objectName(), target_player:objectName())
@@ -2559,6 +2561,67 @@ sgs.LoadTranslationTable{
     ["jiewangji"] = "王基",
     ["jieqizhi"] = "奇制",
 	[":jieqizhi"] = "当你于回合内使用非装备牌时，你可以弃置不为此牌目标的一名角色的一张牌，令其摸一张牌。每回合限四次。",
+}
+
+jiechengshang = sgs.CreateTriggerSkill{
+	name = "jiechengshang",
+	events = {sgs.CardFinished},
+	can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Play and not 
+		player:hasFlag("luachengshangUsed") then
+			local use = data:toCardUse()
+			if use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill then
+				if use.card:getTag("GlobalCardDamagedTag"):toString() ~= "" then return false end
+				for _, p in sgs.qlist(use.to) do
+					if not player:isFriendWith(p) then
+						return self:objectName()
+					end
+				end
+			end
+		end
+		return false
+	end,
+
+	on_cost = function(self, event, room, player, data)
+		if player:askForSkillInvoke(self:objectName(), data) then
+			return true
+		end
+		return false
+	end,
+
+	on_effect = function(self, event, room, player, data)
+		local use = data:toCardUse()
+		local target = room:askForPlayerChosen(player, use.to, self:objectName(), "@luachengshang-choose", false, true)
+		if target then
+			room:setPlayerFlag(player, "luachengshangUsed")
+			room:broadcastSkillInvoke("chengshang", player)
+			local card_id = room:askForExchange(target, self:objectName(), 1, 1, "@luachengshang-give::" .. player:objectName())
+			room:showCard(target, card_id)
+			local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, target:objectName(), player:objectName(), self:objectName(), "")
+			local move = sgs.CardsMoveStruct(card_id, player, sgs.Player_PlaceHand, reason)
+			room:moveCardsAtomic(move, false)
+
+			local card = sgs.Sanguosha:getCard(card_id)
+			if use.card:getSuitString() == card:getSuitString() and use.card:getNumber() == card:getNumber() then
+				room:detachSkillFromPlayer(player, self:objectName())
+				room:detachSkillFromPlayer(player, self:objectName(), false, false, false)
+			end
+		end
+		return false
+	end
+}
+
+jiezongyu:addSkill("qiao")
+jiezongyu:addSkill(jiechengshang)
+
+-- 加载翻译表
+sgs.LoadTranslationTable{
+    ["jiezongyu"] = "宗预",
+    ["jiechengshang"] = "承赏",
+	[":jiechengshang"] = "每回合限一次，当你对其他势力的角色使用牌结算完成后，若此牌未造成过伤害，你可以令其中一名目标角色展示" .. 
+	"并交给你一张牌，若其交给你的牌与你使用的牌花色且点数相同，你失去此技能。",
+	["@luachengshang-choose"] = "承赏：选择一名目标角色",
+	["@luachengshang-give"] = "承赏：交给%dest一张牌（若与其使用的牌花色与点数均相同则其失去此技能）",
 }
 
 sgs.Sanguosha:addSkills(skills)
