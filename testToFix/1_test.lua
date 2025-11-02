@@ -2591,7 +2591,13 @@ jiechengshang = sgs.CreateTriggerSkill{
 
 	on_effect = function(self, event, room, player, data)
 		local use = data:toCardUse()
-		local target = room:askForPlayerChosen(player, use.to, self:objectName(), "@luachengshang-choose", false, true)
+		local targets = sgs.SPlayerList()
+		for _, p in sgs.qlist(use.to) do
+			if not p:isNude() then
+				targets:append(p)
+			end
+		end
+		local target = room:askForPlayerChosen(player, targets, self:objectName(), "@luachengshang-choose", false, true)
 		if target then
 			room:setPlayerFlag(player, "luachengshangUsed")
 			room:broadcastSkillInvoke("chengshang", player)
