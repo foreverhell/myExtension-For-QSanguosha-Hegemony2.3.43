@@ -1512,9 +1512,9 @@ luabingzheng = sgs.CreateTriggerSkill{
           
         if not target or target:isDead() then return false end
 
-        --target没牌时默认摸牌
+        --target没手牌时默认摸牌
         local choice
-        if target:isNude() then
+        if target:isKongcheng() then
             choice = "luabingzhengDraw"
         else
             -- 选择摸牌或弃牌  
@@ -1524,8 +1524,8 @@ luabingzheng = sgs.CreateTriggerSkill{
         if choice == "luabingzhengDraw" then  
             room:drawCards(target, 1, self:objectName())  
         elseif choice == "luabingzhengDiscard" then
-            if not target:isNude() then  
-                room:askForDiscard(target, self:objectName(), 1, 1, false, true, "@luabingzheng_forceDiscard")  
+            if not target:isKongcheng() then  
+                room:askForDiscard(target, self:objectName(), 1, 1, false, false, "@luabingzheng_forceDiscard")  
             end  
         end  
           
@@ -1573,7 +1573,7 @@ luasheyan = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data)
         local use = data:toCardUse()
         if use.card:isKindOf("ThreatenEmperor") then return false end
-        local targets = room:getUseExtraTargets(use, false)
+        local targets = room:getUseExtraTargets(use, false) --获得卡牌其他的合法目标
         for _, p in sgs.qlist(use.to) do
             if p:isAlive() then
                 targets:append(p)
@@ -1581,7 +1581,7 @@ luasheyan = sgs.CreateTriggerSkill{
         end
         if not targets:isEmpty() then
             local prompt = "@luasheyan-target:" .. use.from:objectName() .. "::" .. use.card:objectName()
-            if use.to:length() == 1 then
+            if use.to:length() == 1 then --即只有自己成为目标，只能增加目标
                 targets:removeOne(player)
             end
             local target = room:askForPlayerChosen(player, targets, self:objectName(), prompt, true, true)
@@ -1610,7 +1610,7 @@ sgs.LoadTranslationTable{
     "交给其一张牌。",
     ["luasheyan"] = "舍宴",
     [":luasheyan"] = "当你每回合首次成为普通锦囊牌的目标时，你可以令此牌的目标增加或减少一个目标（目标数至少为1）。",
-    ["@luabingzheng_discard"] = "秉正：弃置一张牌",
+    ["@luabingzheng_forceDiscard"] = "秉正：弃置一张手牌",
     ["@luabingzheng-target"] = "秉正：选择一名目标",
     ["luabingzhengDraw"] = "令其摸一张牌",
     ["luabingzhengDiscard"] = "令其弃置一张牌",
