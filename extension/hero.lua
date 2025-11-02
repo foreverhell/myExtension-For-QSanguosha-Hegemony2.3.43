@@ -3711,7 +3711,7 @@ xuefan = sgs.CreateDrawCardsSkill{
 mingcha_card = sgs.CreateSkillCard{  
     name = "mingcha",  
     target_fixed = false,  
-    will_throw = false,  
+    will_throw = true,  
       
     filter = function(self, targets, to_select)  
         return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()   
@@ -3720,18 +3720,10 @@ mingcha_card = sgs.CreateSkillCard{
       
     on_use = function(self, room, source, targets)  
         local target = targets[1]   
-        local discard_num = target:getHandcardNum()  
-        local my_discard = room:askForExchange(source, "mingcha", discard_num, 0, "@mingcha-discard","", ".|.|.|hand")  
-        if my_discard:isEmpty() then return false end
-        if not my_discard:isEmpty() then  
-            local dummy = sgs.DummyCard(my_discard)  
-            room:throwCard(dummy, source, source)  
-            dummy:deleteLater()
-        end  
+        discard_num = math.min(self:subcardsLength(),target:getHandcardNum())
+        local all_cards = room:askForCardsChosen(source, target, string.rep("h",discard_num), self:objectName(), discard_num, discard_num)  
 
-        local all_cards = room:askForCardsChosen(source, target, string.rep("h",my_discard:length()), self:objectName(), my_discard:length(), my_discard:length())  
-
-        local to_discard = sgs.IntList()  
+        local to_get = sgs.IntList()  
         local suits = {}  --已经使用的花色
         -- 选择至多4张花色不同的牌  
         for i = 1, 4 do  
@@ -3747,7 +3739,7 @@ mingcha_card = sgs.CreateSkillCard{
               
             if not suits[suit] then  
                 suits[suit] = true  
-                to_discard:append(card_id)  
+                to_get:append(card_id)  
                 all_cards:removeOne(card_id)  
                 room:clearAG(source)
             else  
@@ -3758,28 +3750,34 @@ mingcha_card = sgs.CreateSkillCard{
         end 
           
         -- 弃置选择的牌  
-        if not to_discard:isEmpty() then  
-            local dummy = sgs.DummyCard(to_discard)  
+        if not to_get:isEmpty() then  
+            local dummy = sgs.DummyCard(to_get)  
             room:obtainCard(source, dummy)  
             dummy:deleteLater()
         end  
     end  
 }  
-  
-mingcha = sgs.CreateZeroCardViewAsSkill{  
-        name = "mingcha",  
-          
-        view_as = function(self)  
-            local card = mingcha_card:clone()
-            card:setSkillName("mingcha")  
-            return card  
-        end,  
-          
-        enabled_at_play = function(self, player)  
-            return not player:hasUsed("#mingcha") and not player:isKongcheng()  
+mingcha = sgs.CreateViewAsSkill{  
+    name = "mingcha",  
+    filter_pattern = "h",  
+    view_filter = function(self, selected, to_select)  
+        return true  
+    end,  
+    view_as = function(self, cards)  
+        if #cards == 0 then return nil end
+        local card = mingcha_card:clone()  
+        for _, c in ipairs(cards) do  
+            card:addSubcard(c)  
         end  
-    }  
-
+        card:setSkillName(self:objectName())  
+        card:setShowSkill(self:objectName())  
+        return card  
+    end,  
+      
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#mingcha") and not player:isKongcheng()
+    end  
+}  
 
 -- 添加技能给武将  
 kangxi:addSkill(xuefan)  
@@ -3791,7 +3789,7 @@ sgs.LoadTranslationTable{
     ["xuefan"] = "削藩",
     [":xuefan"] = "摸牌阶段，每有1名角色血量大于你，你摸牌量+1",
     ["mingcha"] = "明察",
-    [":mingcha"] = "出牌阶段限一次。你可以弃置X张手牌，查看一名角色的X张手牌，获得其中花色互不相同的任意张"
+    [":mingcha"] = "出牌阶段限一次。你可以弃置X张手牌，查看一名角色的至多X张手牌，获得其中花色互不相同的任意张"
 }  
   
 -- 创建武将：唐伯虎  
