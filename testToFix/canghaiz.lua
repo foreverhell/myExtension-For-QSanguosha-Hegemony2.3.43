@@ -1348,7 +1348,6 @@ luachengxu = sgs.CreateTriggerSkill{
             local id = room:askForCardChosen(skill_owner, player, "he", self:objectName(), false, sgs.Card_MethodDiscard)
             room:throwCard(id, player, skill_owner)
             if player:isAlive() and player:canDiscard(skill_owner, "he") and not skill_owner:isNude() then
-                --if player:askForSkillInvoke("luachengxu", data) then
                 local choices = {"yes", "no"}
                 local d = sgs.QVariant()
                 d:setValue(skill_owner)
@@ -1368,7 +1367,6 @@ luachengxu = sgs.CreateTriggerSkill{
             skill_owner:removeTag("luachengxu2slash")
             room:useCard(sgs.CardUseStruct(slash, skill_owner, player), false)
             if player:isAlive() and player:canSlash(skill_owner, false) then
-                --if player:askForSkillInvoke("luachengxu", data) then
                 local choices = {"yes", "no"}
                 local d = sgs.QVariant()
                 d:setValue(skill_owner)
@@ -1652,7 +1650,6 @@ luapindiCard = sgs.CreateSkillCard{
         else
             choice = room:askForChoice(source, "luapindi", "d1tx%log:" .. x .. "+dxt1%log:" .. x)
         end
-        room:broadcastSkillInvoke("luapindi", source)
 
         if string.find(choice, "d1tx") then
             targets[1]:drawCards(x)
@@ -1788,10 +1785,16 @@ luafaen = sgs.CreateTriggerSkill{
     end,
 
     on_cost = function(self, event, room, player, data, skill_owner)
-        if skill_owner:askForSkillInvoke(self:objectName()) then
-			room:broadcastSkillInvoke(self:objectName(), skill_owner)
-			return true
-		end
+        local choices = {"yes", "no"}
+        local d = sgs.QVariant()
+        d:setValue(player)
+        local choice = room:askForChoice(skill_owner, self:objectName(), table.concat(choices, "+"), d, "@luafaen-draw::".. 
+        player:objectName(), "yes+no")
+        if choice == "yes" then
+            room:broadcastSkillInvoke("luafaen", skill_owner)
+            room:doAnimate(1, skill_owner:objectName(), player:objectName())
+            return true
+        end
         return false
     end,
 
@@ -1817,13 +1820,14 @@ sgs.LoadTranslationTable{
     [":luafaen"] = "有角色横置或叠置后，你可以令其摸一张牌。",
     ["#luapindiDamaged"] = "品第",
     ["@luapindi-toDiscard"] = "品第:弃置一张牌并选择一名其他角色",
+    ["@luafaen-draw"] = "法恩：是否令%dest摸一张牌",
     ["luapindi:d1tx"] = "令其摸 %log 张牌",
     ["luapindi:dxt1"] = "令其弃置 %log 张牌",
-    ["$luapindi1"] = "自古，就是邪不胜正！",
-    ["$luapindi2"] = "主公面前，岂容小人搬弄是非！",
-    ["$luafaen1"] = "公事为重，宴席不去也罢。 ",
-    ["$luafaen2"] = "还是改日吧。",
-    ["~luachenqun"] = "大汉，要亡于宦官之手了。",
+    ["$luapindi1"] = "观其风气，查其品行。",
+    ["$luapindi2"] = "推举贤才，兴盛大魏。",
+    ["$luafaen1"] = "礼法容情，皇恩浩荡。 ",
+    ["$luafaen2"] = "法理有度，恩威并施。",
+    ["~luachenqun"] = "吾身虽陨，典律昭昭。",
 }
 
 sgs.Sanguosha:addSkills(skills)
