@@ -255,8 +255,6 @@ luashibei = sgs.CreateMasochismSkill{
             if source and source:isAlive() then
                 local equipcards = source:getEquips()
                 local horse_ids = sgs.IntList()
-                --if off_horse then horse_ids:append(off_horse:getId()) end
-                --if def_horse then horse_ids:append(def_horse:getId()) end
                 for _, card in sgs.qlist(equipcards) do
                     if card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse")  or card:isKindOf("SixDragons") then
                         horse_ids:append(card:getId())
@@ -274,8 +272,6 @@ luashibei = sgs.CreateMasochismSkill{
             local handcards = player:getHandcards()
             local equipcards = player:getEquips()
             local horse_ids = sgs.IntList()
-            --if off_horse then horse_ids:append(off_horse:getId()) end
-            --if def_horse then horse_ids:append(def_horse:getId()) end
             for _, card in sgs.qlist(handcards) do
                 if card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse") or card:isKindOf("SixDragons") then
                     horse_ids:append(card:getId())
@@ -330,7 +326,6 @@ sgs.LoadTranslationTable{
 
 luazhiyan = sgs.CreateTriggerSkill{
     name = "luazhiyan",
-    --frequency = sgs.Skill_Frequent,
     events = {sgs.EventPhaseStart, sgs.Player_Finish},
     can_trigger = function(self, event, room, player, data)
         if skillTriggerable(player, self:objectName()) and event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Finish then
@@ -447,7 +442,6 @@ luazongxuan = sgs.CreateTriggerSkill{
                 room:addPlayerMark(player, "luazongxuan_discard", putPile_ids:length())
                 local drawPile = room:getDrawPile()
                 for i = putPile_ids:length(), 1, -1 do
-                    --room:moveCardTo(sgs.Sanguosha:getCard(putPile_ids:at(i - 1)), nil, sgs.Player_DrawPile, false)
                     drawPile:prepend(putPile_ids:at(i - 1))
                 end
                 room:doBroadcastNotify(sgs.CommandType.S_COMMAND_UPDATE_PILE, sgs.QVariant(drawPile:length()))
@@ -1657,17 +1651,8 @@ luapindiCard = sgs.CreateSkillCard{
             room:askForDiscard(targets[1], "luapindi", x, x, false, true)
         end
         if source:isAlive() and targets[1]:getLostHp() > 0 and not source:isChained() then
-            local hasFind = false
-            for _, p in sgs.qlist(room:getAlivePlayers()) do
-                if p:hasFlag("luapindiTake") then
-                    room:setPlayerFlag(p, "-luapindiTake")
-                    hasFind = true
-                    room:setPlayerProperty(p, "chained", sgs.QVariant(true)) --横置,要serverplayer类型
-                end
-            end
-            if not hasFind then --到此说明是出牌阶段发动的视为技
-                room:setPlayerProperty(room:getCurrent(), "chained", sgs.QVariant(true)) --横置,要serverplayer类型
-            end
+            --横置,要serverplayer类型
+            room:setPlayerProperty(getServerPlayer(room, source:objectName()), "chained", sgs.QVariant(true))
         end
 	end
 }
@@ -1757,7 +1742,7 @@ luapindiDamaged = sgs.CreateTriggerSkill{
 	end,
 
 	on_effect = function(self, event, room, player, data)
-        room:setPlayerFlag(player, "luapindiTake")
+        --room:setPlayerFlag(player, "luapindiTake")
         room:askForUseCard(player, "@@luapindiVS", "@luapindi-toDiscard")
         return false
     end
@@ -1812,7 +1797,7 @@ canghaiz:insertRelatedSkills("luapindi", "#luapindiDamaged")
 if not sgs.Sanguosha:getSkill("luapindiVS") then skills:append(luapindiVS) end
 
 sgs.LoadTranslationTable{
-    ["luachenqun"] = "陈群",  
+    ["luachenqun"] = "陈群",
     ["luapindi"] = "品第",
     [":luapindi"] = "出牌阶段或当你受到伤害后，你可以弃置一张本回合未以此法选择过的类别牌，令一名本回合未以此法选择过的其他角色摸或弃置X" ..
     "张牌（X为你本回合发动此技能的次数）。若其已受伤，你横置。",
