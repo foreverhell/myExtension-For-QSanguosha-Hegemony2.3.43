@@ -4235,7 +4235,7 @@ lianque = sgs.CreateTriggerSkill{
         room:judge(judge)  
         
         -- 若判定牌为黑色，获得目标一张牌  
-        if judge.card:isKindOf("BasicCard") then  
+        if not judge.card:isKindOf("BasicCard") then  
             --[[
             --削弱方向：实体杀
             local prompt = string.format("@lianque-slash:%s:%s:", target:objectName(), player:objectName())  
