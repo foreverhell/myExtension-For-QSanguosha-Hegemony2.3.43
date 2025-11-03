@@ -734,7 +734,7 @@ jiehengjiang = sgs.CreateMasochismSkill{
     can_trigger = function(self, event, room, player, data)
         if skillTriggerable(player, self:objectName()) then
             local current = room:getCurrent()
-            if not current or current:isDead() or current:getPhase() == sgs.Player_NotActive then 
+            if not current or current:isDead() then 
 				return false 
 			end
             local damage = data:toDamage()
@@ -748,8 +748,8 @@ jiehengjiang = sgs.CreateMasochismSkill{
     end,
 
     on_cost = function(self, event, room, player, data)
-        local current = room:getCurrent()
-        if current and player:askForSkillInvoke(self:objectName(), data) then
+        if player:askForSkillInvoke(self:objectName(), data) then
+			local current = room:getCurrent()
             room:doAnimate(1, player:objectName(), current:objectName())
             room:broadcastSkillInvoke("hengjiang", player)
             return true
@@ -771,7 +771,7 @@ jiehengjiang = sgs.CreateMasochismSkill{
 jiehengjiang_draw = sgs.CreateTriggerSkill{
     name = "#jiehengjiang-draw",
     events = {sgs.CardsMoveOneTime, sgs.EventPhaseChanging},
-    frequency = sgs.Skill_Compulsory,
+    frequency = sgs.Skill_Frequent,
 
     can_trigger = function(self, event, room, player, data)
 		if player and player:isAlive() then
@@ -785,7 +785,7 @@ jiehengjiang_draw = sgs.CreateTriggerSkill{
 					if reasonx == sgs.CardMoveReason_S_REASON_DISCARD then
 						if move.from and move.from_places:contains(sgs.Player_PlaceHand) and move.from:objectName() 
 						== current:objectName() then
-							room:setPlayerMark(current, "jieHengjiangDiscarded", 1)
+							room:setPlayerFlag(current, "jieHengjiangDiscarded")
 							break
 						end
 					end
@@ -793,22 +793,24 @@ jiehengjiang_draw = sgs.CreateTriggerSkill{
 			elseif event == sgs.EventPhaseChanging then
 				local change = data:toPhaseChange()
 				if change.to ~= sgs.Player_NotActive then return false end
-				if current:getMark("jieHengjiangDiscarded") > 0 then 
+				local current = room:getCurrent()
+				if not current then return false end
+				if current:hasFlag("jieHengjiangDiscarded") then 
 					room:setPlayerMark(current, "@hengjiang", 0)
-					room:removePlayerMark(current, "jiehengjiangDiscarded", 0)
+					room:setPlayerFlag(current, "-jiehengjiangDiscarded")
 					return false
 				end
 				local skill_list = {}
 				local name_list = {}
 				local skill_owners = room:findPlayersBySkillName("jiehengjiang")
 				for _, skill_owner in sgs.qlist(skill_owners) do
-					if skillTriggerable(skill_owner, "jiehengjiang") and current:getMark("jieHengjiangDiscarded") <= 0 
+					if skillTriggerable(skill_owner, "jiehengjiang") and not current:hasFlag("jieHengjiangDiscarded") 
 					and current:getMark("@hengjiang") > 0 then
 						table.insert(skill_list, self:objectName())
 						table.insert(name_list, skill_owner:objectName())
 					end
 				end
-				return table.concat(skill_list,"|"), table.concat(name_list,"|")
+				return table.concat(skill_list, "|"), table.concat(name_list, "|")
 			end
 		end
         return false
@@ -1629,7 +1631,7 @@ sgs.LoadTranslationTable{
     ["jieguanyu"] = "关羽",
     ["jienuzhan"] = "怒斩",
 	[":jienuzhan"] = "锁定技，每回合限一次，你使用锦囊牌转化的【杀】无次数限制或者装备牌转化的【杀】造成的伤害+1。",
-	["#jienuzhanAddDamage"] =  "%from发动了“%arg2” ,造成的伤害加“%arg1”",
+	["#jienuzhanAddDamage"] =  "%from发动了“%arg2” ,造成的伤害加“%arg”",
 	["jienuzhan_Trick"] = "怒斩",
 	["jienuzhan_Equip"] = "怒斩",
 	["$jienuzhan1"] = "以义传魂，以武入圣！",
@@ -1866,8 +1868,7 @@ jiexiechanCard = sgs.CreateSkillCard{
 		to_select:isRemoved()
 	end,
 	on_use = function(self, room, source, targets)
-		room:removePlayerMark(source, "@jiexiechan")  
-    	room:broadcastSkillInvoke("jiexiechan", source)
+		room:removePlayerMark(source, "@jiexiechan")
 		source:pindian(targets[1], "jiexiechan")
 	end
 }
@@ -2207,6 +2208,7 @@ jieshuangxiong = sgs.CreatePhaseChangeSkill{
 		local room = player:getRoom()
 		room:setPlayerFlag(player, "jieshuangxiongUsed")
 		local card_ids = room:getNCards(2)
+		room:showCard(player, card_ids)
 		room:fillAG(card_ids, player)
 		local card_choose = room:askForAG(player, card_ids, false, self:objectName())
 		room:clearAG(player)
