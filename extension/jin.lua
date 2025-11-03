@@ -2659,6 +2659,7 @@ yilieCard = sgs.CreateSkillCard{
       
     on_use = function(self, room, source, targets) 
         --room:setPlayerFlag(source, "yilie_used")
+        local choices = {}
         if sgs.Slash_IsAvailable(source) then
             table.insert(choices, "slash")
         end
@@ -2668,6 +2669,7 @@ yilieCard = sgs.CreateSkillCard{
         if source:isWounded() then
             table.insert(choices, "peach")
         end
+        if #choices == 0 then return false end
         choice=room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
         card = sgs.Sanguosha:cloneCard(choice)  
         card:setSkillName("yilie")
@@ -2714,21 +2716,16 @@ yilie = sgs.CreateViewAsSkill{
                 card_name = "slash"  
             elseif pattern == "jink" then  
                 card_name = "jink"  
-            elseif pattern == "peach" then  
+            elseif string.find(pattern,"peach") then  
                 card_name = "peach"  
-            elseif pattern == "analeptic" then  
+            elseif string.find(pattern,"analeptic") then  
                 card_name = "analeptic"  
-            else  
-                card = yilieCard:clone()
-                card:addSubcard(cards[1]:getId())  
-                card:addSubcard(cards[2]:getId())  
-                card:setSkillName(self:objectName())  
-                card:setShowSkill(self:objectName())  
-                return card 
             end  
             local view_as_card = nil
-            if card_name ~= nil then
+            if card_name ~= "" then
                 view_as_card = sgs.Sanguosha:cloneCard(card_name)  
+            else
+                view_as_card = yilieCard:clone()
             end
             view_as_card:addSubcard(cards[1]:getId())  
             view_as_card:addSubcard(cards[2]:getId())  
