@@ -1809,8 +1809,9 @@ sgs.ai_skill_invoke.luasheyan = function(self, data)
                 return true
             end
         end
-        for _, p in ipairs(targetlist) do
-            if not table.contains(tos, p) and not self:isFriend(p) and self:slashIsEffective(card, p, from) then
+        for _, p in sgs.qlist(playersByAction) do
+            if not table.contains(tos, p) and not self:isFriend(p) and self:slashIsEffective(card, p, from) and
+            from:objectName() ~= p:objectName() then
                 self.luasheyanchooseplayer = p
                 return true
             end
@@ -1818,14 +1819,16 @@ sgs.ai_skill_invoke.luasheyan = function(self, data)
     elseif card:isKindOf("Snatch") or card:isKindOf("Dismantlement") then
         self:sort(tos, "handcard")
         if is_friend then
-            for _, p in ipairs(targetlist) do
-                if not table.contains(tos, p) and self:isFriend(p) and self:trickIsEffective(card, p, from) and p:getJudgingArea() then
+            for _, p in sgs.qlist(playersByAction) do
+                if not table.contains(tos, p) and self:isFriend(p) and self:trickIsEffective(card, p, from) and p:getJudgingArea() and
+                from:objectName() ~= p:objectName() then
                     self.luasheyanchooseplayer = p
                     return true
                 end
             end
-            for _, p in ipairs(targetlist) do
-                if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isNude() then
+            for _, p in sgs.qlist(playersByAction) do
+                if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isNude() and
+                from:objectName() ~= p:objectName() then
                     if p:hasSkills(sgs.lose_equip_skill) and p:isKongcheng() then continue end
                     self.luasheyanchooseplayer = p
                     return true
@@ -1836,9 +1839,9 @@ sgs.ai_skill_invoke.luasheyan = function(self, data)
                 self.luasheyanchooseplayer = self.player
                 return true
             else
-                for _, p in ipairs(targetlist) do
+                for _, p in sgs.qlist(playersByAction) do
                     if not table.contains(tos, p) and p:isFriendWith(from) and self:trickIsEffective(card, p, from) and not p:getJudgingArea() and
-                    not p:isNude() then
+                    not p:isNude() and from:objectName() ~= p:objectName() then
                         if p:hasSkills(sgs.lose_equip_skill) and p:isKongcheng() then continue end
                         self.luasheyanchooseplayer = p
                         return true
@@ -1858,18 +1861,18 @@ sgs.ai_skill_invoke.luasheyan = function(self, data)
             end
         else
             if not is_friendwith then
-                for _, p in ipairs(targetlist) do
+                for _, p in sgs.qlist(playersByAction) do
                     if not table.contains(tos, p) and p:isFriendWith(from) and self:trickIsEffective(card, p, from) and
-                    p:getEquips() and not p:hasArmorEffect("PeaceSpell") then
+                    p:getEquips() and not p:hasArmorEffect("PeaceSpell") and from:objectName() ~= p:objectName() then
                         if p:hasSkills(sgs.lose_equip_skill) and p:getEquips() == 1 then continue end
                         self.luasheyanchooseplayer = p
                         return true
                     end
                 end
             end
-            for _, p in ipairs(targetlist) do
+            for _, p in sgs.qlist(playersByAction) do
                 if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) and
-                p:getEquips() and not p:hasArmorEffect("PeaceSpell") then
+                p:getEquips() and not p:hasArmorEffect("PeaceSpell") and from:objectName() ~= p:objectName() then
                     if p:hasSkills(sgs.lose_equip_skill) and p:getEquips() == 1 then continue end
                     self.luasheyanchooseplayer = p
                     return true
@@ -1878,16 +1881,16 @@ sgs.ai_skill_invoke.luasheyan = function(self, data)
         end
     elseif card:isKindOf("BefriendAttacking") then
         if is_friend then
-            for _, p in ipairs(targetlist) do
+            for _, p in sgs.qlist(playersByAction) do
                 if not table.contains(tos, p) and self.player:isFriendWith(p) and self:trickIsEffective(card, p, from) and not 
-                self:needKongcheng(p) and not p:isFriendWith(from) then
+                self:needKongcheng(p) and not p:isFriendWith(from) and from:objectName() ~= p:objectName() then
                     self.luasheyanchooseplayer = p
                     return true
                 end
             end
-            for _, p in ipairs(targetlist) do
+            for _, p in sgs.qlist(playersByAction) do
                 if not table.contains(tos, p) and self:isFriend(p) and self:trickIsEffective(card, p, from) and not 
-                self:needKongcheng(p) and not p:isFriendWith(from) then
+                self:needKongcheng(p) and not p:isFriendWith(from) and from:objectName() ~= p:objectName() then
                     self.luasheyanchooseplayer = p
                     return true
                 end
