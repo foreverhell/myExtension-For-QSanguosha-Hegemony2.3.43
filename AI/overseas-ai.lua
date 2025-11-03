@@ -1435,13 +1435,19 @@ sgs.ai_skill_playerchosen["naman_target"] = function(self, targets)
     elseif card:isKindOf("FightTogether") then
         self:sort(tos, "defenseSlash")
         for _, p in ipairs(tos) do
-            if self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isChained() then
+            if self.player:isFriendWith(p) and self:trickIsEffective(card, p, from) and not p:isChained() then
                 table.insert(result, p)
                 return result
             end
         end
         for _, p in ipairs(tos) do
             if not self:isFriend(p) and self:trickIsEffective(card, p, from) and p:isChained() then
+                table.insert(result, p)
+                return result
+            end
+        end
+		for _, p in ipairs(tos) do
+            if self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isChained() then
                 table.insert(result, p)
                 return result
             end
@@ -1495,14 +1501,16 @@ sgs.ai_skill_playerchosen["naman_target"] = function(self, targets)
             end
         end
 		for _, p in ipairs(targetlist) do
-            if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isNude() then
+            if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isNude() and 
+			not p:getJudgingArea() then
+				if p:hasSkills(sgs.lose_equip_skill) and p:isKongcheng() then continue end
                 table.insert(result, p)
                 return result
             end
         end
     end
 
-    --[[if is_friend then--调虎离山、联军等等，考虑使用和目标敌我，太复杂。暂时简单考虑
+    if is_friend then--调虎离山、联军等等，考虑使用和目标敌我，太复杂。暂时简单考虑
         for _, p in ipairs(targetlist) do
             if not table.contains(tos, p)
             and ((card:isKindOf("TrickCard") and self:trickIsEffective(card, p, from))
@@ -1525,7 +1533,7 @@ sgs.ai_skill_playerchosen["naman_target"] = function(self, targets)
                     return p
             end
         end
-    end]]
+    end
     return {}
 end
 
@@ -1851,9 +1859,9 @@ sgs.ai_skill_choice.huxun = function(self, choices, data)
     end
 end
 
-sgs.ai_skill_playerchosen.huxun = sgs.ai_skill_playerchosen.yongjin
+sgs.ai_skill_playerchosen.huxun = sgs.ai_skill_playerchosen.qiaobian_play
 
-sgs.ai_skill_transfercardchosen.huxun = sgs.ai_skill_transfercardchosen.yongjin
+sgs.ai_skill_transfercardchosen.huxun = sgs.ai_skill_transfercardchosen.qiaobian_play
 --[[
 sgs.ai_skill_playerchosen.huxun = sgs.ai_skill_playerchosen.mouduan
 

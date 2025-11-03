@@ -4,9 +4,11 @@ sgs.LoadTranslationTable{["canghaiz"] = "沧海篇",}
 
 --建立武将
 --魏势力
-luawangling = sgs.General(canghaiz, "luawangling", "wei", 4)
+luawangling = sgs.General(canghaiz, "luawangling", "wei")
 luacaozhi = sgs.General(canghaiz, "luacaozhi", "wei", 3)
 luachenqun = sgs.General(canghaiz, "luachenqun", "wei", 3)
+lualitong = sgs.General(canghaiz, "lualitong", "wei")
+luacaochun = sgs.General(canghaiz, "luacaochun", "wei")
 
 --蜀势力
 --luaqinmi = sgs.General(canghaiz,"luaqinmi", "shu", 3)
@@ -15,7 +17,7 @@ luadongyun = sgs.General(canghaiz, "luadongyun", "shu", 3)
 
 --吴势力
 luayufan = sgs.General(canghaiz, "luayufan", "wu", 3)
-lualuotong = sgs.General(canghaiz, "lualuotong", "wu", 4)
+lualuotong = sgs.General(canghaiz, "lualuotong", "wu")
 
 --群势力
 luajushou = sgs.General(canghaiz, "luajushou", "qun", 3)
@@ -255,8 +257,6 @@ luashibei = sgs.CreateMasochismSkill{
             if source and source:isAlive() then
                 local equipcards = source:getEquips()
                 local horse_ids = sgs.IntList()
-                --if off_horse then horse_ids:append(off_horse:getId()) end
-                --if def_horse then horse_ids:append(def_horse:getId()) end
                 for _, card in sgs.qlist(equipcards) do
                     if card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse")  or card:isKindOf("SixDragons") then
                         horse_ids:append(card:getId())
@@ -274,8 +274,6 @@ luashibei = sgs.CreateMasochismSkill{
             local handcards = player:getHandcards()
             local equipcards = player:getEquips()
             local horse_ids = sgs.IntList()
-            --if off_horse then horse_ids:append(off_horse:getId()) end
-            --if def_horse then horse_ids:append(def_horse:getId()) end
             for _, card in sgs.qlist(handcards) do
                 if card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse") or card:isKindOf("SixDragons") then
                     horse_ids:append(card:getId())
@@ -330,7 +328,6 @@ sgs.LoadTranslationTable{
 
 luazhiyan = sgs.CreateTriggerSkill{
     name = "luazhiyan",
-    --frequency = sgs.Skill_Frequent,
     events = {sgs.EventPhaseStart, sgs.Player_Finish},
     can_trigger = function(self, event, room, player, data)
         if skillTriggerable(player, self:objectName()) and event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Finish then
@@ -447,7 +444,6 @@ luazongxuan = sgs.CreateTriggerSkill{
                 room:addPlayerMark(player, "luazongxuan_discard", putPile_ids:length())
                 local drawPile = room:getDrawPile()
                 for i = putPile_ids:length(), 1, -1 do
-                    --room:moveCardTo(sgs.Sanguosha:getCard(putPile_ids:at(i - 1)), nil, sgs.Player_DrawPile, false)
                     drawPile:prepend(putPile_ids:at(i - 1))
                 end
                 room:doBroadcastNotify(sgs.CommandType.S_COMMAND_UPDATE_PILE, sgs.QVariant(drawPile:length()))
@@ -576,7 +572,7 @@ luaqinzheng = sgs.CreateTriggerSkill{
         local suit_heart = "luaqinzheng_heart_suit"
         if player:getMark("luaqinzheng_type") == 7 and player:getMark("luaqinzheng_typeUsed") == 0 then
             room:addPlayerMark(player, "luaqinzheng_typeUsed", 1)
-            local Analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
+            local Analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, -1)
 			Analeptic:setSkillName("luaqinzheng")
 			room:useCard(sgs.CardUseStruct(Analeptic, player, player), false)
         elseif (player:getMark("luaqinzheng_color") == 3 or player:getMark("luaqinzheng_color") > 4) and 
@@ -592,7 +588,7 @@ luaqinzheng = sgs.CreateTriggerSkill{
                 local target_player = room:askForPlayerChosen(player, target_to, self:objectName(),
                 "@luaqinzheng_slashChoose", true, true)
                 if target_player then
-                    local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                    local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
                     slash:setSkillName("luaqinzheng")
                     room:useCard(sgs.CardUseStruct(slash, player, target_player), false)
                 end
@@ -600,7 +596,7 @@ luaqinzheng = sgs.CreateTriggerSkill{
         elseif player:getMark(suit_spade) == 1 and player:getMark(suit_club) == 1 and player:getMark(suit_diamond) == 1 and
         player:getMark(suit_heart) == 1 and player:getMark("luaqinzheng_suitUsed") == 0 then
             room:addPlayerMark(player, "luaqinzheng_suitUsed", 1)
-            local ex_nihilo = sgs.Sanguosha:cloneCard("ex_nihilo", sgs.Card_NoSuit, 0)
+            local ex_nihilo = sgs.Sanguosha:cloneCard("ex_nihilo", sgs.Card_NoSuit, -1)
             ex_nihilo:setSkillName("luaqinzheng")
             room:useCard(sgs.CardUseStruct(ex_nihilo, player, player), false)
         end
@@ -1348,7 +1344,6 @@ luachengxu = sgs.CreateTriggerSkill{
             local id = room:askForCardChosen(skill_owner, player, "he", self:objectName(), false, sgs.Card_MethodDiscard)
             room:throwCard(id, player, skill_owner)
             if player:isAlive() and player:canDiscard(skill_owner, "he") and not skill_owner:isNude() then
-                --if player:askForSkillInvoke("luachengxu", data) then
                 local choices = {"yes", "no"}
                 local d = sgs.QVariant()
                 d:setValue(skill_owner)
@@ -1368,7 +1363,6 @@ luachengxu = sgs.CreateTriggerSkill{
             skill_owner:removeTag("luachengxu2slash")
             room:useCard(sgs.CardUseStruct(slash, skill_owner, player), false)
             if player:isAlive() and player:canSlash(skill_owner, false) then
-                --if player:askForSkillInvoke("luachengxu", data) then
                 local choices = {"yes", "no"}
                 local d = sgs.QVariant()
                 d:setValue(skill_owner)
@@ -1652,7 +1646,6 @@ luapindiCard = sgs.CreateSkillCard{
         else
             choice = room:askForChoice(source, "luapindi", "d1tx%log:" .. x .. "+dxt1%log:" .. x)
         end
-        room:broadcastSkillInvoke("luapindi", source)
 
         if string.find(choice, "d1tx") then
             targets[1]:drawCards(x)
@@ -1660,17 +1653,8 @@ luapindiCard = sgs.CreateSkillCard{
             room:askForDiscard(targets[1], "luapindi", x, x, false, true)
         end
         if source:isAlive() and targets[1]:getLostHp() > 0 and not source:isChained() then
-            local hasFind = false
-            for _, p in sgs.qlist(room:getAlivePlayers()) do
-                if p:hasFlag("luapindiTake") then
-                    room:setPlayerFlag(p, "-luapindiTake")
-                    hasFind = true
-                    room:setPlayerProperty(p, "chained", sgs.QVariant(true)) --横置,要serverplayer类型
-                end
-            end
-            if not hasFind then --到此说明是出牌阶段发动的视为技
-                room:setPlayerProperty(room:getCurrent(), "chained", sgs.QVariant(true)) --横置,要serverplayer类型
-            end
+            --横置,要serverplayer类型
+            room:setPlayerProperty(getServerPlayer(room, source:objectName()), "chained", sgs.QVariant(true))
         end
 	end
 }
@@ -1760,7 +1744,6 @@ luapindiDamaged = sgs.CreateTriggerSkill{
 	end,
 
 	on_effect = function(self, event, room, player, data)
-        room:setPlayerFlag(player, "luapindiTake")
         room:askForUseCard(player, "@@luapindiVS", "@luapindi-toDiscard")
         return false
     end
@@ -1788,10 +1771,16 @@ luafaen = sgs.CreateTriggerSkill{
     end,
 
     on_cost = function(self, event, room, player, data, skill_owner)
-        if skill_owner:askForSkillInvoke(self:objectName()) then
-			room:broadcastSkillInvoke(self:objectName(), skill_owner)
-			return true
-		end
+        local choices = {"yes", "no"}
+        local d = sgs.QVariant()
+        d:setValue(player)
+        local choice = room:askForChoice(skill_owner, self:objectName(), table.concat(choices, "+"), d, "@luafaen-draw::".. 
+        player:objectName(), "yes+no")
+        if choice == "yes" then
+            room:broadcastSkillInvoke("luafaen", skill_owner)
+            room:doAnimate(1, skill_owner:objectName(), player:objectName())
+            return true
+        end
         return false
     end,
 
@@ -1809,7 +1798,7 @@ canghaiz:insertRelatedSkills("luapindi", "#luapindiDamaged")
 if not sgs.Sanguosha:getSkill("luapindiVS") then skills:append(luapindiVS) end
 
 sgs.LoadTranslationTable{
-    ["luachenqun"] = "陈群",  
+    ["luachenqun"] = "陈群",
     ["luapindi"] = "品第",
     [":luapindi"] = "出牌阶段或当你受到伤害后，你可以弃置一张本回合未以此法选择过的类别牌，令一名本回合未以此法选择过的其他角色摸或弃置X" ..
     "张牌（X为你本回合发动此技能的次数）。若其已受伤，你横置。",
@@ -1817,13 +1806,275 @@ sgs.LoadTranslationTable{
     [":luafaen"] = "有角色横置或叠置后，你可以令其摸一张牌。",
     ["#luapindiDamaged"] = "品第",
     ["@luapindi-toDiscard"] = "品第:弃置一张牌并选择一名其他角色",
+    ["@luafaen-draw"] = "法恩：是否令%dest摸一张牌",
     ["luapindi:d1tx"] = "令其摸 %log 张牌",
     ["luapindi:dxt1"] = "令其弃置 %log 张牌",
-    ["$luapindi1"] = "自古，就是邪不胜正！",
-    ["$luapindi2"] = "主公面前，岂容小人搬弄是非！",
-    ["$luafaen1"] = "公事为重，宴席不去也罢。 ",
-    ["$luafaen2"] = "还是改日吧。",
-    ["~luachenqun"] = "大汉，要亡于宦官之手了。",
+    ["$luapindi1"] = "观其风气，查其品行。",
+    ["$luapindi2"] = "推举贤才，兴盛大魏。",
+    ["$luafaen1"] = "礼法容情，皇恩浩荡。 ",
+    ["$luafaen2"] = "法理有度，恩威并施。",
+    ["~luachenqun"] = "吾身虽陨，典律昭昭。",
+}
+
+luatuifeng = sgs.CreateTriggerSkill{
+    name = "luatuifeng",
+    events = {sgs.Damaged, sgs.Damage, sgs.EventPhaseChanging, sgs.CardUsed, sgs.CardFinished},
+    on_record = function(self, event, room, player, data)
+        if event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            local skill_owners = room:findPlayersBySkillName(self:objectName())
+            if skill_owners:isEmpty() or change.to ~= sgs.Player_NotActive then return false end
+            for _, skill_owner in sgs.qlist(skill_owners) do
+                if skillTriggerable(skill_owner, self:objectName()) then
+                    room:setPlayerMark(skill_owner, "##luatuifeng", 0)
+                end
+            end
+        elseif event == sgs.Damage and skillTriggerable(player, self:objectName()) then
+            local damage = data:toDamage()
+            if damage.card and damage.card:isKindOf("Slash") and damage.card:hasFlag("luatuifengSlash") then
+                room:askForQiaobian(player, room:getAlivePlayers(), self:objectName(), "@luatuifeng-move", true, true)
+            end
+        elseif skillTriggerable(player, self:objectName()) and event == sgs.CardUsed then
+            local use = data:toCardUse()
+            if use.card and use.card:isKindOf("Slash") and player:hasFlag("luatuifengUseSlash") and not 
+            player:hasFlag("luatuifengNoSlash") then
+                room:setPlayerFlag(player, "-luatuifengUseSlash")
+                use.card:setFlags("luatuifengSlash")
+            end
+        elseif skillTriggerable(player, self:objectName()) and event == sgs.CardFinished then
+            local use = data:toCardUse()
+            if use.card and use.card:isKindOf("Slash") and player:hasFlag("luatuifengUseSlash") then
+                room:setPlayerFlag(player, "-luatuifengUseSlash")
+            end
+        end
+    end,
+
+    can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) and (event == sgs.Damaged or event == sgs.Damage) and 
+        player:getMark("##luatuifeng") < 1 and not player:isNude() then
+            return self:objectName()
+		end
+		return false
+	end,
+
+	on_cost = function(self, event, room, player, data)
+		if player:askForSkillInvoke(self:objectName(), data) then
+			room:broadcastSkillInvoke(self:objectName(), player)
+			return true
+		end
+		return false
+	end,
+
+	on_effect = function(self, event, room, player, data)
+        local card_id = room:askForDiscard(player, self:objectName(), 1, 1, false, true)
+        if card_id then
+            room:setPlayerMark(player, "##luatuifeng", 1)
+        end
+        return false
+    end
+}
+
+luatuifengEffect = sgs.CreateTriggerSkill{
+    name = "#luatuifengEffect",
+    events = {sgs.EventPhaseStart},
+    
+    can_trigger = function(self, event, room, player, data)
+		if player and player:getPhase() == sgs.Player_Finish then
+            local skill_owners = room:findPlayersBySkillName("luatuifeng")
+			local skill_list = {}
+			local name_list = {}
+			if skill_owners:isEmpty() then return false end
+            for _, skill_owner in sgs.qlist(skill_owners) do
+                if skillTriggerable(skill_owner, "luatuifeng") and skill_owner:getMark("##luatuifeng") > 0 then
+                    table.insert(skill_list, self:objectName())
+					table.insert(name_list, skill_owner:objectName())
+				end
+            end
+            return table.concat(skill_list, "|"), table.concat(name_list, "|")
+		end
+		return false
+	end,
+
+	on_cost = function(self, event, room, player, data, skill_owner)
+        room:broadcastSkillInvoke("luatuifeng", skill_owner)
+		return true
+	end,
+
+	on_effect = function(self, event, room, player, data, skill_owner)
+        room:setPlayerFlag(skill_owner, "luatuifengUseSlash")
+        --执行后会优先触发CardUsed事件，不继续向下执行代码，故判断逻辑写得较为复杂
+        local is_slash = room:askForUseSlashTo(skill_owner, room:getOtherPlayers(skill_owner), "@luatuifeng-slash", true)
+        if not is_slash then
+            skill_owner:drawCards(2)
+            room:setPlayerFlag(skill_owner, "luatuifengNoSlash")
+        end
+        return false
+    end
+}
+
+lualitong:addSkill(luatuifeng)
+lualitong:addSkill(luatuifengEffect)
+canghaiz:insertRelatedSkills("luatuifeng", "#luatuifengEffect")
+
+sgs.LoadTranslationTable{
+    ["lualitong"] = "李通",
+    ["luatuifeng"] = "推锋",
+    [":luatuifeng"] = "每回合限一次，当你造成或受到伤害后，你可以弃置一张牌。若如此做，你于此回合结束时摸两张牌或使用一张【杀】，若" ..
+    "此【杀】造成伤害，你可以移动场上的一张牌。",
+    ["@luatuifeng-slash"] = "推锋：使用一张【杀】，点【取消】则摸两张牌",
+    ["@luatuifeng-move"] = "推锋：移动场上一张牌",
+    ["$luatuifeng1"] = "摧锋陷阵，以杀贼首！",
+    ["$luatuifeng2"] = "敌锋之锐，我已尽知。",
+    ["~lualitong"] = "战死沙场，快哉！",
+}
+
+luadurui = sgs.CreateTriggerSkill{
+    name = "luadurui",
+    events = {sgs.EventPhaseStart},
+    can_trigger = function(self, event, room, player, data)
+		if player and player:getPhase() == sgs.Player_Finish then
+            local skill_owners = room:findPlayersBySkillName(self:objectName())
+			local skill_list = {}
+			local name_list = {}
+			if skill_owners:isEmpty() then return false end
+            for _, skill_owner in sgs.qlist(skill_owners) do
+                if skillTriggerable(skill_owner, self:objectName()) and skill_owner:hasFlag("luaduruiEnough") and
+                player:isFriendWith(skill_owner) then
+                    table.insert(skill_list, self:objectName())
+					table.insert(name_list, skill_owner:objectName())
+				end
+            end
+            return table.concat(skill_list, "|"), table.concat(name_list, "|")
+		end
+		return false
+	end,
+
+	on_cost = function(self, event, room, player, data, skill_owner)
+        if skill_owner:askForSkillInvoke(self:objectName(), data) then
+			room:broadcastSkillInvoke(self:objectName(), skill_owner)
+			return true
+		end
+		return false
+	end,
+
+	on_effect = function(self, event, room, player, data, skill_owner)
+        local target_to = sgs.SPlayerList() --获取除选择目标的其他角色
+        for _, p in sgs.qlist(room:getOtherPlayers(skill_owner)) do
+            if skill_owner:canSlash(p, true) then
+                target_to:append(p)
+            end
+        end
+        if not target_to:isEmpty() then
+            local target_player = room:askForPlayerChosen(skill_owner, target_to, self:objectName(),
+            "@luadurui-slash", true, true)
+            if target_player then
+                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
+                slash:setSkillName(self:objectName())
+                room:useCard(sgs.CardUseStruct(slash, skill_owner, target_player), true)
+            end
+        end
+        return false
+    end
+}
+
+luaduruiMark = sgs.CreateTriggerSkill{
+    name = "#luaduruiMark",
+    events = {sgs.EventPhaseChanging, sgs.Damage, sgs.DamageInflicted, sgs.PreDamageDone},
+    on_record = function(self, event, room, player, data)
+        if event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            if change.to == sgs.Player_NotActive then
+                local skill_owners = room:findPlayersBySkillName("luadurui")
+                if skill_owners:isEmpty() then return false end
+                for _, skill_owner in sgs.qlist(skill_owners) do
+                    if skill_owner:getMark("luaduruiDamage") > 0 then
+                        room:setPlayerMark(skill_owner, "luaduruiDamage", 0)
+                    end
+                end
+            end
+        elseif event == sgs.Damage then
+            local damage = data:toDamage()
+            local current = room:getCurrent()
+            local skill_owners = room:findPlayersBySkillName("luadurui")
+            if skill_owners:isEmpty() then return false end
+            for _, skill_owner in sgs.qlist(skill_owners) do
+                if skillTriggerable(skill_owner, "luadurui") and skill_owner:isFriendWith(damage.from) and
+                current:isFriendWith(skill_owner) then
+                    if not skill_owner:hasFlag("luaduruiEnough") then
+                        room:addPlayerMark(skill_owner, "luaduruiDamage", damage.damage)
+                        if skill_owner:getMark("luaduruiDamage") > 1 then
+                            room:setPlayerFlag(skill_owner, "luaduruiEnough")
+                        end
+                    end
+                end
+            end
+        elseif event == sgs.PreDamageDone then
+            local damage = data:toDamage()
+            local current = room:getCurrent()
+            local skill_owners = room:findPlayersBySkillName("luadurui")
+            if skill_owners:isEmpty() then return false end
+            for _, skill_owner in sgs.qlist(skill_owners) do
+                if skillTriggerable(skill_owner, "luadurui") and skill_owner:isFriendWith(damage.from) and
+                current:isFriendWith(skill_owner) then
+                    if skill_owner:getTag("luaduruiOnlyDamage") and skill_owner:getTag("luaduruiOnlyDamage"):toPlayer() then
+                        local target = skill_owner:getTag("luaduruiOnlyDamage"):toPlayer()
+                        if target:objectName() ~= damage.to:objectName() then
+                            skill_owner:removeTag("luaduruiOnlyDamage")
+                            room:setPlayerFlag(skill_owner, "luaduruiNoOnly")
+                        end
+                    elseif not skill_owner:hasFlag("luaduruiOnlyDamage") then
+                        local d = sgs.QVariant()
+                        d:setValue(damage.to)
+                        skill_owner:setTag("luaduruiOnlyDamage", d)
+                    end
+                end
+            end
+        end
+    end,
+
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and event == sgs.DamageInflicted then
+            local damage = data:toDamage()
+            local skill_owners = room:findPlayersBySkillName("luadurui")
+            if skill_owners:isEmpty() then return false end
+            for _, skill_owner in sgs.qlist(skill_owners) do
+                if damage.card and damage.card:isKindOf("Slash") and damage.card:getSkillName() == "luadurui" and not
+                skill_owner:hasFlag("luaduruiNoOnly") and damage.from:objectName() == skill_owner:objectName() then
+                    if skill_owner:getTag("luaduruiOnlyDamage") and skill_owner:getTag("luaduruiOnlyDamage"):toPlayer() then
+                        local target = skill_owner:getTag("luaduruiOnlyDamage"):toPlayer()
+                        skill_owner:removeTag("luaduruiOnlyDamage")
+                        if damage.to:objectName() == target:objectName() then
+                            damage.damage = damage.damage + 1
+                            data:setValue(damage)
+                            -- 显示加伤的提示  
+                            local msg = sgs.LogMessage()
+                            msg.type = "#jienuzhanAddDamage"
+                            msg.from = skill_owner
+                            msg.arg = 1
+                            msg.arg2 = "luadurui"
+                            room:sendLog(msg)
+                        end
+                    end
+                end
+            end
+        end
+        return false
+    end
+}
+
+luacaochun:addSkill(luadurui)
+luacaochun:addSkill(luaduruiMark)
+canghaiz:insertRelatedSkills("luadurui", "#luaduruiMark")
+
+sgs.LoadTranslationTable{
+    ["luacaochun"] = "曹纯",
+    ["luadurui"] = "督锐",
+    [":luadurui"] = "与你势力相同的角色回合结束时，若与你势力相同的角色共计造成过2点伤害，你可以视为使用一张【杀】，若本回合受伤角色唯" ..
+    "一，此【杀】对其伤害+1。",
+    ["@luadurui-slash"] = "督锐：选择一名其他角色视为对其使用【杀】",
+    ["$luadurui1"] = "虎豹骁骑，甲兵自当冠宇天下。",
+    ["$luadurui2"] = "非虎贲难入我营，唯坚铠方配锐士。",
+    ["~luacaochun"] = "三属之下，竟也护不住我性命…",
 }
 
 sgs.Sanguosha:addSkills(skills)
