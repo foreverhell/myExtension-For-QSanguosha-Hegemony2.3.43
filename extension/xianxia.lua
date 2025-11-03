@@ -1674,7 +1674,7 @@ zhuanzheng1Mod = sgs.CreateTargetModSkill{
     pattern = "Slash#Snatch",  --同类模式用#并列，不同类用|并列  
     extra_target_func = function(self, player, card)  
         if card:getSkillName() == "zhuanzheng1" then  
-            return card:getSubcards():length()
+            return card:getSubcards():length()-1
         else  
             return 0  
         end  
