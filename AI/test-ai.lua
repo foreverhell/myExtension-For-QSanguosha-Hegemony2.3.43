@@ -1498,17 +1498,23 @@ sgs.ai_skill_use["@@luajintaoVS"] = function(self, prompt)
 	cards = sgs.QList2Table(cards)
     self:sortByUseValue(cards, true)
     self:sort(self.enemies, "hp")
-    local target, sec_target
+    local target, sec_target, throw_weapon
+    local weapon = self.player:getWeapon()
+	if weapon and (weapon:isKindOf("Fan") or weapon:isKindOf("QinggangSword")) then 
+        throw_weapon = true 
+    end
     for _, p in ipairs(self.enemies) do
         if self:damageIsEffective(p, nil, self.player) and not self:needDamagedEffects(p, self.player) and
         not self:needToLoseHp(p, self.player) and self.player:distanceTo(p) > 0 and #cards >= self.player:distanceTo(p) then
-            if p:getHp() == 1 and self:isWeak(p) then
-                target = p
-                break
-            end
-            if p:getHp() == 2 and self:isWeak(p) then
-                sec_target = p
-                break
+            if (p:hasArmorEffect("Vine") and throw_weapon) or not p:hasArmorEffect("Vine") then
+                if p:getHp() == 1 and self:isWeak(p) then
+                    target = p
+                    break
+                end
+                if p:getHp() == 2 and self:isWeak(p) then
+                    sec_target = p
+                    break
+                end
             end
         end
     end
@@ -1523,19 +1529,23 @@ sgs.ai_skill_use["@@luajintaoVS"] = function(self, prompt)
         for _, p in ipairs(self.enemies) do
             if self:damageIsEffective(p, nil, self.player) and not self:needDamagedEffects(p, self.player) and
             not self:needToLoseHp(p, self.player) and self.player:distanceTo(p) > 0 and #cards >= self.player:distanceTo(p) then
-                local jintaoCard = {}
-                for i = 1, self.player:distanceTo(p) do
-                    table.insert(jintaoCard, cards[i]:getId())
+                if (p:hasArmorEffect("Vine") and throw_weapon) or not p:hasArmorEffect("Vine") then
+                    local jintaoCard = {}
+                    for i = 1, self.player:distanceTo(p) do
+                        table.insert(jintaoCard, cards[i]:getId())
+                    end
+                    return "#luajintaoCard:" .. table.concat(jintaoCard, "+") .. ":&luajintao->" .. p:objectName()
                 end
-                return "#luajintaoCard:" .. table.concat(jintaoCard, "+") .. ":&luajintao->" .. p:objectName()
             end
         end
-    --[[else
-        local jintaoCard = {}
-        for i = 1, self.player:distanceTo(target) do
-            table.insert(jintaoCard, cards[i]:getId())
+    else
+        if (p:hasArmorEffect("Vine") and throw_weapon) or not p:hasArmorEffect("Vine") then
+            local jintaoCard = {}
+            for i = 1, self.player:distanceTo(target) do
+                table.insert(jintaoCard, cards[i]:getId())
+            end
+            return "#luajintaoCard:" .. table.concat(jintaoCard, "+") .. ":&luajintao->" .. target:objectName()
         end
-        return "#luajintaoCard:" .. table.concat(jintaoCard, "+") .. ":&luajintao->" .. target:objectName()]]
     end
     return ""
 end
