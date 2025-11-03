@@ -1556,13 +1556,17 @@ jiusiCard = sgs.CreateSkillCard{
     will_throw = false,  
       
     on_use = function(self, room, source, targets) 
-        choices = {"analeptic"}
+        choices = {}
         if sgs.Slash_IsAvailable(source) then
             table.insert(choices, "slash")
+        end
+        if sgs.Analeptic_IsAvailable(source) then
+            table.insert(choices, "analeptic")
         end
         if source:isWounded() then
             table.insert(choices, "peach")
         end
+        if #choices == 0 then return false end
         choice=room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
         card = sgs.Sanguosha:cloneCard(choice)  
         card:setSkillName("jiusi")
@@ -1601,17 +1605,16 @@ jiusiVS = sgs.CreateZeroCardViewAsSkill{
             card_name = "slash"  
         elseif pattern == "jink" then  
             card_name = "jink"  
-        elseif pattern == "peach" then  
+        elseif string.find(pattern,"peach") then  
             card_name = "peach"  
-        elseif pattern == "analeptic" then  
+        elseif string.find(pattern,"analeptic") then  
             card_name = "analeptic"  
-        else
-            card = jiusiCard:clone()
-            return card 
         end  
         local view_as_card = nil
-        if card_name ~= nil then
+        if card_name ~= "" then
             view_as_card = sgs.Sanguosha:cloneCard(card_name)  
+        else
+            view_as_card = jiusiCard:clone()
         end
         view_as_card:setSkillName(self:objectName())  
         view_as_card:setShowSkill(self:objectName())  
