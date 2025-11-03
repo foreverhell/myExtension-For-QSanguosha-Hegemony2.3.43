@@ -1548,6 +1548,12 @@ benxi = sgs.CreateTriggerSkill{
             local use = data:toCardUse()  
             if player ~= use.from then return "" end
             room:addPlayerMark(player,"@benxi",1)
+            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                if player:distanceTo(p) > 1 then
+                    return "" 
+                end
+            end
+            room:setPlayerFlag(player, "zhuanzheng_active")
         elseif event == sgs.EventPhaseEnd and player:getPhase() == sgs.Player_Finish then
             room:setPlayerMark(player,"@benxi",0)
         end
@@ -1573,7 +1579,7 @@ benxiMod = sgs.CreateDistanceSkill{
 		return 0
 	end
 }
-
+--[[
 zhuanzheng1_card = sgs.CreateSkillCard{  
     name = "zhuanzheng1",  
     target_fixed = false,  
@@ -1632,16 +1638,267 @@ zhuanzheng1 = sgs.CreateZeroCardViewAsSkill{
         return used_times < 2
     end  
 }
+]]
 
+zhuanzheng1 = sgs.CreateViewAsSkill{  
+    name = "zhuanzheng1",  
+    view_filter = function(self, selected, to_select)  
+        if #selected == 0 then
+            return to_select:isKindOf("BasicCard") or to_select:isKindOf("TrickCard")
+        else
+            return selected[1]:getTypeId() == to_select:getTypeId()
+        end
+    end,  
+    view_as = function(self, cards)
+        if #cards == 0 then return nil end
+        local card = nil
+        if cards[1]:getTypeId() == sgs.Card_TypeBasic then
+            card = sgs.Sanguosha:cloneCard("Slash")
+        elseif cards[1]:getTypeId() == sgs.Card_TypeTrick then
+            card = sgs.Sanguosha:cloneCard("Snatch")
+        end
+        for _, c in ipairs(cards) do
+            card:addSubcard(c)
+        end
+        card:setSkillName(self:objectName())
+        card:setShowSkill(self:objectName())
+        return card
+    end,  
+      
+    enabled_at_play = function(self, player)   
+        return player:hasFlag("zhuanzheng_active") and player:usedTimes("ViewAsSkill_zhuanzheng1Card") == 0
+    end  
+}
+zhuanzheng1Mod = sgs.CreateTargetModSkill{  
+    name = "#zhuanzheng1-mod",   
+    pattern = "Slash#Snatch",  --同类模式用#并列，不同类用|并列  
+    extra_target_func = function(self, player, card)  
+        if card:getSkillName() == "zhuanzheng1" then  
+            return card:getSubcards():length()
+        else  
+            return 0  
+        end  
+    end  
+}  
 wuyi:addSkill(benxi)
 wuyi:addSkill(benxiMod)
 wuyi:addSkill(zhuanzheng1)
+wuyi:addSkill(zhuanzheng1Mod)
 extension:insertRelatedSkills("benxi", "#benxi-distance")
+extension:insertRelatedSkills("zhuanzheng1", "#zhuanzheng1-mod")
 sgs.LoadTranslationTable{
     ["wuyi"] = "吴懿",
     ["benxi"] = "奔袭",
     [":benxi"] = "锁定技。你回合内使用牌时，本回合你计算与其他角色的距离-1",
     ["zhuanzheng1"] = "转征",
-    [":zhuanzheng1"] = "出牌阶段限2次。你可以选择1名距离小于等于1的同势力角色，你摸X张牌，X为你与其之间的角色数且至少为1"
+    [":zhuanzheng1"] = "出牌阶段限2次。你可以选择1名距离小于等于1的同势力角色，你摸X张牌，X为你与其之间的角色数且至少为1",
+    ["zhuanzheng1"] = "转征",
+    [":zhuanzheng1"] = "出牌阶段限1次。若你与所有角色的距离都为1，你可以将：任意数量的基础牌当作杀，指定等量角色；任意数量的锦囊当作顺手牵羊，指定等量角色"
+}
+
+
+
+caiyong = sgs.General(extension, "caiyong", "qun", 3) -- 吴苋，蜀势力，3血，女性
+caiyong1 = sgs.CreateTriggerSkill{  
+    name = "caiyong1",  
+    events = {sgs.TargetConfirming},  
+    frequency = sgs.Skill_Frequent,  
+      
+    can_trigger = function(self, event, room, player, data)  
+        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
+            return ""  
+        end  
+        if player:isNude() then return "" end
+        local use = data:toCardUse()  
+        if use.card and use.card:isBlack() and use.from~=player and use.to:contains(player) then 
+            if use.card:getTypeId()==sgs.Card_TypeSkill then return "" end 
+            return self:objectName()  
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName(), player)  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local use = data:toCardUse()
+        if room:askForDiscard(player, self:objectName(), 1, 1, true, true, "@caiyong1-recast") then
+            player:drawCards(1,self:objectName())
+            local card = player:getHandcards():last()
+            if card:isBlack() and card:getSuit() ~= use.card:getSuit() then --黑色，并且花色不同，即黑色的另一种花色
+                room:showCard(player, card:getId()) --展示
+                player:drawCards(1,self:objectName()) --再摸1张
+            end
+        end
+        return false  
+    end  
+}
+
+
+caiyong2Card = sgs.CreateSkillCard{  
+    name = "caiyong2Card",  
+    target_fixed = true,  
+    will_throw = true,  
+      
+    on_use = function(self, room, source, targets) 
+        local choices = {}
+        if sgs.Slash_IsAvailable(source) then
+            table.insert(choices, "slash")
+        end
+        if sgs.Analeptic_IsAvailable(source) then
+            table.insert(choices, "analeptic")
+        end
+        if source:isWounded() then
+            table.insert(choices, "peach")
+        end
+        if #choices == 0 then return false end
+        choice=room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
+        card = sgs.Sanguosha:cloneCard(choice)  
+        card:setSkillName("caiyong2")
+        card:deleteLater()
+        if choice=="slash" then
+            local targets = sgs.SPlayerList()  
+            for _, p in sgs.qlist(room:getOtherPlayers(source)) do  
+                if source:inMyAttackRange(p) then  
+                    targets:append(p) 
+                end  
+            end  
+            target=room:askForPlayerChosen(source, targets, self:objectName())
+            local use = sgs.CardUseStruct()  
+            use.from = source  
+            use.to:append(target)   
+            use.card = card  
+            room:useCard(use)
+        else
+            local use = sgs.CardUseStruct()  
+            use.from = source  
+            use.to:append(source)   
+            use.card = card  
+            room:useCard(use)
+        end
+    end  
+}
+
+caiyong2VS = sgs.CreateViewAsSkill{  
+    name = "caiyong2",  
+    view_filter = function(self, selected, to_select)  
+        if #selected == 0 then
+            return true
+        else
+            for _, c in ipairs(selected) do
+                if to_select:getSuit() == c:getSuit() then
+                    return false
+                end
+            end
+            return true
+        end
+    end,  
+    view_as = function(self, cards)
+        if #cards ~= 4 then return nil end
+        local card_name = ""  
+        local pattern = sgs.Sanguosha:getCurrentCardUsePattern()  
+        if pattern == "slash" then  
+            card_name = "slash"  
+        elseif pattern == "jink" then  
+            card_name = "jink"  
+        elseif string.find(pattern,"peach") then  
+            card_name = "peach"  
+        elseif string.find(pattern,"analeptic") then  
+            card_name = "analeptic"  
+        end  
+        local view_as_card = nil
+        if card_name ~= "" then
+            view_as_card = sgs.Sanguosha:cloneCard(card_name)  
+        else
+            view_as_card = caiyong2Card:clone()
+        end
+        for _, c in ipairs(cards) do
+            view_as_card:addSubcard(c)
+        end
+        view_as_card:setSkillName(self:objectName())  
+        view_as_card:setShowSkill(self:objectName())  
+        return view_as_card  
+    end,  
+      
+    enabled_at_play = function(self, player)   
+        return true
+    end,
+    enabled_at_response = function(self, player, pattern)   
+        return pattern == "slash" or pattern == "jink" or string.find(pattern,"peach") or string.find(pattern,"analeptic")
+    end,
+
+}
+
+caiyong2 = sgs.CreateTriggerSkill{  
+    name = "caiyong2",  
+    view_as_skill = caiyong2VS,  
+    events = {sgs.CardUsed, sgs.CardResponded},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
+            return ""  
+        end  
+          
+        local card = nil
+        if event == sgs.CardUsed then  
+            local use = data:toCardUse()  
+            card = use.card  
+        else -- sgs.CardResponded  
+            local response = data:toCardResponse()  
+            card = response.m_card  
+        end  
+          
+        if card and card:getSkillName() == "caiyong2" then  
+            return self:objectName()  
+        end  
+          
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(),data) 
+    end,  
+    on_effect = function(self, event, room, player, data) 
+        local card = nil
+        if event == sgs.CardUsed then  
+            local use = data:toCardUse()  
+            card = use.card  
+        else -- sgs.CardResponded  
+            local response = data:toCardResponse()  
+            card = response.m_card  
+        end  
+        local subcards = card:getSubcards() --分配这些子卡
+
+
+        for _,c in sgs.qlist(subcards) do
+            local targets = sgs.SPlayerList()  
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
+                if player:isFriendWith(p) then  
+                    targets:append(p)  
+                end  
+            end             
+            if targets:isEmpty() then return false end  
+            
+            local target = room:askForPlayerChosen(player, targets, self:objectName(),   
+                                                "@caiyong2-choose", false, true)  
+            if target and target:isAlive() then
+                room:obtainCard(target, c)
+            end
+        end
+        return false  
+    end  
+}
+caiyong:addSkill(caiyong1)
+caiyong:addSkill(caiyong2)
+sgs.LoadTranslationTable{
+    ["caiyong"] = "蔡邕",
+    ["caiyong1"] = "技能1",
+    [":caiyong1"] = "当你成为黑色牌的目标时，你可以重铸1张牌，若摸的牌为黑色的另一种花色，你摸1张牌",
+    ["caiyong2"] = "技能2",
+    [":caiyong2"] = "你可以将4种不同花色的牌当任意基本牌使用或打出，然后你可以将这些牌分配给任意名势力相同的其他角色",
 }
 return {extension}
