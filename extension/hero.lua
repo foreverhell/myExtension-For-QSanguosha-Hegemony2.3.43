@@ -12288,7 +12288,7 @@ sgs.LoadTranslationTable{
 zudi = sgs.General(extension, "zudi", "qun", 3) --击揖，和沮授接近；置酒，吕雉需要酒
 jiyi = sgs.CreateTriggerSkill{  
     name = "jiyi",  
-    events = {sgs.Damage, sgs.Damaged},  
+    events = {sgs.DamageInflicted},  
     frequency = sgs.Skill_Compulsory,    
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
@@ -12303,7 +12303,7 @@ jiyi = sgs.CreateTriggerSkill{
       
     on_effect = function(self, event, room, player, data)  
         damage = data:toDamage()
-        if event == sgs.Damage then
+        if damage.from == player then --伤害源是自己
             if player:getMark("damage_add") == 0 then --没有加伤标记
                 damage.damage = damage.damage - 1 --伤害-1
                 room:setPlayerMark(player,"damage_add",1) --下次伤害+1
@@ -12311,7 +12311,7 @@ jiyi = sgs.CreateTriggerSkill{
                 damage.damage = damage.damage + 1 --伤害+1
                 room:setPlayerMark(player,"damage_add",0) --下次伤害-1
             end
-        elseif event == sgs.Damaged then
+        elseif damage.to == player then --伤害目标是自己
             if player:getMark("damaged_add") == 0 then --没有加伤标记
                 damage.damage = damage.damage - 1 --伤害-1
                 room:setPlayerMark(player,"damaged_add",1) --下次伤害+1
@@ -12327,6 +12327,7 @@ jiyi = sgs.CreateTriggerSkill{
         return false  
     end  
 }  
+
 
 fuji = sgs.CreateTriggerSkill{  
     name = "fuji",  
@@ -12372,7 +12373,7 @@ zhijiu = sgs.CreateOneCardViewAsSkill{
         return string.find(pattern,"analeptic")
     end,
 }  
---zudi:addSkill(jiyi)--有问题，已经造成伤害了伤害量不能变化，需要DamageInflicted
+zudi:addSkill(jiyi)
 zudi:addSkill(fuji)
 zudi:addSkill(zhijiu)
 sgs.LoadTranslationTable{
