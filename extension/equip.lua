@@ -53,7 +53,7 @@ shixuejian_skill = sgs.CreateTriggerSkill{
     events = {sgs.Damage},  
     frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)
-        if not (player and player:isAlive() and player:hasWeapon() and player:getWeapon():isKindOf("ShiXueJian")) then   
+        if not (player and player:isAlive() and player:hasWeapon("ShiXueJian")) then--and player:getWeapon():isKindOf("ShiXueJian")) then   
             return ""   
         end  
         local damage = data:toDamage()  
@@ -100,7 +100,7 @@ anshajian_skill = sgs.CreateTriggerSkill{
     events = {sgs.DamageCaused},  
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
-        if not (player and player:isAlive() and player:hasWeapon() and player:getWeapon():isKindOf("AnShaJian")) then   
+        if not (player and player:isAlive() and player:hasWeapon("AnShaJian")) then--and player:getWeapon():isKindOf("AnShaJian")) then   
             return ""   
         end  
         local damage = data:toDamage()  
@@ -154,7 +154,7 @@ jinxiuzhengpao_skill = sgs.CreateTriggerSkill{
         local damage = data:toDamage()  
         local armor = damage.to:getArmor()
         if armor and armor:isKindOf("jinxiuzhengpao") and damage.card   
-           and damage.card:getSuit() ~= sgs.Card_NoSuit then  
+           and damage.card:getSuit() ~= sgs.Card_NoSuit and damage.card:getSuit() ~= sgs.Card_NoSuitBlack and damage.card:getSuit() ~= sgs.Card_NoSuitRed then  
             -- 检查手牌中是否没有该花色  
             local has_suit = false  
             local handcards = damage.to:getHandcards()  
