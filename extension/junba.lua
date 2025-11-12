@@ -337,12 +337,13 @@ renxin = sgs.CreateTriggerSkill{
     events = {sgs.DamageInflicted},  
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
-        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
+        local owner = room:findPlayerBySkillName(self:objectName())
+        if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then   
             return ""   
         end  
         local damage = data:toDamage()  
-        if damage.to:getHp() == 1 and damage.to ~= player and player:willBeFriendWith(damage.to) then --not damage.to:hasSkill(self:objectName()) then  
-            return self:objectName(), player:objectName()
+        if damage.to:getHp() == 1 and owner:willBeFriendWith(damage.to) then --not damage.to:hasSkill(self:objectName()) then  
+            return self:objectName(), owner:objectName()
         end  
         return ""  
     end,  
@@ -372,7 +373,7 @@ sgs.LoadTranslationTable{
     ["chengxiang"] = "称象",
     [":chengxiang"] = "当你受到伤害时，你可以查看牌堆顶的4张牌，并以任意顺序排列，然后依次展示，你获得点数和不大于13的所有牌，其余牌置入弃牌堆。若你获得牌的点数和等于13，你复原。",
     ["renxin"] = "仁心",
-    [":renxin"] = "势力相同的其他角色受到伤害时，若其体力值为1，你可以弃置一张装备牌并叠置，令其免疫此次伤害",
+    [":renxin"] = "势力相同的角色受到伤害时，若其体力值为1，你可以弃置一张装备牌并叠置，令其免疫此次伤害",
 }
 
 caofang = sgs.General(extension, "caofang", "wei", 3)  -- 吴国，4血，男性  
@@ -1133,7 +1134,11 @@ chenshe = sgs.CreateTriggerSkill{
             room:recover(dying.who, recover)  
               
             -- 失去此技能。或者写成限定技，有限定标记才能发动
-            room:detachSkillFromPlayer(ask_who, self:objectName())  
+            if ask_who:inHeadSkills(self:objectName()) then
+                room:detachSkillFromPlayer(ask_who, self:objectName(), false, false, true)--第三个参数表示该技能的位置是否在主将上，默认true，位置不对移除不了
+            else
+                room:detachSkillFromPlayer(ask_who, self:objectName(), false, false, false)--第三个参数表示该技能的位置是否在主将上，默认true，位置不对移除不了
+            end
         end  
           
         return false  
