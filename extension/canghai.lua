@@ -1,6 +1,6 @@
 -- 创建扩展包  
 extension = sgs.Package("canghai",sgs.Package_GeneralPack)  
-
+--[[
 -- 创建董允武将  
 dongyun = sgs.General(extension, "dongyun", "shu", 3)
 
@@ -172,7 +172,7 @@ sgs.LoadTranslationTable{
     ["sheyan"] = "设宴",  
     [":sheyan"] = "当你每回合首次成为普通锦囊的目标时，你可以令此牌的目标＋1或-1，目标数至少为1。",  
 }  
-
+]]
 guanping = sgs.General(extension, "guanping", "shu", 4)  
 
 zuolie = sgs.CreateTriggerSkill{  
@@ -279,7 +279,7 @@ sgs.LoadTranslationTable{
     [":jiezhong"] = "限定技。准备阶段，你可以令一名角色摸牌至体力上限"
 }
 
-gongsunyuan = sgs.General(extension, "gongsunyuan", "qun", 4)  
+gongsunyuan = sgs.General(extension, "gongsunyuan_canghai", "qun", 4)  
 
 huaierCard = sgs.CreateSkillCard{  
     name = "huaierCard",  
@@ -362,7 +362,7 @@ huaier = sgs.CreateZeroCardViewAsSkill{
 gongsunyuan:addSkill(huaier)
 
 sgs.LoadTranslationTable{  
-    ["gongsunyuan"] = "公孙渊",
+    ["gongsunyuan_canghai"] = "公孙渊",
     ["huaier"] = "怀二",  
     [":huaier"] = "出牌阶段限一次。你可以展示所有手牌，若包含2种颜色，你可以弃置其中1中颜色所有手牌，然后获得至多等量名其他角色各1张牌，若获得的牌数大于等于2，你失去1点体力",  
 }
@@ -2108,21 +2108,23 @@ junbing = sgs.CreateTriggerSkill{
             local owner = room:findPlayerBySkillName(self:objectName())
             if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
             if player:getHandcardNum()<=1 and owner:isFriendWith(player) then
-                return self:objectName(), owner:objectName()
+                return self:objectName() .. "->" .. player:objectName()
             end
         end  
         return ""  
     end,  
       
     on_cost = function(self, event, room, player, data, ask_who)  
-        if ask_who:askForSkillInvoke(self:objectName()) then
+        if player:askForSkillInvoke(self:objectName()) then
             return true
         end
         return false  
     end,  
       
-    on_effect = function(self, event, room, player, dat, ask_who)
+    on_effect = function(self, event, room, player, data, ask_who)
         player:drawCards(1)
+        ask_who = room:findPlayerBySkillName(self:objectName())
+        if player == ask_who then return false end
         local num = player:getHandcardNum()
 
         local move = sgs.CardsMoveStruct()  
@@ -2147,11 +2149,11 @@ junbing = sgs.CreateTriggerSkill{
 qujiCard = sgs.CreateSkillCard{
     name = "qujiCard",
 	skill_name = "quji",
-    will_throw = false,
-	handling_method = sgs.Card_MethodNone,
+    will_throw = true,
+	--handling_method = sgs.Card_MethodNone,
     filter = function(self, targets, to_select, Self)
         return #targets == 0 and to_select:objectName() ~= Self:objectName() and 
-        Self:distanceTo(to_select) == self:subcardsLength()
+        Self:distanceTo(to_select) == self:subcardsLength() and to_select:isWounded()
     end,
     on_use = function(self, room, source, targets)
         local recover = sgs.RecoverStruct()  
@@ -2335,11 +2337,7 @@ LuaJiaoJin = sgs.CreateTriggerSkill{
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
-        if player:hasShownSkill(self:objectName()) then
-            return true
-        else
-            return player:askForSkillInvoke(self:objectName(), data)
-        end
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
     end,        
     on_effect = function(self, event, room, player, data)  
         -- 增加奖励牌数标记  
@@ -2379,7 +2377,7 @@ sgs.LoadTranslationTable{
     ["jianhui:pindian"] = "僭毁拼点",  
 
     ["LuaJiaoJin"] = "娇矜",  
-    [":LuaJiaoJin"] = "锁定技。当你受到伤害时，你令杀死你的奖励牌数+1，若杀死你的奖励牌数小于等于4，你防止此伤害。",  
+    [":LuaJiaoJin"] = "锁定技。当你受到伤害时，若杀死你的额外奖励牌数小于等于4，你防止此伤害，然后令杀死你的额外奖励牌数+1，",  
     ["@jiaoJin_reward"] = "娇矜",  
     ["#JiaoJinProtect"] = "%from 的'%arg2'效果被触发，防止了 %arg 点伤害",  
 }
