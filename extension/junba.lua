@@ -332,12 +332,47 @@ chengxiang = sgs.CreateTriggerSkill{
     end
 }
 
+renxin = sgs.CreateTriggerSkill{  
+    name = "renxin",  
+    events = {sgs.DamageInflicted},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
+            return ""   
+        end  
+        local damage = data:toDamage()  
+        if damage.to:getHp() == 1 and damage.to ~= player and player:willBeFriendWith(damage.to) then --not damage.to:hasSkill(self:objectName()) then  
+            return self:objectName(), player:objectName()
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if room:askForCard(ask_who,"EquipCard","@renxin-discard",sgs.QVariant(),sgs.Card_MethodDiscard) then
+            ask_who:turnOver()  
+            return true  
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local damage = data:toDamage()  
+        -- 伤害为0
+        damage.damage = 0
+        data:setValue(damage)  
+        if damage.damage <= 0 then
+            return true
+        end
+        return true  
+    end  
+}
 caochong:addSkill(chengxiang)
+caochong:addSkill(renxin)
 sgs.LoadTranslationTable{
     ["junba"] = "军八",
     ["caochong"] = "曹冲",
     ["chengxiang"] = "称象",
     [":chengxiang"] = "当你受到伤害时，你可以查看牌堆顶的4张牌，并以任意顺序排列，然后依次展示，你获得点数和不大于13的所有牌，其余牌置入弃牌堆。若你获得牌的点数和等于13，你复原。",
+    ["renxin"] = "仁心",
+    [":renxin"] = "势力相同的其他角色受到伤害时，若其体力值为1，你可以弃置一张装备牌并叠置，令其免疫此次伤害",
 }
 
 caofang = sgs.General(extension, "caofang", "wei", 3)  -- 吴国，4血，男性  
