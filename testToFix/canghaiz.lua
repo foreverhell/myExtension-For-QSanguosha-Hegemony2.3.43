@@ -2309,7 +2309,7 @@ luazhuanxing = sgs.CreateTriggerSkill{
 
     on_cost = function(self, event, room, player, data, skill_owner)
         if skill_owner:askForSkillInvoke(self:objectName(), data) then
-            room:broadcastSkillInvoke(self:objectName(), player)
+            room:broadcastSkillInvoke(self:objectName(), skill_owner)
 			return true
         end
         return false
@@ -2329,11 +2329,12 @@ luazhuanxing = sgs.CreateTriggerSkill{
             if c:isKindOf("SupplyShortage") then hasShortage = true end
         end
         if not hasShortage then table.insert(choices, "luazhuanxingShortage") end
-        
+
         local choice = room:askForChoice(skill_owner, self:objectName(), table.concat(choices, "+"), d, "@luazhuanxing_choose::" .. 
         player:objectName(), "luazhuanxingSlash+luazhuanxingShortage")
         if choice == "luazhuanxingSlash" then
-            room:askForUseSlashTo(skill_owner, player, "@luazhuanxing_slash::" .. player:objectName(), false)
+            local invoke = (room:askForUseSlashTo(skill_owner, player, "@luazhuanxing_slash::" .. player:objectName(), false)) == nil
+            if invoke then return false end
             local target = room:askForPlayerChosen(skill_owner, room:getAlivePlayers(), self:objectName(), "@luazhuanxing_damage", false, true)
             if not target then
                 local x = math.random(room:getAlivePlayers():length())
@@ -2360,7 +2361,7 @@ luabaoshi = sgs.CreateTriggerSkill{
             local skill_owners = room:findPlayersBySkillName(self:objectName())
 			if skill_owners:isEmpty() then return false end
             for _, skill_owner in sgs.qlist(skill_owners) do
-                if skillTriggerable(skill_owner, self:objectName()) and death.damage.from == skill_owner then
+                if skillTriggerable(skill_owner, self:objectName()) and death.damage and death.damage.from == skill_owner then
                     if not skill_owner:isFriendWith(death.who) then --出了孙鲁育再加条件吧
                         room:setPlayerMark(skill_owner, "luabaoshiReward", 1)
                     else
@@ -2414,6 +2415,7 @@ sgs.LoadTranslationTable{
     ["@luazhuanxing_slash"] = "专行：对%dest使用一张【杀】",
     ["@luazhuanxing_shortage"] = "专行：置入【兵粮寸断】到%dest判定区",
     ["@luazhuanxing_choose"] = "专行：对%dest选择一项",
+    ["@luazhuanxing_damage"] = "专行：选择一名角色对其造成一点伤害",
     ["$luazhuanxing1"] = "不顺我意者，当填在野之壑。",
     ["$luazhuanxing2"] = "吾令不从者，当膏霜锋之锷。",
     ["~luasunchen"] = "臣家火起，请离席救之。",
