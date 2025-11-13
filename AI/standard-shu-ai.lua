@@ -1100,6 +1100,13 @@ end
 
 --刘禅
 sgs.ai_skill_invoke.xiangle = function(self, data)
+	local x = self.room:getAllPlayers(true):length()
+	local shuPlayer = self.player:getPlayerNumWithSameKingdom("AI", "shu", 1)
+	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
+	self.player:getRole() ~= "careerist" and not self:isWeak() and self.player:inHeadSkills("xiangle") and not 
+	(shuPlayer >= x / 2) and not self.player:hasShownGeneral1() then
+		return false
+	end
 	local use = data:toCardUse()
 	return not self:needToLoseHp(self.player, use.from, true)
 end
@@ -1235,8 +1242,10 @@ sgs.ai_skill_invoke.fangquan = function(self, data)
 	for i = #cards, 1, -1 do
 		local card = cards[i]
 		if not isCard("Peach", card, self.player) and not self.player:isJilei(card) then
-			to_discard = card:getEffectiveId()
-			break
+			if self.player:hasSkill("luayixing") and not card:isKindOf("Armor") then
+				to_discard = card:getEffectiveId()
+				break
+			end
 		end
 	end
 	if to_discard == nil then return false end
