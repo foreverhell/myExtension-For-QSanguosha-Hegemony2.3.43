@@ -2290,8 +2290,16 @@ luazhuanxing = sgs.CreateTriggerSkill{
 			if skill_owners:isEmpty() then return false end
             for _, skill_owner in sgs.qlist(skill_owners) do
                 if skillTriggerable(skill_owner, self:objectName()) and skill_owner:isFriendWith(player) then
-                    table.insert(skill_list, self:objectName())
-					table.insert(name_list, skill_owner:objectName())
+                    local jcards = player:getCards("j")
+                    local isSelf, hasShortage = false, false
+                    if skill_owner:objectName() == player:objectName() then isSelf = true end
+                    for _, c in sgs.qlist(jcards) do
+                        if c:isKindOf("SupplyShortage") then hasShortage = true end
+                    end
+                    if not (isSelf and hasShortage) then
+                        table.insert(skill_list, self:objectName())
+                        table.insert(name_list, skill_owner:objectName())
+                    end
                 end
             end
             return table.concat(skill_list, "|"), table.concat(name_list, "|")
@@ -2311,10 +2319,17 @@ luazhuanxing = sgs.CreateTriggerSkill{
         local d = sgs.QVariant()
         d:setValue(player)
         local choices = {}
+        local jcards = player:getCards("j")
         if player:objectName() ~= skill_owner:objectName() then
             table.insert(choices, "luazhuanxingSlash")
         end
-        table.insert(choices, "luazhuanxingShortage")
+
+        local hasShortage = false
+        for _, c in sgs.qlist(jcards) do
+            if c:isKindOf("SupplyShortage") then hasShortage = true end
+        end
+        if not hasShortage then table.insert(choices, "luazhuanxingShortage") end
+        
         local choice = room:askForChoice(skill_owner, self:objectName(), table.concat(choices, "+"), d, "@luazhuanxing_choose::" .. 
         player:objectName(), "luazhuanxingSlash+luazhuanxingShortage")
         if choice == "luazhuanxingSlash" then
