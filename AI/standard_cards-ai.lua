@@ -73,7 +73,7 @@ end
 function sgs.isGoodTarget(player, targets, self, isSlash)
 	if not self then Global_room:writeToConsole(debug.traceback()) end
 	-- self = self or sgs.ais[player:objectName()]
-	local arr = { "jieming", "yiji", "fangzhu" }--其他卖血技能？
+	local arr = { "jieming", "yiji", "fangzhu", "shangshi", "niepan", "buqu", "fangzhu_lordcaopi" }--其他卖血技能？
 	local m_skill = false
 	local attacker = Global_room:getCurrent()
 
@@ -93,6 +93,11 @@ function sgs.isGoodTarget(player, targets, self, isSlash)
 		if player:hasShownSkill(masochism) then
 			if masochism == "jieming" and self and self:getJiemingDrawNum(player) < 2 then m_skill = false
 			elseif masochism == "yiji" and self and not self:findFriendsByType(sgs.Friend_Draw, player) then m_skill = false
+			elseif masochism == "shangshi" and player:isNude() and not player:hasShownSkills("shicai|fankui|zhiyu|wangxi") then m_skill = false
+			----------------
+			elseif masochism == "niepan" and player:getMark("nirvana") < 1 then m_skill = false
+			elseif masochism == "buqu" and player:getPile("scars"):length() > 3 then m_skill = false
+			----------------
 			else
 				m_skill = true
 				break
@@ -434,16 +439,26 @@ function SmartAI:slashIsEffective(slash, to, from, ignore_armor)
 		end
 	end
 
-	if slash:isKindOf("ThunderSlash") then
-		local f_slash = self:getCard("FireSlash")
+	--if slash:isKindOf("ThunderSlash") then--这是不是反了？？？
+	if slash:isKindOf("FireSlash") then
+		local f_slash = self:getCard("FireSlash") 
 		if f_slash and self:hasHeavySlashDamage(from, f_slash, to, true) > self:hasHeavySlashDamage(from, slash, to, true)
-			and (not to:isChained() or self:isGoodChainTarget(to, from, sgs.DamageStruct_Fire, nil, f_slash)) then
+		and (not to:isChained() or self:isGoodChainTarget(to, from, sgs.DamageStruct_Fire, nil, f_slash)) then
+			if to:hasArmorEffect("PeaceSpell") and (not from:hasSkill("zhiman") or (to:getArmor() and not (from:hasShownSkill("jianchu") 
+			or (from:hasShownSkill("kuangfu") and not from:hasFlag("kuangfuUsed"))))) then
+				return false
+			end
 			return self:slashProhibit(f_slash, to, from)
 		end
-	elseif slash:isKindOf("FireSlash") then
+	--elseif slash:isKindOf("FireSlash") then
+	elseif slash:isKindOf("ThunderSlash") then
 		local t_slash = self:getCard("ThunderSlash")
 		if t_slash and self:hasHeavySlashDamage(from, t_slash, to, true) > self:hasHeavySlashDamage(from, slash, to, true)
-			and (not to:isChained() or self:isGoodChainTarget(to, from, sgs.DamageStruct_Thunder, nil, t_slash)) then
+		and (not to:isChained() or self:isGoodChainTarget(to, from, sgs.DamageStruct_Thunder, nil, t_slash)) then
+			if to:hasArmorEffect("PeaceSpell") and (not from:hasSkill("zhiman") or (to:getArmor() and not (from:hasShownSkill("jianchu") 
+			or (from:hasShownSkill("kuangfu") and not from:hasFlag("kuangfuUsed"))))) then
+				return false
+			end
 			return self:slashProhibit(t_slash, to, from)
 		end
 	end

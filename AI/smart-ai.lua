@@ -155,15 +155,15 @@ end
 
 function SetInitialTables()
 	sgs.ai_type_name = {"SkillCard", "BasicCard", "TrickCard", "EquipCard"}
-	sgs.priority_skill = 	"jianan|yiji|fangzhu|tuxi|shangshi|jixi|qice|jieyue|zaoyun|" ..
-							"shouyue|paoxiao|jizhi|tieqi|liegong|jili|xuanhuo|tongdu|" ..
-							"jiahe|xiaoji|guose|tianxiang|fanjian|buqu|xuanlue|diaodu|jiediaodu|" ..
-							"hongfa|jijiu|luanji|wansha|jianchu|qianhuan|yigui|fudi|yongsi|huashen|"..
+	sgs.priority_skill = 	"jianan|yiji|fangzhu|tuxi|shangshi|jixi|qice|jieyue|zaoyun|qice|" ..
+							"shouyue|paoxiao|jizhi|tieqi|liegong|jili|xuanhuo|tongdu|zhiman|" ..
+							"jiahe|xiaoji|guose|tianxiang|fanjian|buqu|xuanlue|diaodu|jiediaodu|yinghun_sunjian|" ..
+							"hongfa|jijiu|luanji|wansha|jianchu|qianhuan|yigui|fudi|yongsi|huashen|haokui|"..
 							"paiyi|suzhi|shilu|huaiyi|chenglve|congcha|jinfa|lixia|"..
 							"zhukou|jinghe|guowu|shenwei|wanggui|boyan|kuangcai|"..
-							"miewu|guishu|sidi|danlao|wanglie|zhuidu|jiediaodu|jiejinghe"
-	sgs.masochism_skill = "yiji|fankui|jieming|ganglie|fangzhu|jianxiong|qianhuan|zhiyu|jihun|fudi|huashen|" ..
-						  "bushi|shicai|quanji|zhaoxin|fankui_simazhao|wanggui|sidi|shangshi|benyu|jiehengjiang"
+							"miewu|guishu|sidi|danlao|wanglie|zhuidu|jiejinghe"
+	sgs.masochism_skill = "yiji|fankui|jieming|ganglie|fangzhu|jianxiong|qianhuan|zhiyu|jihun|fudi|huashen|luashibei|" ..
+						  "bushi|shicai|quanji|zhaoxin|fankui_simazhao|wanggui|sidi|shangshi|benyu|jiehengjiang|fangzhu_lordcaopi"
 	sgs.defense_skill = "qingguo|longdan|kongcheng|niepan|bazhen|kanpo|xiangle|tianxiang|liuli|qianxun|leiji|duanchang|beige|weimu|" ..
 						"tuntian|shoucheng|yicheng|qianhuan|jizhao|wanwei|enyuan|buyi|keshou|qiuan|biluan|jiancai|aocai|jieyicheng" ..
 						"xibing|zhente|qiao|shejian|yusui|deshao|yuanyu|mingzhe|jilei|shigong|dingke|shefu|taidan"
@@ -1556,7 +1556,7 @@ function SmartAI:writeKeepValue(card)
 		elseif self:needKongcheng() then return 5.0
 		end
 		local value = 0
-		if card:isKindOf("Armor") then value = self:isWeak() and 5.2 or 3.2
+		if card:isKindOf("Armor") then value = (self:isWeak() or self.player:hasSkill("luayixing")) and 5.2 or 3.2
 		elseif card:isKindOf("DefensiveHorse") then value = self:isWeak() and 4.3 or 3.19
 		elseif card:isKindOf("Weapon") then value = self.player:getPhase() == sgs.Player_Play and self:slashIsAvailable() and 3.39 or 3.2
 		elseif card:isKindOf("JadeSeal") and not self.player:hasSkill("yongsi") then value = 5
@@ -1750,7 +1750,7 @@ function SmartAI:getUseValue(card)
 		if self.player:hasSkills("qiangxi") and card:isKindOf("Weapon") then v = 2 end
 		if card:isKindOf("Crossbow") then v = v + self:getCardsNum("Slash") * 2 end
 		if self.player:hasSkills("kurou|wusheng|kuanggu|luoshen|wangxi|quanji") and card:isKindOf("Crossbow") then return 9 end
-		if self.player:hasSkills("bazhen|jgyizhong|taidan") and card:isKindOf("Armor") then v = 2 end
+		if self.player:hasSkills("bazhen|jgyizhong|taidan|luayixing") and card:isKindOf("Armor") then v = 2 end
 
 		local lvfan = sgs.findPlayerByShownSkillName("jiediaodu")
 		if lvfan and self.player:isFriendWith(lvfan) then v = 6.7 end
@@ -3075,6 +3075,13 @@ function SmartAI:askForDiscard(reason, discard_num, min_num, optional, include_e
 	local can_diaodu = false
 	local lvfan = sgs.findPlayerByShownSkillName("jiediaodu")
 	if lvfan and self.player:isFriendWith(lvfan) and saveByUse then can_diaodu = true end--调度使用装备
+	--------------
+	local keepArmor = false
+	local lordOfliushan = sgs.findPlayerByShownSkillName("luayixing")
+	if lordOfliushan and lordOfliushan:isAlive() and self.player:objectName() == lordOfliushan:objectName() then
+		keepArmor = true
+	end
+	--------------
 	local function getCardSurplusValue(card,to_save_ids,to_dis_ids)
 		local v,borderline = 0,0
 		if discardEquip and in_equips and not self.player:isKongcheng() then return true end--尽量保存装备
@@ -3094,6 +3101,11 @@ function SmartAI:askForDiscard(reason, discard_num, min_num, optional, include_e
 						end
 					end
 					if to_zhijian then v = v + 4 end
+				-----------
+				elseif keepArmor then
+					if card:isKindOf("Armor") then
+						v = v + 4
+					end
 				end
 			end
 		else
@@ -3629,8 +3641,13 @@ function SmartAI:askForCardChosen(who, flags, reason, method, disable_list)
 			if self:needToThrowArmor(who) and canOperate(who:getArmor():getEffectiveId()) then 
 				return who:getArmor():getEffectiveId() 
 			end
-			if who:getArmor() and self:evaluateArmor(who:getArmor(), who) < -5 	and canOperate(who:getArmor():getEffectiveId()) then 
-				return who:getArmor():getEffectiveId() 
+			--------------------
+			if who:getArmor() and who:getArmor():isKindOf("PeaceSpell") and who:getHp() == 1 and canOperate(who:getArmor():getEffectiveId()) then
+				return who:getArmor():getEffectiveId()
+			end
+			--------------------
+			if who:getArmor() and self:evaluateArmor(who:getArmor(), who) < -5 and canOperate(who:getArmor():getEffectiveId()) then 
+				return who:getArmor():getEffectiveId()
 			end
 			if who:hasShownSkills(sgs.lose_equip_skill) and self:isWeak(who) then
 				if who:getWeapon() and canOperate(who:getWeapon():getEffectiveId()) then
@@ -3673,6 +3690,15 @@ function SmartAI:askForCardChosen(who, flags, reason, method, disable_list)
 				disable_list = table.copyFrom(disable_copy)
 			end
 		end
+
+		------------------
+		local yuanshu = sgs.findPlayerByShownSkillName("weidi")
+		if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not yuanshu:hasUsed("WeidiCard") then 
+			if flags:match("e") and who:getArmor() and who:getArmor():isKindOf("PeaceSpell") and canOperate(who:getArmor():getEffectiveId()) then
+				return who:getArmor():getId()
+			end
+		end
+		------------------
 
 		local dangerous = self:getDangerousCard(who)
 		if not who:hasShownSkills(sgs.lose_equip_skill) then
@@ -6221,11 +6247,6 @@ function SmartAI:getAoeValue(card)
 					value = value + ((card:isVirtualCard() and card:subcardsLength() * 10) or 10)
 				end
 
-				---------
-				if self.player:getKingdom() == "wei" and not punish then
-					value = 500
-				end
-
 			else
 				value = 0
 				if to:hasShownSkill("juxiang") and not card:isVirtualCard() then value = value + 10 end
@@ -6310,11 +6331,6 @@ function SmartAI:getAoeValue(card)
 
 				if to:getHp() > 1 and to:hasShownSkill("jianxiong") then
 					value = value + ((card:isVirtualCard() and card:subcardsLength() * 10) or 10)
-				end
-
-				----------
-				if self.player:getKingdom() == "wei" and not punish then
-					value = 500
 				end
 
 			else
@@ -6800,6 +6816,15 @@ function SmartAI:useEquipCard(card, use)
 			return
 		end
 	end
+	if card:isKindOf("jinxiuzhengpao") then
+		local lord_liushan = sgs.findPlayerByShownSkillName("luayixing") --有君刘禅在（其他势力/已有防具/自己就是君刘禅）不装备锦绣征袍
+		if lord_liushan and lord_liushan:isAlive() then
+			if not self.player:isFriendWith(lord_liushan) or (self.player:objectName() ~= lord_liushan:objectName() and 
+			self.player:getArmor()) or (self.player:objectName() == lord_liushan:objectName()) then
+				return
+			end
+		end
+	end
 	if card:isKindOf("ImperialEdict") then--宝物诏书
 		use.card = card
 		return
@@ -6846,7 +6871,7 @@ function SmartAI:useEquipCard(card, use)
 	elseif card:isKindOf("Armor") then
 		local lion = self:getCard("SilverLion")
 		if lion and self.player:isWounded() and not self.player:hasArmorEffect("SilverLion") and not card:isKindOf("SilverLion")
-			and not (self.player:hasSkills("bazhen|jgyizhong|taidan") and not self.player:getArmor()) then
+			and not (self.player:hasSkills("bazhen|jgyizhong|taidan|luayixing") and not self.player:getArmor()) then
 			use.card = lion
 			return
 		end
@@ -6855,7 +6880,7 @@ function SmartAI:useEquipCard(card, use)
 				if not friend:getArmor() then return end
 			end
 		end
-		if self.player:hasSkills("bazhen|jgyizhong|taidan") then return end
+		if self.player:hasSkills("bazhen|jgyizhong|taidan|luayixing") then return end
 		if self:evaluateArmor(card) > self:evaluateArmor() or (isenemy_zzzh and self:getOverflow() > 1) then use.card = card end
 		return
 	elseif card:isKindOf("OffensiveHorse") then
