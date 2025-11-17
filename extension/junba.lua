@@ -1596,13 +1596,15 @@ jiusiCard = sgs.CreateSkillCard{
     will_throw = false,  
       
     on_use = function(self, room, source, targets) 
-        choices = {}
+        choices = {"analeptic"}
         if sgs.Slash_IsAvailable(source) then
             table.insert(choices, "slash")
         end
+        --[[
         if sgs.Analeptic_IsAvailable(source) then
             table.insert(choices, "analeptic")
         end
+        ]]
         if source:isWounded() then
             table.insert(choices, "peach")
         end
