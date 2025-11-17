@@ -1240,13 +1240,13 @@ sgs.ai_skill_choice["docommand_luamibei"] = function(self, choices, data)
     local count = 0
     if self.player:getHandcardNum() <= 1 and not self.player:hasSkills("qiaobian|qiaobian_egf") then
         if self:willSkipPlayPhase() then
-            if index <= 2 or index == 4 then --被乐，只执行打一、摸一和驳言军令
+            if index == 2 or index == 4 or (index == 1 and is_friend) then --被乐，只执行打一、摸一和驳言军令
                 return "yes"
             else
                 return "no"
             end
         elseif self:willSkipDrawPhase() then
-            if index <= 2 then --只被兵，只执行打一、摸一，体流看血量和手牌数
+            if index == 2 or (index == 1 and is_friend) then --只被兵，只执行打一、摸一，体流看血量和手牌数
                 return "yes"
             elseif index == 3 then
                 if self.player:getHp() > 1 and source:getHandcardNum() >= 3 then
@@ -1376,20 +1376,20 @@ sgs.ai_skill_choice.luashibei = function(self, choices, data)
     for _, card in sgs.qlist(equipcards_self) do
         if card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse")  or card:isKindOf("SixDragons") then
             hasHorse_self = true
-            self.luashibeiCard = card:getEffectiveId()
+            self.luashibeiCard1 = card:getEffectiveId()
             break
         end
     end
     for _, card in sgs.qlist(equipcards_from) do
         if card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse")  or card:isKindOf("SixDragons") then
             hasHorse_from = true
-            self.luashibeiCard = card:getEffectiveId()
+            self.luashibeiCard2 = card:getEffectiveId()
             break
         end
     end
     if self.player:getHp() == 1 and hasHorse_self then
         return "luashibei_discard"
-    elseif hasHorse_from and not from:hasSkills(sgs.lose_equip_skill) then
+    elseif hasHorse_from and not from:hasShownSkills(sgs.lose_equip_skill) then
         return "luashibei_get"
     elseif hasHorse_self then
         return "luashibei_discard"
@@ -1397,8 +1397,10 @@ sgs.ai_skill_choice.luashibei = function(self, choices, data)
     return ""
 end
 sgs.ai_skill_askforag.luashibei = function(self, card_ids)
-    if self.luashibeiCard > 0 then
-        return self.luashibeiCard
+    if self.luashibeiCard1 then
+        return self.luashibeiCard1
+    else
+        return self.luashibeiCard2
     end
 	return card_ids[1]
 end
@@ -1524,7 +1526,7 @@ sgs.ai_skill_use["@@luajintaoVS"] = function(self, prompt)
             end
         end
     else
-        if (p:hasArmorEffect("Vine") and throw_weapon) or not p:hasArmorEffect("Vine") then
+        if (target:hasArmorEffect("Vine") and throw_weapon) or not target:hasArmorEffect("Vine") then
             local jintaoCard = {}
             for i = 1, self.player:distanceTo(target) do
                 table.insert(jintaoCard, cards[i]:getId())
@@ -1647,7 +1649,7 @@ sgs.ai_skill_playerchosen.luabingzheng = function(self, targets)
         end
     end
     for _, p in pairs(targets) do
-        if self.player:objectName() == p:objectName() and not self:needKongcheng() then
+        if self.player:isFriendWith(p) and self.player:objectName() == p:objectName() and not self:needKongcheng() then
             self.luabingzhengchoice = "luabingzhengDraw"
             return p
         end
@@ -1841,7 +1843,7 @@ sgs.ai_skill_invoke.luasheyan = function(self, data)
                 return true
             else
                 for _, p in sgs.qlist(playersByAction) do
-                    if not table.contains(tos, p) and p:isFriendWith(from) and self:trickIsEffective(card, p, from) and not p:getJudgingArea() and
+                    if not table.contains(tos, p) and p:isFriend(from) and self:trickIsEffective(card, p, from) and not p:getJudgingArea() and
                     not p:isNude() and from:objectName() ~= p:objectName() then
                         if p:hasSkills(sgs.lose_equip_skill) and p:isKongcheng() then continue end
                         self.luasheyanchooseplayer = p
@@ -1945,13 +1947,12 @@ end
 sgs.ai_skill_invoke.jiechengshang = function(self, data)
     local use = data:toCardUse()
     assert(use)
-    local card = use.card
-    self.luachengshangcard = card
+    self.luachengshangcard = use.card
     func = function(cards, use_card)
         local suit = use_card:getSuitString()
         local num = use_card:getNumber()
-        for card in sgs.qlist(cards) do
-            if card:getSuitString() == suit and card:getNumber() == num then
+        for _, c in sgs.qlist(cards) do
+            if c:getSuitString() == suit and c:getNumber() == num then
                 return true
             end
         end
@@ -2145,7 +2146,7 @@ sgs.ai_skill_playerchosen.luapingming = function(self, targets)
     self.room:sortByActionOrder(targets)
     targets = sgs.QList2Table(targets)
     for _, p in pairs(targets) do
-        if self.player:isFriendWith(p) and p:getOverflow() < 4 then
+        if self.player:isFriendWith(p) and self:getOverflow(p) < 4 then
             return p
         end
     end
@@ -2613,8 +2614,9 @@ sgs.ai_skill_invoke.luazhuanxing = function(self, data)
     end
 
     if not hasShortage then
+        hecards = sgs.QList2Table(hecards)
         self:sortByUseValue(hecards)
-        for _, c in sgs.qlist(hecards) do
+        for _, c in pairs(hecards) do
             if c:isBlack() and (c:isKindOf("BasicCard") or c:isKindOf("EquipCard")) then
                 self.luazhuanxingShortage = c:getId()
             end
