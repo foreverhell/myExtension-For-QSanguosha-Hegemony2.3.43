@@ -1325,6 +1325,8 @@ sgs.ai_skill_choice.duanchang = function(self, choices, data)
 		end]]
 	end
 
+	if who:isLord() then return "deputy_general" end
+
 	local skills = (sgs.priority_skill .. "|" .. sgs.masochism_skill .. "|" .. sgs.recover_skill .. "|"
 					.. sgs.wizard_skill .. "|" .. sgs.cardneed_skill):split("|")
 	for _, skill in ipairs(skills) do
@@ -1337,6 +1339,23 @@ sgs.ai_skill_choice.duanchang = function(self, choices, data)
 		end
 	end
 
+	local limited_skill = {"jiejianglve", "xiongyi", "luanwu", "fengying", "niepan"}
+	for _, skill in ipairs(limited_skill) do
+		if who:hasShownSkill(skill) then
+			if self.player:isFriendWith(who) then
+				if (skill == "xiongyi" and who:getMark("@arise") < 1) or (skill == "luanwu" and who:getMark("@chaos") < 1) then
+					return who:inHeadSkills(skill) and "deputy_general" or "head_general"
+				end
+			else
+				if who:getMark("@arise") > 0 or who:getMark("@chaos") > 0 or who:getMark("@strategy") > 0 or who:getMark("@honor")
+				> 0 or who:getMark("@nirvana") > 0 then
+					return who:inHeadSkills(skill) and "head_general" or "deputy_general"
+				else
+					return who:inDeputySkills(skill) and "head_general" or "deputy_general"
+				end
+			end
+		end
+	end
 	return "head_general"
 end
 
