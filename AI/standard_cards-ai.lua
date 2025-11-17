@@ -73,7 +73,7 @@ end
 function sgs.isGoodTarget(player, targets, self, isSlash)
 	if not self then Global_room:writeToConsole(debug.traceback()) end
 	-- self = self or sgs.ais[player:objectName()]
-	local arr = { "jieming", "yiji", "fangzhu", "shangshi", "niepan", "buqu" }--其他卖血技能？
+	local arr = { "jieming", "yiji", "fangzhu", "shangshi", "niepan", "buqu", "fangzhu_lordcaopi" }--其他卖血技能？
 	local m_skill = false
 	local attacker = Global_room:getCurrent()
 
@@ -96,7 +96,7 @@ function sgs.isGoodTarget(player, targets, self, isSlash)
 			elseif masochism == "shangshi" and player:isNude() and not player:hasShownSkills("shicai|fankui|zhiyu|wangxi") then m_skill = false
 			----------------
 			elseif masochism == "niepan" and player:getMark("nirvana") < 1 then m_skill = false
-			elseif masochism == "buqu" and player:getPile("scars"):length() < 4 then m_skill = false
+			elseif masochism == "buqu" and player:getPile("scars"):length() > 3 then m_skill = false
 			----------------
 			else
 				m_skill = true
