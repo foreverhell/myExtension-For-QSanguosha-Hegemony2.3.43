@@ -633,15 +633,11 @@ luamibei = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)
         if skillTriggerable(player, self:objectName()) and event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
-            local players_overHand = sgs.SPlayerList()
             local selfHandNum = player:getHandcardNum()
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
                 if p:getHandcardNum() > selfHandNum then
-                    players_overHand:append(p)
+                    return self:objectName()
                 end
-            end
-            if not players_overHand:isEmpty() then 
-                return self:objectName() 
             end
             return false
         end
@@ -1305,7 +1301,7 @@ luachengxu = sgs.CreateTriggerSkill{
                     if (move.from and move.from:objectName() == player:objectName() and move.from_places:contains(sgs.Player_PlaceHand)) 
                     or (move.to and move.to:objectName() == player:objectName() and move.to_place == sgs.Player_PlaceHand) then
                         local dying = data:toDying()
-                        if dying then return false end
+                        if dying and dying.who then return false end
                         if player:getHandcardNum() == 1 then isChengxu_discard = true end
                     end
                 end
@@ -1422,7 +1418,8 @@ luazhichi = sgs.CreateTriggerSkill{
                 local use = data:toCardUse()
                 local damageCard = {"Slash", "Duel", "ArcheryAttack", "SavageAssault", "BurningCamps", "Drowning", "FireAttack"}
                 for i = 1, #damageCard do
-                    if use.card and use.card:isKindOf(damageCard[i]) and not use.card:hasFlag("luazhichiMark") then
+                    if use.card and use.card:isKindOf(damageCard[i]) and not use.card:hasFlag("luazhichiMark") and not 
+                    use.card:isVirtualCard() then
                         room:addPlayerMark(player, "luazhichi_times", 1)
                         use.card:setFlags("luazhichiMark") --避免重复计算
                         if player:getMark("luazhichi_times") == 2 then
@@ -1560,9 +1557,9 @@ luasheyan = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)
         if skillTriggerable(player, self:objectName()) then
             local use = data:toCardUse()
-            if use.card and use.card:isNDTrick() and use.to:contains(player) and not player:hasFlag("luasheyanUsed") and
+            if use.card and use.card:isNDTrick() and use.to:contains(player) and not player:hasFlag("luasheyanFirst") and
             use.card:getTypeId() ~= sgs.Card_TypeSkill then
-                room:setPlayerFlag(player, "luasheyanUsed")
+                room:setPlayerFlag(player, "luasheyanFirst")
                 return self:objectName()
             end
         end
@@ -1620,7 +1617,7 @@ sgs.LoadTranslationTable{
     ["@luabingzheng_forceDiscard"] = "秉正：弃置一张手牌",
     ["@luabingzheng-target"] = "秉正：选择一名目标",
     ["luabingzhengDraw"] = "令其摸一张牌",
-    ["luabingzhengDiscard"] = "令其弃置一张牌",
+    ["luabingzhengDiscard"] = "令其弃置一张手牌",
     ["@luabingzheng-give"] = "秉正：是否交给%dest一张牌",
     ["@luasheyan-target"] = "舍宴：选择为%src使用的【%arg】增加或减少一个目标",
     ["$luabingzheng1"] = "自古，就是邪不胜正！",
@@ -1766,6 +1763,7 @@ luafaen = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)
         if player and player:isAlive() then
             if event == sgs.ChainStateChanged and not player:isChained() then return false end
+            if event == sgs.TurnedOver and player:faceup() then return false end
             local skill_owners = room:findPlayersBySkillName(self:objectName())
 			local skill_list = {}
 			local name_list = {}
