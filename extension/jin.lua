@@ -1863,47 +1863,52 @@ bingxin = sgs.CreateTriggerSkill{
         player:drawCards(1, self:objectName())  
           
         -- 视为使用一张基本牌  
-        --choices = {"analeptic"}
+        choices = {"analeptic"}
         if sgs.Slash_IsAvailable(player) then
             table.insert(choices, "slash")
         end
         if player:isWounded() then
             table.insert(choices, "peach")
         end
+        --[[
         if sgs.Analeptic_IsAvailable(player) then
             table.insert(choices, "analeptic")
         end
+        ]]
         if #choices > 0 then  
             local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"))  
             if choice and choice ~= "" then  
                 local virtual_card = sgs.Sanguosha:cloneCard(choice, sgs.Card_NoSuit, -1)  
                 virtual_card:setSkillName(self:objectName())  
                 virtual_card:deleteLater()
-
-                local use = sgs.CardUseStruct()  
-                use.card = virtual_card  
-                use.from = player  
-                  
                 -- 根据卡牌类型设置目标  
                 if choice == "slash" then  
                     local targets = sgs.SPlayerList()  
                     for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
-                        if player:inMyAttackRange(p) and not player:isFriendWith(p) then  
+                        if player:inMyAttackRange(p) then  
                             targets:append(p) 
                         end  
                     end  
-                    target=room:askForPlayerChosen(player, targets, self:objectName(), false, true)
-                    use.to:append(target)  
+                    target=room:askForPlayerChosen(player, targets, self:objectName())
+                    local use = sgs.CardUseStruct()  
+                    use.card = virtual_card  
+                    use.from = player 
+                    use.to:append(target)
+                    room:useCard(use) 
                 elseif choice == "peach" then  
                     if player:isWounded() then  
-                        use.to:append(player)  
+                        local use = sgs.CardUseStruct()  
+                        use.card = virtual_card  
+                        use.from = player 
+                        use.to:append(player)
+                        room:useCard(use) 
                     end  
                 elseif choice == "analeptic" then  
-                    use.to:append(player)  
-                end  
-                  
-                if not use.to:isEmpty() and choice ~= "jink" then  
-                    room:useCard(use)  
+                    local use = sgs.CardUseStruct()  
+                    use.card = virtual_card  
+                    use.from = player 
+                    use.to:append(player)
+                    room:useCard(use) 
                 end  
             end  
         end  
@@ -2575,6 +2580,84 @@ sgs.LoadTranslationTable{
 [":neiji"] = "出牌阶段开始时，你可以选择一名其他势力角色，你与其各展示2张手牌，然后你与其弃置展示的所有杀，若弃置的所有杀数量大于1，你与其各摸3张牌；等于1，未弃置杀的角色视为对弃置杀的角色使用一张决斗。",
 ["@neiji-choose"] = "内忌：选择一名其他势力角色"
 }
+
+
+
+zhangchunhua_yingbian = sgs.General(extension, "zhangchunhua_yingbian", "jin", 3)  -- 吴国，4血，男性  
+
+huishi = sgs.CreateTriggerSkill{  
+    name = "huishi",  
+    events = {sgs.EventPhaseStart},  
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName())   
+           and player:getPhase() == sgs.Player_Start then  
+            return self:objectName()  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(), data)  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        player:skip(sgs.Player_Draw)
+        local n = 0
+        for _, p in sgs.qlist(room:getAlivePlayers()) do
+            if not p:hasShownOneGeneral() then
+                n = n + 1
+            end
+        end
+        -- 亮出牌堆顶X+1张牌  
+        local cards = room:getNCards(n)
+          
+        if not cards:isEmpty() then
+            room:askForGuanxing(player, cards, sgs.Room_GuanxingUpOnly)-- GuanxingUpOnly, GuanxingBothSides, GuanxingDownOnl
+            room:drawCards(player, math.ceil(n/2))
+        end  
+        return true  
+    end  
+}  
+
+
+qingleng = sgs.CreateTriggerSkill{  
+    name = "qingleng",  
+    events = {sgs.EventPhaseEnd},  
+    can_trigger = function(self, event, room, player, data)  
+        local zhangchunhua = room:findPlayerBySkillName(self:objectName())  
+        if not zhangchunhua or not zhangchunhua:isAlive() or not zhangchunhua:hasSkill(self:objectName()) then  
+            return ""  
+        end  
+        if player:getPhase() == sgs.Player_Finish and player ~= zhangchunhua and player:getHp() <= zhangchunhua:getHp() and not zhangchunhua:willBeFriendWith(player) then  
+            return self:objectName(), zhangchunhua:objectName()
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        return room:askForCard(ask_who,"BasicCard","@qingleng-discard",sgs.QVariant(),sgs.Card_MethodDiscard)  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
+        slash:setSkillName(self:objectName())  
+        slash:deleteLater()
+        local use = sgs.CardUseStruct()  
+        use.card = slash  
+        use.from = ask_who  
+        use.to:append(player)  
+        room:useCard(use, false)  
+        return false  
+    end  
+}  
+zhangchunhua_yingbian:addSkill(huishi)
+zhangchunhua_yingbian:addSkill(qingleng)
+sgs.LoadTranslationTable{
+    ["zhangchunhua_yingbian"] = "张春华-应变",
+    ["huishi"] = "慧识",
+    [":huishi"] = "准备阶段，你可以观看牌堆顶的X张牌（X为未确定势力的角色数）并将其任意排列，并摸X/2（向上取整）张牌，然后跳过摸牌阶段",
+    ["qingleng"] = "清冷",
+    [":qingleng"] = "其他势力角色的回合结束时，若其体力值小于等于你，你可以弃置一张基本牌，视为对其使用一张杀"
+}
+
 zhouchu = sgs.General(extension, "zhouchu", "jin", 3)  
 
 shanduan = sgs.CreateTriggerSkill{  
@@ -2659,13 +2742,15 @@ yilieCard = sgs.CreateSkillCard{
       
     on_use = function(self, room, source, targets) 
         --room:setPlayerFlag(source, "yilie_used")
-        local choices = {}
+        local choices = {"analeptic"}
         if sgs.Slash_IsAvailable(source) then
             table.insert(choices, "slash")
         end
+        --[[
         if sgs.Analeptic_IsAvailable(source) then
             table.insert(choices, "analeptic")
         end
+        ]]
         if source:isWounded() then
             table.insert(choices, "peach")
         end
@@ -2677,11 +2762,11 @@ yilieCard = sgs.CreateSkillCard{
         if choice=="slash" then
             local targets = sgs.SPlayerList()  
             for _, p in sgs.qlist(room:getOtherPlayers(source)) do  
-                if source:canSlash(p,nil,false) and source:inMyAttackRange(p) then  
+                if source:inMyAttackRange(p) then  
                     targets:append(p) 
                 end  
             end  
-            target=room:askForPlayerChosen(source, targets, self:objectName(), false, true)
+            target=room:askForPlayerChosen(source, targets, self:objectName())
             local use = sgs.CardUseStruct()  
             use.from = source  
             use.to:append(target)   
@@ -2694,6 +2779,7 @@ yilieCard = sgs.CreateSkillCard{
             use.card = card  
             room:useCard(use)
         end
+        
     end  
 }
 yilie = sgs.CreateViewAsSkill{  
