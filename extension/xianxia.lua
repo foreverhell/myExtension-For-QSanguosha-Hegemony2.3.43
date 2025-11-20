@@ -353,7 +353,14 @@ yashang = sgs.CreateMasochismSkill{
                 empty_slots = empty_slots + 1  
             end  
         end  
-          
+        local equips = player:getEquips()  
+        for _, equip in sgs.qlist(equips) do  
+            if equip:isKindOf("SixDragons") then  
+                -- 找到了六龙骖驾，占2个装备格子
+                empty_slots = empty_slots - 2
+                break  
+            end  
+        end
         local x = empty_slots  
           
         room:sendCompulsoryTriggerLog(player, self:objectName())  
