@@ -163,7 +163,7 @@ pingyuan = sgs.CreateTriggerSkill{
         return false  
     end,
 }  
---[[
+
 shenduanCard = sgs.CreateSkillCard{
     name = "shenduanCard",
     target_fixed = true,--是否需要指定目标，默认false，即需要
@@ -178,18 +178,19 @@ shenduan_active = sgs.CreateViewAsSkill{
     name = "shenduan",  --需要和触发技名字相同，然后不需要再添加给武将
     n = 1,  
     view_filter = function(self, selected, to_select)  
-        return #selected == 0 
+        return #selected == 0 and not to_select:isEquipped()
     end,  
     view_as = function(self, cards)  
         if #cards == 1 then  
             local card = shenduanCard:clone() -- 创建虚拟牌  
-            card:setSkillName("shenduan")  
             card:addSubcard(cards[1])  
+            card:setSkillName(self:objectName())  
+            card:setShowSkill(self:objectName())
             return card  
         end  
     end,  
     enabled_at_play = function(self, player)  
-        return true -- 出牌阶段可用  
+        return not player:isKongcheng() -- 出牌阶段可用  
     end  
 }
 
@@ -239,7 +240,14 @@ shenduan = sgs.CreateTriggerSkill{
         if choice == "suit" or choice == "both" then  
             -- 让玩家选择新花色  
             local suits = {"spade", "heart", "club", "diamond"}  
-            new_suit = room:askForChoice(player, "shenduan_suit", table.concat(suits, "+"))  
+            new_suit_string = room:askForChoice(player, "shenduan_suit", table.concat(suits, "+"))  
+
+            local string2suits = {}
+            string2suits["spade"] = sgs.Card_Spade
+            string2suits["heart"] = sgs.Card_Heart
+            string2suits["club"] = sgs.Card_Club
+            string2suits["diamond"] = sgs.Card_Diamond
+            new_suit = string2suits[new_suit_string]
             -- 这里需要创建新的判定牌  
         end  
           
@@ -249,12 +257,13 @@ shenduan = sgs.CreateTriggerSkill{
             for i = 1, 13 do  
                 table.insert(numbers, tostring(i))  
             end  
-            new_number = room:askForChoice(player, "shenduan_number", table.concat(numbers, "+"))  
+            new_number_string = room:askForChoice(player, "shenduan_number", table.concat(numbers, "+"))  
+            new_number = tonumber(new_number_string)
             -- 这里需要创建新的判定牌  
         end  
         local new_card = sgs.Sanguosha:getWrappedCard(judge.card:getEffectiveId())  --sgs.Sanguosha:getWrappedCard(id)返回的是包装后的卡牌对象（WrappedCard），这是房间内实际使用的、可以被修改的卡牌实例
-        new_card:setSuit(new_suit)
-        new_card:setNumber(new_number)
+        new_card:setSuit(new_suit)--这里原本是字符串，改成了花色数据类型
+        new_card:setNumber(new_number)--这里是字符串，需要改成int
         new_card:setModified(true) --设置已修改，否则会重置为原来的属性
 
         --第二种实现方法：WrappedCard接管cloneCard创造的虚拟卡
@@ -262,7 +271,6 @@ shenduan = sgs.CreateTriggerSkill{
         --new_card:takeOver(clone_card)
 
         judge.card = new_card
-        
         -- 执行改判  
         --room:retrial(new_card, player, judge, self:objectName())  
         judge:updateResult()
@@ -270,7 +278,7 @@ shenduan = sgs.CreateTriggerSkill{
         return false  
     end  
 }
-]]
+--[[
 shenduanCard = sgs.CreateSkillCard{  
     name = "ShenduanCard",  
     target_fixed = true,  
@@ -288,7 +296,8 @@ shenduanVS = sgs.CreateOneCardViewAsSkill{
     view_as = function(self, card)  
         local skillcard = shenduanCard:clone()  
         skillcard:addSubcard(card)  
-        skillcard:setSkillName("shenduan")  
+        skillcard:setSkillName(self:objectName())  
+        skillcard:setShowSkill(self:objectName())
         return skillcard  
     end,  
     enabled_at_play = function(self, player)  
@@ -348,6 +357,7 @@ shenduan = sgs.CreateTriggerSkill{
         return false  
     end  
 }
+]]
 -- 添加技能给武将  
 baozhen:addSkill(pingyuan)  
 baozhen:addSkill(shenduan)  
@@ -361,7 +371,8 @@ sgs.LoadTranslationTable{
     [":pingyuan"] = "锁定技，当你血量变化时，你摸一张牌。",
     ["shenduan"] = "神断",  
     [":shenduan"] = "出牌阶段，你可以将手牌放入“神断”牌堆。判定生效前，你可以使用该牌堆的牌改判",
-    ["~shenduan"] = "选择一张牌→点击确定",  
+    [":shenduan"] = "出牌阶段，你可以将弃置一张手牌，获得一个“神断”标记。判定生效前，你可以（1）弃置1个“神断”标记改变判定牌的花色或点数（2）弃置2个“神断”标记同时改变判定牌的花色和点数",
+    ["@shenduan"] = "神断",  
     ["#ShendaunChangeSuit"] = "%from 发动了【神断】，将判定牌的花色从 %arg 改为 %arg2"
 }  
 
@@ -519,7 +530,7 @@ yinju = sgs.CreateTriggerSkill{
         msg.to:append(damage.from)  
         msg.arg = tostring(damage.damage)  
         msg.arg2 = self:objectName()  
-        room:sendLog(msg)  
+        room:sendLog(msg)
           
         damage.damage = 0  
         damage.prevented = true
@@ -5313,7 +5324,7 @@ Guifu = sgs.CreateTriggerSkill{
     view_as_skill = GuifuViewAsSkill,  
     events = {},  -- 没有触发事件，纯视为技  
 }  
-  
+
 -- 创建神工技能卡  
 ShengongCard = sgs.CreateSkillCard{  
     name = "shengongCard",  
@@ -5365,6 +5376,7 @@ ShengongViewAsSkill = sgs.CreateOneCardViewAsSkill{
         return not player:hasUsed("#shengongCard") and not player:isKongcheng()  
     end  
 }  
+
 --[[
 shengongCard = sgs.CreateSkillCard{  
     name = "shengongCard",  
@@ -5409,7 +5421,7 @@ shengongCard = sgs.CreateSkillCard{
         local to_player = room:askForPlayerChosen(source, room:getAlivePlayers(), "shengong")  
 
         -- 9. 移动到目标的装备区  
-        room:moveCardTo(wrapped, source, to_player,   
+        room:moveCardTo(wrapped, to_player,   
             sgs.Player_PlaceEquip,  
             sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT,   
                 source:objectName(), "shengong", ""))  
@@ -5448,14 +5460,14 @@ ShengongViewAsSkill = sgs.CreateViewAsSkill{
         return not player:hasUsed("#shengongCard") and not player:isKongcheng()
     end  
 }  
-]]
+
 -- 创建神工技能  
 Shengong = sgs.CreateTriggerSkill{  
     name = "shengong",  
     view_as_skill = ShengongViewAsSkill,  
     events = {},  -- 没有触发事件，纯视为技  
 }  
-  
+]]
 luban:addSkill(Guifu)  
 luban:addSkill(Shengong)  
   
