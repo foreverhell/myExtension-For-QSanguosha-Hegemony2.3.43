@@ -252,17 +252,20 @@ shenduan = sgs.CreateTriggerSkill{
             new_number = room:askForChoice(player, "shenduan_number", table.concat(numbers, "+"))  
             -- 这里需要创建新的判定牌  
         end  
-        --local new_card = judge.card
-        --new_card:setSuit(new_suit)
-        --new_card:setNumber(new_number)
-        
-        --local new_card = sgs.Sanguosha:cloneCard(judge.card:objectName(), new_suit, new_number)
+        local new_card = sgs.Sanguosha:getWrappedCard(judge.card:getEffectiveId())  --sgs.Sanguosha:getWrappedCard(id)返回的是包装后的卡牌对象（WrappedCard），这是房间内实际使用的、可以被修改的卡牌实例
+        new_card:setSuit(new_suit)
+        new_card:setNumber(new_number)
+        new_card:setModified(true) --设置已修改，否则会重置为原来的属性
 
+        --第二种实现方法：WrappedCard接管cloneCard创造的虚拟卡
+        --local clone_card = sgs.Sanguosha:cloneCard(judge.card:objectName(), new_suit, new_number)
+        --new_card:takeOver(clone_card)
+
+        judge.card = new_card
+        
         -- 执行改判  
         --room:retrial(new_card, player, judge, self:objectName())  
-        --judge:updateResult()
-
-        judge.good = not judge.good
+        judge:updateResult()
         data:setValue(judge)
         return false  
     end  
@@ -5362,7 +5365,90 @@ ShengongViewAsSkill = sgs.CreateOneCardViewAsSkill{
         return not player:hasUsed("#shengongCard") and not player:isKongcheng()  
     end  
 }  
+--[[
+shengongCard = sgs.CreateSkillCard{  
+    name = "shengongCard",  
+    target_fixed = false,  
+    will_throw = false,  
+    handling_method = sgs.Card_MethodNone,  
+      
+    filter = function(self, targets, to_select)  
+        -- 只选择第一个目标：要复制装备的角色            
+        -- 必须有装备才能被选择  
+        return #targets == 0 and not to_select:getEquips():isEmpty()
+    end,  
+      
+    feasible = function(self, targets)  
+        -- 只需要选择一个目标（装备来源角色）  
+        return #targets == 1  
+    end,  
+      
+    on_use = function(self, room, source, targets)  
+        local from_player = targets[1]  -- 装备来源角色  
+        local hand_card_id = self:getSubcards():first()  -- 手牌ID  
+          
+        -- 1. 让玩家从装备来源角色的装备区选择一张装备  
+        local equip_id = room:askForCardChosen(source, from_player, "e", "shengong")  
+        local equip_card = sgs.Sanguosha:getCard(equip_id)  
+                    
+        -- 5. 克隆要模拟的装备牌  
+        local new_equip = sgs.Sanguosha:cloneCard(equip_card:objectName(),   
+            equip_card:getSuit(), equip_card:getNumber())  
+        new_equip:setSkillName("shengong")  
+          
+        -- 6. 获取手牌对应的 WrappedCard  
+        local wrapped = sgs.Sanguosha:getWrappedCard(hand_card_id)  
+          
+        -- 7. 让 WrappedCard 接管新装备的效果  
+        wrapped:takeOver(new_equip)  
+          
+        -- 8. 广播更新给所有玩家  
+        room:broadcastUpdateCard(room:getPlayers(), hand_card_id, wrapped)  
+
+        -- 4. 让玩家选择要放置装备的目标角色  
+        local to_player = room:askForPlayerChosen(source, room:getAlivePlayers(), "shengong")  
+
+        -- 9. 移动到目标的装备区  
+        room:moveCardTo(wrapped, source, to_player,   
+            sgs.Player_PlaceEquip,  
+            sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT,   
+                source:objectName(), "shengong", ""))  
+          
+        -- 发送日志  
+        local log = sgs.LogMessage()  
+        log.type = "#shengong"  
+        log.from = source  
+        log.to = {to_player}  
+        log.card_str = tostring(hand_card_id)  
+        log.arg = equip_card:objectName()  
+        room:sendLog(log)  
+    end  
+}  
   
+-- 视为技定义  
+ShengongViewAsSkill = sgs.CreateViewAsSkill{  
+    name = "shengong",  
+    n = 1,  
+    view_filter = function(self, selected, to_select)  
+        return #selected == 0 and not to_select:isEquipped()
+    end,  
+      
+    view_as = function(self, cards)  
+        if #cards ~= 1 then return nil end  
+          
+        local card = shengongCard:clone()  
+        card:addSubcard(cards[1])  
+        card:setSkillName(self:objectName())  
+        card:setShowSkill(self:objectName())
+        return card  
+    end,  
+      
+    enabled_at_play = function(self, player)  
+        -- 出牌阶段限一次  
+        return not player:hasUsed("#shengongCard") and not player:isKongcheng()
+    end  
+}  
+]]
 -- 创建神工技能  
 Shengong = sgs.CreateTriggerSkill{  
     name = "shengong",  
