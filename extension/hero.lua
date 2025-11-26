@@ -5843,7 +5843,8 @@ zhensha = sgs.CreateTriggerSkill{
         -- 设置标记，使目标跳过求桃阶段  
         --room:setPlayerFlag(player, "Global_PreventPeach")  
         --player:skip(sgs.AskForPeaches)
-        room:killPlayer(player)
+        local dying = data:toDying()
+        room:killPlayer(player, dying.damage)
         -- 日志  
         local msg = sgs.LogMessage()  
         msg.type = "#zhenshaEffect"  
