@@ -248,6 +248,7 @@ shenduan = sgs.CreateTriggerSkill{
             string2suits["club"] = sgs.Card_Club
             string2suits["diamond"] = sgs.Card_Diamond
             new_suit = string2suits[new_suit_string]
+            --new_suit = room:askForSuit(player, "shenduan_suit") --这个直接就可以选花色，不需要再转换一次
             -- 这里需要创建新的判定牌  
         end  
           
@@ -265,12 +266,13 @@ shenduan = sgs.CreateTriggerSkill{
         new_card:setSuit(new_suit)--这里原本是字符串，改成了花色数据类型
         new_card:setNumber(new_number)--这里是字符串，需要改成int
         new_card:setModified(true) --设置已修改，否则会重置为原来的属性
-
+        
         --第二种实现方法：WrappedCard接管cloneCard创造的虚拟卡
         --local clone_card = sgs.Sanguosha:cloneCard(judge.card:objectName(), new_suit, new_number)
         --new_card:takeOver(clone_card)
 
         judge.card = new_card
+        room:broadcastUpdateCard(room:getPlayers(), judge.card:getEffectiveId(), new_card) --通知所有玩家，该判定牌变了
         -- 执行改判  
         --room:retrial(new_card, player, judge, self:objectName())  
         judge:updateResult()
