@@ -664,7 +664,8 @@ function SmartAI:getGeneralShowOrHide(player,optional,isShow,isDisableShow)--isD
 		if player:objectName() == self.player:objectName() then
 			if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and not self.player:hasShownGeneral1() then--已开启君主替换
 				if self.player:inHeadSkills("rende") or self.player:inHeadSkills("guidao")
-					or self.player:inHeadSkills("zhiheng") or self.player:inHeadSkills("jianxiong") then
+					or self.player:inHeadSkills("zhiheng") or self.player:inHeadSkills("jianxiong")
+					or self.player:inHeadSkills("xiangle") or self.player:inHeadSkills("fangzhu") then
 					if self.player:getPhase() == sgs.Player_RoundStart and self.player:canShowGeneral("h") then
 						head_value = head_value + 6
 						if self.player:inHeadSkills("jianxiong")  then
@@ -808,7 +809,7 @@ function SmartAI:getGeneralShowOrHide(player,optional,isShow,isDisableShow)--isD
 					end
 				end
 			end
-			if fazheng and self.player:isFriendWith(fazheng) then--尽量不亮可炫惑的技能
+			if fazheng and fazheng:isAlive() and self.player:isFriendWith(fazheng) then--尽量不亮可炫惑的技能
 				--每有一个可以发动炫惑的队友,各炫惑技能的亮将价值-1
 				local other_num = fazheng:getPlayerNumWithSameKingdom("AI") - 1 
 				local xuanhuo_priority = {"paoxiao", "tieqi", "kuanggu", "liegong", "wusheng", "longdan"}
@@ -1526,10 +1527,11 @@ function SmartAI:getGeneralShowOrHide(player,optional,isShow,isDisableShow)--isD
 				if head_value + allshown_value > 0 then table.insert(show_position,"head") end
 			end
 		elseif (player:canShowGeneral("h") and not player:hasShownGeneral1()) then--单将亮将考虑
-			if optional then--考虑不亮
+			--[[if optional then--考虑不亮
 				if head_value + value < 0 then return nil end
 				if head_value + value == 0 and not sgs.general_shown[player:objectName()]["head"] then return nil end
-			end
+			end]]
+			if self.player:getRole() ~= "careerist" and (head_value + value < 0) then return nil end
 			table.insert(show_position,"head")
 		elseif (player:canShowGeneral("d") and not player:hasShownGeneral2()) then--单将亮将考虑
 			if optional then--考虑不亮
@@ -1588,7 +1590,8 @@ sgs.ai_skill_choice.GameRule_AskForGeneralShow = function(self, choices)
 	
 	if sgs.GetConfig("EnableLordConvertion", true) and canShowHead then--已开启君主替换(布施不推荐君主双亮)
 		if self.player:inHeadSkills("rende") or self.player:inHeadSkills("guidao")
-			or self.player:inHeadSkills("zhiheng") or self.player:inHeadSkills("jianxiong") then
+			or self.player:inHeadSkills("zhiheng") or self.player:inHeadSkills("jianxiong")
+			or self.player:inHeadSkills("xiangle") or self.player:inHeadSkills("fangzhu") then
 			if self.player:getPhase() == sgs.Player_RoundStart and self.player:getMark("Global_RoundCount") == 1 then
 				if canShowDeputy then
 					return "show_both_generals"
@@ -1953,6 +1956,7 @@ end
 sgs.ai_skill_use_func.CompanionCard= function(card, use, self)
 	--Global_room:writeToConsole("珠联璧合判断开始")
 	local card_str = ("@CompanionCard=.&_companion")
+	local room = self.player:getRoom()
 	local nofreindweak = true
 	for _, friend in ipairs(self.friends_noself) do
 		if self:isWeak(friend) then
@@ -1964,6 +1968,20 @@ sgs.ai_skill_use_func.CompanionCard= function(card, use, self)
 		use.card = sgs.Card_Parse(card_str)
 		return
 	end
+	if self.player:hasShownSkill("luayixing") and not self.player:hasFlag("CompanionUsed") then
+		local hasArmor = false
+		local hcards = self.player:getCards("h")
+		for _, c in sgs.qlist(hcards) do
+			if c:isKindOf("Armor") then
+				hasArmor = true
+			end
+		end
+		if self.player:getLostHp() > 0 and hasArmor then
+			room:setPlayerFlag(self.player, "CompanionUsed")
+			use.card = sgs.Card_Parse(card_str)
+			return
+		end
+	end
 --暂不考虑摸牌
 --[[如何获取当前或上一张杀的目标？可参考野心家标记补牌
 	情况1：能出杀，预测杀目标血量为1且无闪或手牌小于等于2
@@ -1972,7 +1990,11 @@ sgs.ai_skill_use_func.CompanionCard= function(card, use, self)
 end
 
 sgs.ai_skill_choice["companion"] = function(self, choices)
-	return "peach"
+	if self.player:isWounded() then 
+		return "peach"
+	else
+		return "draw"
+	end
 end
 
 function sgs.ai_cardsview.companion(self, class_name, player, cards)
