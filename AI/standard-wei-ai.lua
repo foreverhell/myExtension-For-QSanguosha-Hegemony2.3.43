@@ -1799,7 +1799,16 @@ sgs.ai_playerchosen_intention.jieming = function(self, from, to)
 end
 
 --曹丕
-sgs.ai_skill_invoke.xingshang = true
+sgs.ai_skill_invoke.xingshang = function(self, data)
+	local x = self.room:getAllPlayers(true):length()
+	local weiPlayer = self.player:getPlayerNumWithSameKingdom("AI", "wei", 1)
+	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
+	self.player:getRole() ~= "careerist" and not self:isWeak() and self.player:inHeadSkills("fangzhu") and not 
+	(weiPlayer >= x / 2) and not self.player:hasShownGeneral1() then
+		return false
+	end
+	return true
+end
 
 function SmartAI:toTurnOver(player, n, reason) -- @todo: param of toTurnOver
 	if not player then Global_room:writeToConsole(debug.traceback()) return end
@@ -1825,6 +1834,14 @@ function SmartAI:toTurnOver(player, n, reason) -- @todo: param of toTurnOver
 end
 
 sgs.ai_skill_playerchosen.fangzhu = function(self, targets)
+	local x = self.room:getAllPlayers(true):length()
+	local weiPlayer = self.player:getPlayerNumWithSameKingdom("AI", "wei", 1)
+	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
+	self.player:getRole() ~= "careerist" and not self:isWeak() and self.player:inHeadSkills("fangzhu") and not 
+	(weiPlayer >= x / 2) and not self.player:hasShownGeneral1() then
+		return {}
+	end
+
 	if not self:willShowForMasochism() then return {} end
 
 	local function can_losehp(p)
@@ -1935,7 +1952,7 @@ sgs.ai_skill_playerchosen.fangzhu = function(self, targets)
 				end
 			end
 			if not target and n <= 1 then
-				for _, p in sgs.qlist(self.room:getOtherPlayers(self.player)) do
+				for _, p in sgs.qlist(self.room:getAlivePlayers()) do
 					if not self:isFriendWith(p) and self:toTurnOver(p, n, "fangzhu") then
 						target = p
 				  		break
@@ -1962,7 +1979,9 @@ sgs.ai_skill_discard["fangzhu_discard"] = function(self, discard_num, min_num, o
 		return {}
 	end
 	local caopi = sgs.findPlayerByShownSkillName("fangzhu")
-	if caopi and self:isFriend(caopi) and caopi:getLostHp() >= 2 then--翻队友的情况
+	local lord_caopi = sgs.findPlayerByShownSkillName("fangzhu_lordcaopi")
+	if (caopi and self:isFriend(caopi) and caopi:getLostHp() >= 2) or 
+	(lord_caopi and self:isFriend(lord_caopi) and lord_caopi:getLostHp() >= 2) then--翻队友的情况
 		return {}
 	end
 	if not self.player:faceUp() or (self.player:hasSkill("jushou") and self.player:getPhase() <= sgs.Player_Finish) or self.player:getCardCount(true) < 2 then
