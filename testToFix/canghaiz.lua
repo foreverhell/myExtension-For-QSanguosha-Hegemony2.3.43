@@ -107,9 +107,15 @@ getKingdoms = function(player, will_show)
 	return n + #kingdom_set
 end
 
---建立轮次判断函数
-isNewRound = function(room, player)
-    
+--建立判断是否小势力函数
+isSmallKingdom = function(room, player)
+    if player:isBigKingdomPlayer() then return false end
+    for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+        if p:isBigKingdomPlayer() and not player:isFriendWith(p) then
+            return true
+        end
+    end
+    return false
 end
 
 
@@ -694,7 +700,7 @@ luamibei = sgs.CreateTriggerSkill{
 
 luamibei_cardUsed = sgs.CreateTriggerSkill{
     name = "#luamibei_cardUsed",
-    events = {sgs.CardUsed,sgs.TurnStart,sgs.EventPhaseStart},
+    events = {sgs.CardUsed, sgs.EventPhaseChanging},
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         if player:hasFlag("luamibeiNoCommand") and event == sgs.CardUsed and player:getPhase() ~= sgs.Player_NotActive then
@@ -711,15 +717,17 @@ luamibei_cardUsed = sgs.CreateTriggerSkill{
                 msg.arg2 = self:objectName()
                 room:sendLog(msg)
             end
-        elseif player:getPhase() == sgs.TurnStart and event == sgs.EventPhaseStart then
-            local skill_owners = room:findPlayersBySkillName("luamibei")
-            for _, skill_owner in sgs.qlist(skill_owners) do
-                local cards = CardList2Table(player:getHandcards())
-                for _, card in pairs(cards) do
-                    if sgs.Sanguosha:getCard(card).getTag("luamibeiRecord") and 
-                    sgs.Sanguosha:getCard(card).getTag("luamibeiRecord"):toInt() == 1 then
-                        sgs.Sanguosha:getCard(card):removeTag("luamibeiRecord")
-                        return false
+        elseif event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            if change.to == sgs.Player_NotActive then
+                local skill_owners = room:findPlayersBySkillName("luamibei")
+                for _, skill_owner in sgs.qlist(skill_owners) do
+                    local cards = player:getHandcards()
+                    for _, card in sgs.qlist(cards) do
+                        if card:getTag("luamibeiRecord") and card:getTag("luamibeiRecord"):toInt() == 1 then
+                            card:removeTag("luamibeiRecord")
+                            return false
+                        end
                     end
                 end
             end
@@ -1763,7 +1771,7 @@ luafaen = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)
         if player and player:isAlive() then
             if event == sgs.ChainStateChanged and not player:isChained() then return false end
-            if event == sgs.TurnedOver and player:faceup() then return false end
+            if event == sgs.TurnedOver and player:faceUp() then return false end
             local skill_owners = room:findPlayersBySkillName(self:objectName())
 			local skill_list = {}
 			local name_list = {}
@@ -2198,6 +2206,7 @@ luahuituo = sgs.CreateTriggerSkill{
                 local d = sgs.QVariant()
                 d:setValue(target)
                 skill_owner:setTag("luahuituoTarget", d)
+                room:broadcastSkillInvoke(self:objectName(), skill_owner)
                 return true
             end
         end
@@ -2281,7 +2290,7 @@ luazhuanxing = sgs.CreateTriggerSkill{
     name = "luazhuanxing",
     events = {sgs.EventPhaseStart},
     can_trigger = function(self, event, room, player, data)
-        if player and player:isAlive() and player:getPhase() == sgs.Player_Start then
+        if player and player:isAlive() and player:getPhase() == sgs.Player_Start and not player:isNude() then
             local skill_owners = room:findPlayersBySkillName(self:objectName())
 			local skill_list = {}
 			local name_list = {}
@@ -2414,8 +2423,8 @@ sgs.LoadTranslationTable{
     ["@luazhuanxing_shortage"] = "专行：置入【兵粮寸断】到%dest判定区",
     ["@luazhuanxing_choose"] = "专行：对%dest选择一项",
     ["@luazhuanxing_damage"] = "专行：选择一名角色对其造成一点伤害",
-    ["$luazhuanxing1"] = "不顺我意者，当填在野之壑。",
-    ["$luazhuanxing2"] = "吾令不从者，当膏霜锋之锷。",
+    ["$luazhuanxing1"] = "卿有成材良木，可妆吾家江山。",
+    ["$luazhuanxing2"] = "吾好锦衣玉食，卿家可愿割爱否？",
     ["~luasunchen"] = "臣家火起，请离席救之。",
 }
 
