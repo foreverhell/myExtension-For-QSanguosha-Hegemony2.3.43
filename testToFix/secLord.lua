@@ -892,6 +892,29 @@ luahuangchu = sgs.CreateTriggerSkill{
         if player and player:isAlive() and player:hasLordSkill(self:objectName()) and data:toBool() == 
         player:inHeadSkills(self:objectName()) then
             room:sendCompulsoryTriggerLog(player, self:objectName())
+            local weiMax, allMax = {}, {}
+            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                if p:getSeemingKingdom() == "wei" then
+                    table.insert(weiMax, p:getMark("luajpzzg_killCount"))
+                else
+                    table.insert(allMax, p:getMark("luajpzzg_killCount"))
+                end
+            end
+            table.sort(weiMax, function(a, b) return a > b end)
+            table.sort(allMax, function(a, b) return a > b end)
+            if weiMax[1] == weiMax[2] or player:getPlayerNumWithSameKingdom("AI", "wei", 1) <= 1 then 
+                return false 
+            end
+            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                if p:getSeemingKingdom() == "wei" and p:getMark("luajpzzg_killCount") == weiMax[1] then
+                    if weiMax[1] >= allMax[1] then
+                        room:setPlayerMark(p, "##luajpzzg_killer", 2)
+                    else
+                        room:setPlayerMark(p, "##luajpzzg_killer", 1)
+                    end
+                    break
+                end
+            end
         end
         return false
     end
