@@ -3693,7 +3693,7 @@ function SmartAI:askForCardChosen(who, flags, reason, method, disable_list)
 
 		------------------
 		local yuanshu = sgs.findPlayerByShownSkillName("weidi")
-		if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not yuanshu:hasUsed("WeidiCard") then 
+		if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not yuanshu:hasUsed("#WeidiCard") then 
 			if flags:match("e") and who:getArmor() and who:getArmor():isKindOf("PeaceSpell") and canOperate(who:getArmor():getEffectiveId()) then
 				return who:getArmor():getId()
 			end
@@ -6821,6 +6821,16 @@ function SmartAI:useEquipCard(card, use)
 		if lord_liushan and lord_liushan:isAlive() then
 			if not self.player:isFriendWith(lord_liushan) or (self.player:objectName() ~= lord_liushan:objectName() and 
 			self.player:getArmor()) or (self.player:objectName() == lord_liushan:objectName()) then
+				return
+			end
+		end
+	end
+	if card:isKindOf("Treasure") then
+		local lord_caopi = sgs.findPlayerByShownSkillName("luahuandou") --有君曹丕在（其他势力/已出现州郡领）不装备州郡领兵印/其他宝物
+		if lord_caopi and lord_caopi:isAlive() then
+			local id = 165
+			if not self.player:isFriendWith(lord_caopi) and (self.room:getCardPlace(id) == sgs.Player_DiscardPile or self.room:getCardPlace(id) 
+			== sgs.Player_PlaceEquip) then
 				return
 			end
 		end
