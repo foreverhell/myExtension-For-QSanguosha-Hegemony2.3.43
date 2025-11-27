@@ -153,7 +153,7 @@ pingyuan = sgs.CreateTriggerSkill{
         if not player or player:isDead() or not player:hasSkill(self:objectName()) then  
             return false  
         end 
-        return self.objectName()
+        return self:objectName()
     end,  
     on_cost = function(self, event, room, player, data)  
         return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)  
@@ -239,16 +239,17 @@ shenduan = sgs.CreateTriggerSkill{
         local new_number = judge.card:getNumber()
         if choice == "suit" or choice == "both" then  
             -- 让玩家选择新花色  
+            --[[
             local suits = {"spade", "heart", "club", "diamond"}  
             new_suit_string = room:askForChoice(player, "shenduan_suit", table.concat(suits, "+"))  
-
             local string2suits = {}
             string2suits["spade"] = sgs.Card_Spade
             string2suits["heart"] = sgs.Card_Heart
             string2suits["club"] = sgs.Card_Club
             string2suits["diamond"] = sgs.Card_Diamond
             new_suit = string2suits[new_suit_string]
-            --new_suit = room:askForSuit(player, "shenduan_suit") --这个直接就可以选花色，不需要再转换一次
+            ]]
+            new_suit = room:askForSuit(player, "shenduan_suit") --这个直接就可以选花色，不需要再转换一次
             -- 这里需要创建新的判定牌  
         end  
           
@@ -375,7 +376,9 @@ sgs.LoadTranslationTable{
     [":shenduan"] = "出牌阶段，你可以将手牌放入“神断”牌堆。判定生效前，你可以使用该牌堆的牌改判",
     [":shenduan"] = "出牌阶段，你可以将弃置一张手牌，获得一个“神断”标记。判定生效前，你可以（1）弃置1个“神断”标记改变判定牌的花色或点数（2）弃置2个“神断”标记同时改变判定牌的花色和点数",
     ["@shenduan"] = "神断",  
-    ["#ShendaunChangeSuit"] = "%from 发动了【神断】，将判定牌的花色从 %arg 改为 %arg2"
+    ["suit"] = "花色",
+    ["number"] = "数字",
+    ["both"] = "花色+数字",
 }  
 
 -- 创建伯乐武将  
@@ -5462,14 +5465,14 @@ ShengongViewAsSkill = sgs.CreateViewAsSkill{
         return not player:hasUsed("#shengongCard") and not player:isKongcheng()
     end  
 }  
-
+]]
 -- 创建神工技能  
 Shengong = sgs.CreateTriggerSkill{  
     name = "shengong",  
     view_as_skill = ShengongViewAsSkill,  
     events = {},  -- 没有触发事件，纯视为技  
 }  
-]]
+
 luban:addSkill(Guifu)  
 luban:addSkill(Shengong)  
   
@@ -6219,7 +6222,7 @@ qizong = sgs.CreateTriggerSkill{
         if not player or player:isDead() or not player:hasSkill(self:objectName()) then  
             return false  
         end 
-        return self.objectName()
+        return self:objectName()
     end,  
     on_cost = function(self, event, room, player, data)  
         return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
@@ -10818,7 +10821,7 @@ xiuhua = sgs.CreateTriggerSkill{
         local handcard_num = player:getHandcardNum()  
         local draw_num = lost_hp - handcard_num  
         if draw_num > 0 then
-            return self.objectName()
+            return self:objectName()
         end
         return false
     end,  
