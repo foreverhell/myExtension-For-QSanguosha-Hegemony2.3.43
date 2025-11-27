@@ -806,7 +806,9 @@ luazhanjue = sgs.CreateZeroCardViewAsSkill{
 
 luazhanjue_draw = sgs.CreateTriggerSkill{
     name = "#luazhanjue_draw",
-    events = {sgs.PreDamageDone, sgs.CardFinished, sgs.EventPhaseChanging},
+    events = {sgs.DamageCaused, sgs.CardFinished, sgs.EventPhaseChanging, sgs.Damaged},
+    priority = -1,
+    frequency = sgs.Skill_Compulsory,
     on_record = function(self, event, room, player, data)
         if skillTriggerable(player, "luazhanjue") and event == sgs.EventPhaseChanging then
             local change = data:toPhaseChange()
@@ -820,13 +822,13 @@ luazhanjue_draw = sgs.CreateTriggerSkill{
         if player and player:isAlive() then
             local current = room:getCurrent()
             if current and current:isAlive() and current:hasSkill("luazhanjue") then
-                if event == sgs.PreDamageDone then
+                if event == sgs.DamageCaused or event == sgs.Damaged then
                     local damage = data:toDamage()
                     if damage.card:isKindOf("Duel") and damage.card:getSkillName() == "luazhanjue" and damage.damage > 0 then
-                        if damage.from:objectName() == current:objectName() then
+                        if event == sgs.Damaged then
+                            room:setPlayerFlag(damage.to, "luazhanjueDamaged")
+                        elseif event == sgs.DamageCaused then
                             room:setPlayerFlag(current, "luazhanjueDamage")
-                        else
-                            room:setPlayerFlag(current, "luazhanjueDamaged")
                         end
                     end
                 elseif event == sgs.CardFinished then
@@ -847,22 +849,29 @@ luazhanjue_draw = sgs.CreateTriggerSkill{
 	on_effect = function(self, event, room, player, data)
         local current = room:getCurrent()
         local use = data:toCardUse()
-        local target = use.to:at(0)
+        local target = use.to
         if current:hasFlag("luazhanjueDamage") then
             current:drawCards(1)
-            target:drawCards(1)
             room:addPlayerMark(current, "luazhanjueDraw", 1)
             room:setPlayerFlag(current, "-luazhanjueDamage")
-        elseif current:hasFlag("luazhanjueDamaged") then
-            current:drawCards(2)
-            room:addPlayerMark(current, "luazhanjueDraw", 2)
+        end
+        if current:hasFlag("luazhanjueDamaged") then
+            current:drawCards(1)
+            room:addPlayerMark(current, "luazhanjueDraw", 1)
             room:setPlayerFlag(current, "-luazhanjueDamaged")
+        else
+            if target:length() > 0 then
+                room:sortByActionOrder(target)
+            end
+            for _, p in sgs.qlist(target) do
+                p:drawCards(1)
+            end
         end
         return false
     end
 }
 
---[[lualiuchen:addSkill(luazhanjue)
+lualiuchen:addSkill(luazhanjue)
 lualiuchen:addSkill(luazhanjue_draw)
 secLordGe:insertRelatedSkills("luazhanjue", "#luazhanjue_draw")
 
@@ -874,7 +883,7 @@ sgs.LoadTranslationTable{
     ["$luazhanjue1"] = "虎豹骁骑，甲兵自当冠宇天下。",
     ["$luazhanjue2"] = "非虎贲难入我营，唯坚铠方配锐士。",
     ["~lualiuchen"] = "三属之下，竟也护不住我性命…",
-}]]
+}
 
 luahuangchu = sgs.CreateTriggerSkill{
     name = "luahuangchu$",
