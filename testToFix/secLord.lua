@@ -12,7 +12,7 @@ lord_caopi = sgs.General(secLordGe, "lord_caopi$", "wei", 4, true, true)
 
 --蜀势力
 lord_liushan = sgs.General(secLordGe, "lord_liushan$", "shu", 4, true, true)
-lualiuchen = sgs.General(secLordGe, "lualiuchen", "shu")
+--lualiuchen = sgs.General(secLordGe, "lualiuchen", "shu")
 
 local skills = sgs.SkillList()
 
@@ -871,7 +871,7 @@ luazhanjue_draw = sgs.CreateTriggerSkill{
     end
 }
 
-lualiuchen:addSkill(luazhanjue)
+--[[lualiuchen:addSkill(luazhanjue)
 lualiuchen:addSkill(luazhanjue_draw)
 secLordGe:insertRelatedSkills("luazhanjue", "#luazhanjue_draw")
 
@@ -883,7 +883,7 @@ sgs.LoadTranslationTable{
     ["$luazhanjue1"] = "虎豹骁骑，甲兵自当冠宇天下。",
     ["$luazhanjue2"] = "非虎贲难入我营，唯坚铠方配锐士。",
     ["~lualiuchen"] = "三属之下，竟也护不住我性命…",
-}
+}]]
 
 luahuangchu = sgs.CreateTriggerSkill{
     name = "luahuangchu$",
