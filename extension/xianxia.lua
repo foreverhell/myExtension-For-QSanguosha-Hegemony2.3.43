@@ -325,7 +325,67 @@ yiyong = sgs.CreateTriggerSkill{
 		return false
 	end
 }
+--[[
+yiyong = sgs.CreateTriggerSkill{
+	name = "yiyong",
+	events = {sgs.CardsMoveOneTime},
+    frequency = sgs.Skill_Frequent,  
+    can_trigger = function(self, event, room, player, data)
+		if player and player:isAlive() and player:hasSkill(self:objectName()) then
+			local current = room:getCurrent()
+			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive and current~=player then
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					if move.to_places:contains(sgs.Player_PlaceHand) then
+						if move.to and move.to:isAlive() and player:objectName()==move.to:objectName() then
+                            for _,card_id in sgs.qlist(move.card_ids) do
+                                local card = sgs.Sanguosha:getCard(card_id)
+                                if card:isKindOf("EquipCard") then 
+                                    return self:objectName()
+                                end
+                            end
+						end
+					end
+				end
+			end
+		end
+		return ""
+	end,
+    on_cost = function(self, event, room, player, data)
+		return player:askForSkillInvoke(self:objectName(),data) --player:hasShownSkill(self:objectName())
+	end,
+    on_effect = function(self, event, room, player, data)
+        local move_datas = data:toList()
+        local equips = sgs.IntList()
+        for _, move_data in sgs.qlist(move_datas) do
+            local move = move_data:toMoveOneTime()
+            for _,card_id in sgs.qlist(move.card_ids) do
+                local card = sgs.Sanguosha:getCard(card_id)  
+                if card:isKindOf("EquipCard") then 
+                    equips:append(card_id)
+                end
+            end 
+        end
 
+        -- 检查牌堆是否为空  
+        if equips:length() == 0 then  
+            return false
+        end
+        while not equips:isEmpty() do
+            room:fillAG(equips, player)  
+            local card_id = room:askForAG(player, equips, true, self:objectName())  
+            room:clearAG(player) 
+            if card_id == nil then return false end
+            local equip = sgs.Sanguosha:getCard(card_id)
+            if equip == nil then return false end
+            room:useCard(sgs.CardUseStruct(equip, player, player), false)   
+            equips:remove(card_id)
+        end
+        return false
+	end
+}
+]]
 yashang = sgs.CreateMasochismSkill{  
     name = "yashang",  
     frequency = sgs.Skill_Compulsory,  
@@ -360,7 +420,7 @@ yashang = sgs.CreateMasochismSkill{
                 empty_slots = empty_slots - 2
                 break  
             end  
-        end
+        end          
         local x = empty_slots  
           
         room:sendCompulsoryTriggerLog(player, self:objectName())  
@@ -1889,8 +1949,14 @@ xinxianying1Card = sgs.CreateSkillCard{
         local my_card_id = self:getSubcards():first()
         local mycard = sgs.Sanguosha:getCard(my_card_id)
         room:showCard(source, my_card_id)
-        --至多3张，是否需要修改？
-        local chosen_card_ids = room:askForCardsChosen(source, target, string.rep("h",3), self:objectName(), 3, 3)  
+        --至多3张
+        local choices = {}  
+        for i = 1, math.min(target:getHandcardNum(),3) do  
+            table.insert(choices, tostring(i))  
+        end    
+        local count = room:askForChoice(source, self:objectName(), table.concat(choices, "+"))  
+
+        local chosen_card_ids = room:askForCardsChosen(source, target, string.rep("h",count), self:objectName(), count, count)  
         for _,id in sgs.qlist(chosen_card_ids) do
             local card = sgs.Sanguosha:getCard(id)
             room:showCard(target, id)
