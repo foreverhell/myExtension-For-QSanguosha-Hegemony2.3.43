@@ -1357,7 +1357,7 @@ ZhiyuZhijianSkill = sgs.CreateTriggerSkill{
 qiankundai:setParent(extension)
 shixuejian:setParent(extension)
 anshajian:setParent(extension)
-jinxiuzhengpao:setParent(extension)  
+--jinxiuzhengpao:setParent(extension)  --放到二代君包
 
 xiuliQiankun:setParent(extension)  --通过
 bileizhen:setParent(extension)
@@ -1385,9 +1385,12 @@ end
 if not sgs.Sanguosha:getSkill("anshajian_loseHp") then
     skills:append(anshajian_skill)
 end
+--[[
+--放到二代君包
 if not sgs.Sanguosha:getSkill("jinxiuzhengpao") then
     skills:append(jinxiuzhengpao_skill)
 end
+]]
 if not sgs.Sanguosha:getSkill("Bileizhen") then
     skills:append(bileizhenSkill)
 end
