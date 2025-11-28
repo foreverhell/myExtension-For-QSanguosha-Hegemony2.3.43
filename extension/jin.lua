@@ -1788,7 +1788,7 @@ chengfeng = sgs.CreateTriggerSkill{
         if equips:length() == 0 then  
             return false
         end          
-        if room:askForDiscard(player,self:objectName(),1,1,true,true) then
+        while not equips:isEmpty() and room:askForDiscard(player,self:objectName(),1,1,true,true) do
             -- 使用AG界面让玩家选择一张牌  
             room:fillAG(equips, player)  
             local card_id = room:askForAG(player, equips, true, self:objectName())  
@@ -1803,6 +1803,7 @@ chengfeng = sgs.CreateTriggerSkill{
                 local card = player:getHandcards():last() --最后一张手牌
                 room:useCard(sgs.CardUseStruct(card, player, player), false)   
             end
+            equips:remove(card_id)
         end
         return false  
     end  
@@ -2140,14 +2141,16 @@ Jiantong = sgs.CreateTriggerSkill{
         if not target or target:isKongcheng() then return false end  
 
         -- 查看并选择目标角色至多2张手牌  
-        local chosen_cards = room:askForCardsChosen(ask_who, target, "hh", self:objectName(), 0, 2, true)            
+        local chosen_cards = room:askForCardsChosen(ask_who, target, "hh", self:objectName(), 0, 2, true)
+        --[[
         -- 检查自己是否有装备区的牌  
         local equips = ask_who:getEquips()  
         if equips:isEmpty() then return false end  
         -- 选择装备区的1张牌  
         local equip_id = room:askForCardChosen(ask_who, ask_who, "e", self:objectName())  
         if equip_id == -1 then return false end  
-
+        ]]
+        equip_id = room:askForCard(ask_who,"EquipCard","@jiantong-choose",sgs.QVariant(),sgs.Card_MethodNone):getId()
         for _,id in sgs.qlist(chosen_cards) do  
             room:obtainCard(ask_who, id) 
         end          
@@ -2177,7 +2180,7 @@ sgs.LoadTranslationTable{
     [":chengxi"] = "准备阶段，你可选择一名角色，令所有与该角色势力相同的角色摸2张牌然后弃2张牌，若弃牌中包含非基本牌，则该角色对所有目标造成1点伤害。",
 
     ["jiantong"] = "监统",
-    [":jiantong"] = "你受到伤害后，你可以观看一名角色的所有手牌，然后你可以用装备区的1张牌和该角色至多2张手牌交换"
+    [":jiantong"] = "你受到伤害后，你可以观看一名角色的所有手牌，然后你可以用1张装备牌和该角色至多2张手牌交换"
 }
 
 xuangongzhu = sgs.General(extension, "xuangongzhu", "jin", 3, false)  
@@ -2994,6 +2997,7 @@ maosui_jin:addSkill("zijian")
 
 miyue_jin:addSkill("yuumie")
 miyue_jin:addSkill("zhangquan")
+miyue_jin:addSkill("zhangzheng")
 
 simayi_jin:addSkill("zhuolue")
 simayi_jin:addSkill("langgu")
