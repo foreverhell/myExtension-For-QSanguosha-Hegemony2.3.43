@@ -214,6 +214,9 @@ zuolie = sgs.CreateTriggerSkill{
             room:setPlayerFlag(use.from, "zuolie_slash")
             if card:getSuit()==use.card:getSuit() then
                 ask_who:drawCards(1, self:objectName())
+                if card:getNumber()==use.card:getNumber() then
+                    room:setPlayerMark(ask_who, "@jiezhong", 1)
+                end
             end
         end
         return false  
@@ -274,7 +277,7 @@ guanping:addSkill(jiezhong)
 sgs.LoadTranslationTable{
     ["guanping"] = "关平",
     ["zuolie"] = "佐烈",  
-    [":zuolie"] = "每回合限一次。一名角色于其出牌阶段使用杀时，你可以弃置1张红色牌，令其本回合使用杀次数+1，若弃置的牌与此杀花色相同，你摸1张牌",  
+    [":zuolie"] = "每回合限一次。一名角色于其出牌阶段使用杀时，你可以弃置1张红色牌，令其本回合使用杀次数+1。若弃置的牌与此杀：花色相同，你摸1张牌;花色和点数都相同，你重置【竭忠】",  
     ["jiezhong"] = "竭忠",
     [":jiezhong"] = "限定技。准备阶段，你可以令一名角色摸牌至体力上限"
 }
@@ -1484,7 +1487,7 @@ zhaojieDelay = sgs.CreateTriggerSkill{
             return true
         elseif event == sgs.TurnedOver then --叠置事件开始时
             --player:setFaceUp(false)
-            if player:faceup() then --正面朝上
+            if player:faceUp() then --正面朝上
                 player:turnOver() --先翻一次面，触发事件翻回来
                 return false
             end
