@@ -1487,7 +1487,7 @@ zhaojieDelay = sgs.CreateTriggerSkill{
             return true
         elseif event == sgs.TurnedOver then --叠置事件开始时
             --player:setFaceUp(false)
-            if player:faceUp() then --正面朝上
+            if not player:faceUp() then --正面朝上
                 player:turnOver() --先翻一次面，触发事件翻回来
                 return false
             end
