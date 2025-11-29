@@ -964,7 +964,7 @@ kuangfuRange_range = sgs.CreateAttackRangeSkill{
 
 qixiKongcheng = sgs.CreateTriggerSkill{  
     name = "qixiKongcheng",  
-    events = {sgs.DamageInflicted},  
+    events = {sgs.DamageCaused},  
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         local damage = data:toDamage()  
@@ -5830,7 +5830,7 @@ kuangchan = sgs.CreatePhaseChangeSkill{
     name = "kuangchan", -- 技能名称  
     --frequency = sgs.Skill_Frequent, -- 设置为常规技能  
     can_trigger = function(self, event, room, player, data)
-        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start then  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start and player:getHp() >= 2 then  
             return self:objectName()
         end  
         return ""
@@ -5840,16 +5840,9 @@ kuangchan = sgs.CreatePhaseChangeSkill{
     end,
     -- 在阶段变化时触发的函数  
     on_phasechange = function(self, player)  
-        -- 检查是否是准备阶段  
-        if player:getPhase() ~= sgs.Player_Start then  
-            return false  
-        end  
-        if player:getHp() < 2 then 
-            return false
-        end
         -- 获取房间对象  
         local room = player:getRoom()  
-          
+        
         --room:loseHp(player, 1) 
 
         local damage = sgs.DamageStruct()  
@@ -9009,8 +9002,8 @@ wangji = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         local death = data:toDeath()  
-        if death.who and death.who:hasSkill(self:objectName()) then  
-            return self:objectName()  
+        if death.who and death.who:hasSkill(self:objectName()) and death.who==player then  
+            return self:objectName()
         end  
         return ""  
     end,  
@@ -11522,7 +11515,7 @@ juebie = sgs.CreateTriggerSkill{
         -- 寻找拥有运枢技能的角色  
         local death = data:toDeath()  
         local dead_player = death.who  
-        if dead_player and dead_player:hasSkill(self:objectName()) then  
+        if dead_player and dead_player:hasSkill(self:objectName()) and dead_player == player then  
             return self:objectName()
         end  
         return ""  
