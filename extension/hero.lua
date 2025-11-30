@@ -7304,7 +7304,16 @@ diehun = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data)  
         -- 选择一名角色摸牌  
-        local target = room:askForPlayerChosen(player, room:getAlivePlayers(), self:objectName(), "diehun-invoke")  
+        local targets = sgs.SPlayerList()  
+        -- 收集可选目标  
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if  player:isFriendWith(p) then  
+                targets:append(p)            
+            end  
+        end  
+          
+        if targets:isEmpty() then return false end  
+        local target = room:askForPlayerChosen(player, targets, self:objectName(), "diehun-invoke")  
         if target then  
             target:drawCards(1, self:objectName())  
         end  
@@ -7320,7 +7329,7 @@ murong:addSkill(diehun)
 sgs.LoadTranslationTable{
 ["murong"] = "慕容",
 ["diehun"] = "蝶魂",  
-[":diehun"] = "当你成为锦囊的目标时，若目标数大于1，你可以令任意一名角色摸1张牌，并令该锦囊对自己无效",
+[":diehun"] = "当你成为锦囊的目标时，若目标数大于1，你可以令任意一名势力相同的角色摸1张牌，并令该锦囊对自己无效",
 }
 
 -- 创建武将：聂隐娘，蜀势力，女性，3血  
