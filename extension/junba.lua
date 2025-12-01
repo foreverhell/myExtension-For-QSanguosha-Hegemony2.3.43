@@ -2295,7 +2295,7 @@ shiyuan_skill = sgs.CreateTriggerSkill{
         elseif source and source:objectName() ~= shiyuan_player:objectName() then  
             -- 其他角色使用牌指定技能拥有者  
             for _, target in sgs.qlist(use.to) do  
-                if target:objectName() == p:objectName() then  
+                if target:objectName() == shiyuan_player:objectName() then  
                     is_involved = true  
                     other_player = source  
                     break  
