@@ -11244,7 +11244,7 @@ sgs.LoadTranslationTable{
     ["yuanshiCard"] = "元始",  
     ["tianzunCard"] = "天尊"  
 }
---[[
+
 yuantiangang = sgs.General(extension, "yuantiangang", "qun", 3)  --wei 
 
 xiangshuCard = sgs.CreateSkillCard{  
@@ -11254,7 +11254,7 @@ xiangshuCard = sgs.CreateSkillCard{
       
     on_use = function(self, room, source, targets)  
         top_cards=room:getNCards(2)
-        room:askForGuanxing(source, top_cards, sgs.GuanxingBothSides)-- GuanxingUpOnly, GuanxingBothSides, GuanxingDownOnly
+        room:askForGuanxing(source, top_cards, sgs.Room_GuanxingBothSides)-- GuanxingUpOnly, GuanxingBothSides, GuanxingDownOnly
         source:drawCards(1,self:objectName())
         -- 标记最后摸到的牌 
         local last_card_id = source:handCards():last()  
@@ -11330,7 +11330,7 @@ xiangshu = sgs.CreateTriggerSkill{
 
 quji2 = sgs.CreateTriggerSkill{  
     name = "quji2",
-    frequency = sgs.Skill_Frequent, --锁定技
+    frequency = sgs.Skill_Frequent,
     events = {sgs.CardUsed, sgs.EventPhaseStart},  --集合，可以有多个触发条件
           
     can_trigger = function(self, event, room, player, data)  
@@ -11367,7 +11367,7 @@ sgs.LoadTranslationTable{
     ["quji2"] = "趋吉",
     [":quji2"] = "结束阶段，若你本回合使用的牌数>=你的体力上限，你摸2张牌"
 }
-]]
+
 yuchigong = sgs.General(extension, "yuchigong", "wei", 4)  --wei,shu
 huwei = sgs.CreateTriggerSkill{  
     name = "huwei",  
