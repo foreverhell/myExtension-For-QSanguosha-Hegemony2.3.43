@@ -338,7 +338,7 @@ yiyong = sgs.CreateTriggerSkill{
 				for _, move_data in sgs.qlist(move_datas) do
 					local move = move_data:toMoveOneTime()
 					if move.to_places:contains(sgs.Player_PlaceHand) then
-						if move.to and move.to:isAlive() and player:objectName()==move.to:objectName() then
+						if move.to and move.to:isAlive() and move.to:hasSkill(objectName()) then
                             for _,card_id in sgs.qlist(move.card_ids) do
                                 local card = sgs.Sanguosha:getCard(card_id)
                                 if card:isKindOf("EquipCard") then 
