@@ -3051,6 +3051,170 @@ sgs.LoadTranslationTable{
 }
 ]]
 
+hongfunv = sgs.General(extension, "hongfunv", "qun", 3, false)  -- 吴国，4血，男性  
+zishu = sgs.CreateTriggerSkill{  
+    name = "zishu",  
+    events = {sgs.TargetConfirmed},  
+    frequency = sgs.Skill_Frequent,  
+      
+    can_trigger = function(self, event, room, player, data)    
+        -- 寻找拥有诗怨技能的角色  
+        local zishu_player = room:findPlayerBySkillName(self:objectName())  
+        if not (zishu_player and zishu_player:isAlive() and zishu_player:hasSkill(self:objectName())) then return "" end
+
+        local use = data:toCardUse()  
+        local source = use.from
+        if not (source and source:isAlive()) then return "" end
+        if use.card:getTypeId()==sgs.Card_TypeSkill then return "" end --不能是技能卡
+        if use.to:length() ~= 1 then return "" end --唯一目标
+
+        local is_involved = false  
+        local other_player = nil  
+            
+        -- 检查是否为使用者或目标  
+        if source and source:objectName() == zishu_player:objectName() then  
+            -- 技能拥有者使用牌指定其他角色  
+            for _, target in sgs.qlist(use.to) do  
+                if target:objectName() ~= zishu_player:objectName() then  
+                    is_involved = true  
+                    other_player = target  
+                    break  
+                end  
+            end  
+        elseif source and source:objectName() ~= zishu_player:objectName() then  
+            -- 其他角色使用牌指定技能拥有者  
+            for _, target in sgs.qlist(use.to) do  
+                if target:objectName() == zishu_player:objectName() then  
+                    is_involved = true  
+                    other_player = source  
+                    break  
+                end  
+            end  
+        end
+        if is_involved then
+            if zishu_player:hasFlag("zishu_used" .. other_player:objectName()) then return "" end --每回合每名角色限一次
+            if zishu_player:getHandcardNum() ~= other_player:getHandcardNum() then return "" end --这里可能有问题
+            return self:objectName(), zishu_player:objectName()
+        end
+        return ""
+          
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local use = data:toCardUse()  
+        local source = use.from  
+        local other_player = nil  
+          
+        -- 确定对比的角色  
+        if source and source:objectName() == ask_who:objectName() then  
+            -- 技能拥有者使用牌  
+            for _, target in sgs.qlist(use.to) do  
+                if target:objectName() ~= ask_who:objectName() then  
+                    other_player = target  
+                    break  
+                end  
+            end  
+        else  
+            -- 其他角色使用牌指定技能拥有者  
+            other_player = source  
+        end  
+          
+        if other_player and ask_who:getHandcardNum() == other_player:getHandcardNum() then  
+            room:setPlayerFlag(ask_who, "zishu_used" .. other_player:objectName())  
+            local choice = room:askForChoice(ask_who, self:objectName(), "draw+discard",   
+                data, "@zishu-choose:" .. other_player:objectName()) 
+            if choice == "draw" then
+                other_player:drawCards(1,self:objectName())
+            elseif choice == "discard" then
+                local card_id = room:askForCardChosen(ask_who, other_player, "hej", self:objectName())
+                if card_id then  
+                    room:throwCard(card_id, other_player, ask_who) 
+                end
+            end
+        end  
+          
+        return false  
+    end  
+}  
+
+
+
+hongfu = sgs.CreateTriggerSkill{  
+    name = "hongfu",  
+    events = {sgs.CardsMoveOneTime},  
+    frequency = sgs.Skill_Frequent,  
+      
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) then
+            if player:hasFlag("hongfu_used") then return "" end
+			local current = room:getCurrent()
+			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+                --if player:objectName()==current:objectName() then return "" end
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+					--if reasonx ~= sgs.CardMoveReason_S_REASON_USE and reasonx ~= sgs.CardMoveReason_S_REASON_RESPONSE then
+					if reasonx == sgs.CardMoveReason_S_REASON_DISCARD then
+                        if move.from and move.from:isAlive() then
+                            for _,card_id in sgs.qlist(move.card_ids) do
+                                local card = sgs.Sanguosha:getCard(card_id)  
+                                if card:isRed() then  
+                                    return self:objectName()
+                                end
+                            end 
+                        end
+					end
+				end
+			end
+		end     
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)            
+        return player:askForSkillInvoke(self:objectName(), data) 
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local move_datas = data:toList()
+        should_draw = false
+        for _, move_data in sgs.qlist(move_datas) do
+            local move = move_data:toMoveOneTime()
+            for _,card_id in sgs.qlist(move.card_ids) do
+                local card = sgs.Sanguosha:getCard(card_id)  
+                if card:isRed() then  
+                    should_draw = true
+                    break
+                end
+            end 
+        end
+        if should_draw then
+            player:drawCards(1, self:objectName())
+            room:setPlayerFlag(player,"hongfu_used")
+        end
+        return false  
+    end  
+}  
+
+hongfunv:addSkill(zishu)
+hongfunv:addSkill(hongfu)
+
+sgs.LoadTranslationTable{
+    ["hongfunv"] = "红拂女",
+    ["zishu"] = "自殊",
+    [":zishu"] = "你使用牌指定其他角色为唯一目标或成为其他角色使用牌的唯一目标时，若你与其手牌数相等，你可以令其摸一张牌或者弃置其区域内1张牌。每回合每名角色限一次。",
+    ["hongfu"] = "红拂",
+    [":hongfu"] = "每回合限一次。任意角色因弃置而失去红色牌时，你摸1张牌"
+}
+
 houyi = sgs.General(extension, "houyi", "wu", 4)  --或者把虞姬放到qun？
 sheri = sgs.CreateTriggerSkill{
 	name = "sheri",
@@ -4838,7 +5002,7 @@ wanbi = sgs.CreateZeroCardViewAsSkill{
         return not player:hasUsed("#wanbi") and not player:isKongcheng()  
     end  
 }  
---[[
+
 jianghe = sgs.CreateTriggerSkill{
 	name = "jianghe",
 	events = {sgs.CardsMoveOneTime},
@@ -4851,7 +5015,7 @@ jianghe = sgs.CreateTriggerSkill{
 				for _, move_data in sgs.qlist(move_datas) do
 					local move = move_data:toMoveOneTime()
 					if move.to_places:contains(sgs.Player_PlaceHand) then
-						if move.to and move.to:isAlive() and player:objectName()==move.to:objectName() then
+						if move.to and move.to:isAlive() and move.to:hasSkill(self:objectName()) then
                             for _,card_id in sgs.qlist(move.card_ids) do
                                 local card = sgs.Sanguosha:getCard(card_id)
                                 if card:isKindOf("TrickCard") then 
@@ -4884,7 +5048,7 @@ jianghe = sgs.CreateTriggerSkill{
         return false
 	end
 }
-]]
+
 linxiangru:addSkill(wanbi)
 --linxiangru:addSkill(jianghe)
 sgs.LoadTranslationTable{
@@ -11314,7 +11478,7 @@ xiangshu = sgs.CreateTriggerSkill{
         end  
         if card==nil then return "" end
         if card:hasFlag("xiangshu_obtain") then
-            room:setPlayerFlag("xiangshu_used")
+            room:setPlayerFlag(player,"xiangshu_used")
         end
         return ""  
     end,  
