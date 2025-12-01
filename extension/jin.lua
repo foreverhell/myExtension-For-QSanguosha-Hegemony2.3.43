@@ -2150,7 +2150,10 @@ Jiantong = sgs.CreateTriggerSkill{
         local equip_id = room:askForCardChosen(ask_who, ask_who, "e", self:objectName())  
         if equip_id == -1 then return false end  
         ]]
-        equip_id = room:askForCard(ask_who,"EquipCard","@jiantong-choose",sgs.QVariant(),sgs.Card_MethodNone):getId()
+        equip = room:askForCard(ask_who,"EquipCard","@jiantong-choose",sgs.QVariant(),sgs.Card_MethodNone)
+        if not equip then return false end
+        equip_id = equip:getId()
+        if equip_id == nil return false end
         for _,id in sgs.qlist(chosen_cards) do  
             room:obtainCard(ask_who, id) 
         end          
