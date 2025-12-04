@@ -5005,45 +5005,53 @@ wanbi = sgs.CreateZeroCardViewAsSkill{
 
 jianghe = sgs.CreateTriggerSkill{
 	name = "jianghe",
-	events = {sgs.CardsMoveOneTime},
+	events = {sgs.CardsMoveOneTime, sgs.EventPhaseEnd},
     frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)
-		if skillTriggerable(player, self:objectName()) then
-			local current = room:getCurrent()
-			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
-				local move_datas = data:toList()
-				for _, move_data in sgs.qlist(move_datas) do
-					local move = move_data:toMoveOneTime()
-					if move.to_places:contains(sgs.Player_PlaceHand) then
-						if move.to and move.to:isAlive() and move.to:hasSkill(self:objectName()) then
-                            for _,card_id in sgs.qlist(move.card_ids) do
-                                local card = sgs.Sanguosha:getCard(card_id)
-                                if card:isKindOf("TrickCard") then 
-                                    return self:objectName()
+        if event == sgs.CardsMoveOneTime then
+            if skillTriggerable(player, self:objectName()) then            
+                local current = room:getCurrent()
+                if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+                    local move_datas = data:toList()
+                    for _, move_data in sgs.qlist(move_datas) do
+                        local move = move_data:toMoveOneTime()
+                        if move.to_places:contains(sgs.Player_PlaceHand) then
+                            if move.to and move.to:isAlive() and move.to:hasSkill(self:objectName()) then
+                                for _,card_id in sgs.qlist(move.card_ids) do
+                                    local card = sgs.Sanguosha:getCard(card_id)
+                                    if card:isKindOf("TrickCard") then 
+                                        room:setPlayerFlag(player,"jianghe_obtain")
+                                    end
                                 end
                             end
-						end
-					end
-				end
-			end
-		end
+                        end
+                    end
+                end
+            end
+        end
+        if event == sgs.EventPhaseEnd and player:getPhase()==sgs.Player_Finish then
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if owner and owner:isAlive() and owner:hasSkill(self:objectName()) and owner:hasFlag("jianghe_obtain") then
+                return self:objectName(), owner:objectName()
+            end
+        end
 		return ""
 	end,
-    on_cost = function(self, event, room, player, data)
-		return player:askForSkillInvoke(self:objectName(),data) --player:hasShownSkill(self:objectName())
+    on_cost = function(self, event, room, player, data, ask_who)
+		return ask_who:askForSkillInvoke(self:objectName(),data) --player:hasShownSkill(self:objectName())
 	end,
-    on_effect = function(self, event, room, player, data)
+    on_effect = function(self, event, room, player, data, ask_who)
         local targets = sgs.SPlayerList()  
         -- 收集可选目标  
-        for _, p in sgs.qlist(room:getOtherPlayers(player)) do
-            if  player:isFriendWith(p) then  
+        for _, p in sgs.qlist(room:getOtherPlayers(ask_who)) do
+            if  ask_who:isFriendWith(p) then  
                 targets:append(p)
             end  
         end  
           
         if targets:isEmpty() then return false end  
           
-        local target = room:askForPlayerChosen(player, targets, "jianghe", "@jianghe-choose", false)  
+        local target = room:askForPlayerChosen(ask_who, targets, "jianghe", "@jianghe-choose", false)  
 		target:drawCards(1)
         return false
 	end
@@ -5057,7 +5065,7 @@ sgs.LoadTranslationTable{
     ["wanbi"] = "完璧",   
     [":wanbi"] = "出牌阶段限一次，你可以将全部手牌交给一名其他角色，令其展示任意数量的手牌，你选获得展示的或未展示的",
     ["jianghe"] = "将和",
-    [":jianghe"] = "你获得锦囊牌后，你可以令一名势力相同的其他角色摸一张牌"
+    [":jianghe"] = "任意角色回合结束时，若你本回合获得过锦囊牌，你可以令一名势力相同的其他角色摸一张牌"
 }
 
 -- 创建武将：李清照  
