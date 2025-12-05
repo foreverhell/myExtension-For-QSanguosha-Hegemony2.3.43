@@ -2658,7 +2658,7 @@ guoziyi = sgs.General(extension, "guoziyi", "qun", 4) -- 蜀势力，4血，男�
 
 wenwu = sgs.CreateTriggerSkill{  
     name = "wenwu",  
-    events = {sgs.CardUsed},  
+    events = {sgs.CardFinished},  
     frequency = sgs.Skill_Frequent, 
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
@@ -2700,7 +2700,7 @@ wenwu = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data)  
         -- 额外结算一次  
-        if event == sgs.CardUsed then  
+        if event == sgs.CardFinished then  
             local use = data:toCardUse()  
             room:useCard(use, true) -- 额外结算  
         end  
@@ -2764,7 +2764,7 @@ sgs.LoadTranslationTable{
 ["guoziyi"] = "郭子仪",  
 ["illustrator:guoziyi"] = "待定",  
 ["wenwu"] = "文武",  
-[":wenwu"] = "①当你使用基本牌时，若你使用的上一张牌是锦囊牌，此基本牌额外结算一次。②当你使用锦囊牌时，若你使用或打出的上一张牌是基本牌，此锦囊牌额外结算一次。",  
+[":wenwu"] = "①当你使用基本牌结算后，若你使用的上一张牌是锦囊牌，此基本牌额外结算一次。②当你使用锦囊牌结算后，若你使用或打出的上一张牌是基本牌，此锦囊牌额外结算一次。",  
 ["qing2guo"] = "擎国",   
 [":qing2guo"] = "结束阶段开始时，若你于此回合内未使用过基本牌或未使用过锦囊牌，你摸一张牌。",
 }  
@@ -3054,7 +3054,7 @@ sgs.LoadTranslationTable{
 hongfunv = sgs.General(extension, "hongfunv", "qun", 3, false)  -- 吴国，4血，男性  
 zishu = sgs.CreateTriggerSkill{  
     name = "zishu",  
-    events = {sgs.TargetConfirmed},  
+    events = {sgs.TargetConfirming},  
     frequency = sgs.Skill_Frequent,  
       
     can_trigger = function(self, event, room, player, data)    
@@ -5005,6 +5005,52 @@ wanbi = sgs.CreateZeroCardViewAsSkill{
 
 jianghe = sgs.CreateTriggerSkill{
 	name = "jianghe",
+	events = {sgs.CardsMoveOneTime},
+    frequency = sgs.Skill_Frequent,  
+    can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) then
+			local current = room:getCurrent()
+			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					if move.to_places:contains(sgs.Player_PlaceHand) then
+						if move.to and move.to:isAlive() and move.to:hasSkill(self:objectName()) then
+                            for _,card_id in sgs.qlist(move.card_ids) do
+                                local card = sgs.Sanguosha:getCard(card_id)
+                                if card:isKindOf("TrickCard") then 
+                                    return self:objectName()
+                                end
+                            end
+						end
+					end
+				end
+			end
+		end
+		return ""
+	end,
+    on_cost = function(self, event, room, player, data)
+		return player:askForSkillInvoke(self:objectName(),data) --player:hasShownSkill(self:objectName())
+	end,
+    on_effect = function(self, event, room, player, data)
+        local targets = sgs.SPlayerList()  
+        -- 收集可选目标  
+        for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+            if  player:isFriendWith(p) then  
+                targets:append(p)
+            end  
+        end  
+          
+        if targets:isEmpty() then return false end  
+          
+        local target = room:askForPlayerChosen(player, targets, "jianghe", "@jianghe-choose", false)  
+		target:drawCards(1)
+        return false
+	end
+}
+
+jianghe = sgs.CreateTriggerSkill{
+	name = "jianghe",
 	events = {sgs.CardsMoveOneTime, sgs.EventPhaseEnd},
     frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)
@@ -5065,7 +5111,7 @@ sgs.LoadTranslationTable{
     ["wanbi"] = "完璧",   
     [":wanbi"] = "出牌阶段限一次，你可以将全部手牌交给一名其他角色，令其展示任意数量的手牌，你选获得展示的或未展示的",
     ["jianghe"] = "将和",
-    [":jianghe"] = "任意角色回合结束时，若你本回合获得过锦囊牌，你可以令一名势力相同的其他角色摸一张牌"
+    [":jianghe"] = "你获得锦囊牌后，你可以令一名势力相同的其他角色摸一张牌"
 }
 
 -- 创建武将：李清照  
@@ -8187,7 +8233,7 @@ shangguanwaner = sgs.General(extension, "shangguanwaner", "qun", 3, false)
 
 nvxiang = sgs.CreateTriggerSkill{  
     name = "nvxiang",  
-    events = {sgs.TargetConfirmed}, --SlashEffected
+    events = {sgs.TargetConfirming}, --SlashEffected
       
     can_trigger = function(self, event, room, player, data)   
         --TargetConfirmed是卡牌使用
@@ -8306,7 +8352,7 @@ sgs.LoadTranslationTable{
     ["#shangguanwaner"] = "才女",  
       
     ["nvxiang"] = "女相",  
-    [":nvxiang"] = "当一名角色成为杀的目标后，你可以与其拼点，若你赢，则该杀无效。",  
+    [":nvxiang"] = "当一名角色成为杀的目标时，你可以与其拼点，若你赢，则该杀无效。",  
     ["#NvxiangEffect"] = "%from 发动了'%arg'，使 %to 的 %arg2 无效",  
       
     ["yicai"] = "绮才",  
@@ -10127,7 +10173,7 @@ Shensuan = sgs.CreateTriggerSkill{
 -- 天机技能  
 Tianji = sgs.CreateTriggerSkill{  
     name = "tianji",  
-    events = {sgs.CardUsed, sgs.CardResponded},  
+    events = {sgs.CardFinished, sgs.CardResponded},
     frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
@@ -10135,13 +10181,15 @@ Tianji = sgs.CreateTriggerSkill{
         end  
           
         local card = nil  
-        if event == sgs.CardUsed then  
+        if event == sgs.CardFinished then  
             card = data:toCardUse().card  
+        --[[
         elseif event == sgs.CardResponded then  
             local response = data:toCardResponse()  
             if response.m_isUse then  
                 card = response.m_card  
             end  
+        ]]
         end  
 
         if card and not card:hasFlag("tianji_used") then  
@@ -10198,8 +10246,8 @@ sgs.LoadTranslationTable{
 [":shensuan"] = "回合结束时，你可以弃置一张手牌，然后进行判定，直到判定牌点数和大于等于你弃置的牌，你获得所有判定牌。",  
 ["@shensuan"] = "你可以发动'神算'，弃置一张手牌",  
 ["tianji"] = "天机",  
---[":tianji"] = "每当你使用或打出的牌点数和大于等于13时，你可以观看牌堆顶3张牌并以任意顺序牌列，然后摸1张牌。",
-[":tianji"] = "每当你使用或打出的牌点数和大于等于13时，你可以摸1张牌。",
+--[":tianji"] = "每当你使用牌结算后，若点数和达到13，你可以观看牌堆顶3张牌并以任意顺序牌列，然后摸1张牌。",
+[":tianji"] = "每当你使用牌结算后，若点数和达到13，你可以摸1张牌。",
 }
 
 wuzetian = sgs.General(extension, "wuzetian", "qun", 4, false)  
