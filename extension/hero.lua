@@ -1695,11 +1695,11 @@ dufu = sgs.General(extension, "dufu", "shu", 3)  --libai珠联璧合
 
 shisheng = sgs.CreateTriggerSkill{  
     name = "shisheng",  
-    events = {sgs.EventPhaseStart},  
+    events = {sgs.DrawNCards},  
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
-        if player and player:isAlive() and player:hasSkill(self:objectName())   
-           and player:getPhase() == sgs.Player_Start then  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then
+           --and player:getPhase() == sgs.Player_Start then  
             return self:objectName()  
         end  
         return ""  
@@ -1712,7 +1712,10 @@ shisheng = sgs.CreateTriggerSkill{
         return false  
     end,  
     on_effect = function(self, event, room, player, data)  
-        player:skip(sgs.Player_Draw)
+        --player:skip(sgs.Player_Draw)
+        local count = data:toInt()
+        data:setValue(0)
+
         top_cards=room:getNCards(4)
         room:askForGuanxing(player, top_cards, sgs.Room_GuanxingUpOnly)-- GuanxingUpOnly, GuanxingBothSides, GuanxingDownOnly
         
@@ -1817,7 +1820,7 @@ sgs.LoadTranslationTable{
     ["dufu"] = "杜甫",  
 
     ["shisheng"] = "诗圣",  
-    [":shisheng"] = "准备阶段，你可以跳过摸牌阶段，并查看牌堆顶4张牌，以任意顺序排列，然后依次翻开，你获得花色互不相同的所有牌",  
+    [":shisheng"] = "摸牌阶段，你可以改为查看牌堆顶4张牌，以任意顺序排列，然后依次翻开，你获得花色互不相同的所有牌",  
     ["beimin"] = "悲悯",
     [":beimin"] = "回合结束时，你可以发起一次判定，若判定牌小于7，你从牌堆获得2张大于等于7的牌"
 }
@@ -11844,13 +11847,13 @@ cuanni = sgs.CreateTriggerSkill{
 
 jiandi = sgs.CreateTriggerSkill{  
     name = "jiandi",  
-    events = {sgs.EventPhaseStart},  
+    events = {sgs.DrawNCards},  
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
-        if player and player:isAlive() and player:hasSkill(self:objectName()) and not player:hasFlag("ni") then  
-            if player:getPhase() == sgs.Player_Start and not player:isNude() then  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and not player:isNude() and not player:hasFlag("ni") then  
+            --if player:getPhase() == sgs.Player_Start then  
                 return self:objectName()  
-            end  
+            --end  
         end  
         return ""  
     end,  
@@ -11876,7 +11879,9 @@ jiandi = sgs.CreateTriggerSkill{
                 end  
             end
             -- 跳过摸牌阶段  
-            player:skip(sgs.Player_Draw)  
+            --player:skip(sgs.Player_Draw)
+            local count = data:toInt()
+            data:setValue(0)  
         end
         return false  
     end  
@@ -11887,10 +11892,11 @@ cuanquan = sgs.CreateTriggerSkill{
     events = {sgs.EventPhaseStart},
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
-        if not player or player:isDead() or not player:hasSkill(self:objectName()) or player:hasFlag("ni") then return "" end  
-        if player:getPhase() == sgs.Player_Start and not player:isKongcheng() then  
-            return self:objectName()  
-        end  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and not player:isKongcheng() and not player:hasFlag("ni") then
+            if player:getPhase() == sgs.Player_Start then  
+                return self:objectName()  
+            end
+        end
         return ""
     end,
     on_cost = function(self, event, room, player, data)
@@ -11954,6 +11960,8 @@ cuanquan = sgs.CreateTriggerSkill{
                 dummy:deleteLater()  
             end  
             player:skip(sgs.Player_Draw)
+            --local count = data:toInt()
+            --data:setValue(0)
         end
         return false
     end
@@ -11972,7 +11980,7 @@ sgs.LoadTranslationTable{
     ["cuanni"] = "篡逆",  
     [":cuanni"] = "你造成的伤害可以视为体力流失。",
     ["jiandi"] = "僭帝",  
-    [":jiandi"] = "准备阶段，你可以失去一点体力，弃置一张牌，获得所有角色各一张牌，然后跳过摸牌阶段。【僭帝】和【篡权】只能发动一个。",  
+    [":jiandi"] = "摸牌阶段，你可以改为失去一点体力，弃置一张牌，获得所有角色各一张牌。【僭帝】和【篡权】只能发动一个。",  
     ["cuanquan"] = "篡权",
     [":cuanquan"] = "准备阶段，你可以弃置一张手牌，你可以选择并发起判定，直到满足以下条件：（1）判定牌和弃置的该牌颜色相同，你获得所有判定牌。（2）判定牌和弃置的该牌花色相同，你获得所有判定牌，然后跳过摸牌阶段。【僭帝】和【篡权】只能发动一个。",
     ["@cuanquan-discard"] = "篡权：请弃置一张手牌",
@@ -12570,17 +12578,16 @@ gaiguo = sgs.CreateTriggerSkill{
 -- 技能2：除害  
 chuhai = sgs.CreateTriggerSkill{  
     name = "chuhai",  
-    events = {sgs.EventPhaseStart},  
+    events = {sgs.DrawNCards},  
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
             return false  
         end  
           
-        if player:getPhase() == sgs.Player_Start then  
-            return self:objectName()  
-        end  
-
-        return ""  
+        --if player:getPhase() == sgs.Player_Start then  
+        return self:objectName()  
+        --end  
+        --return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
         return player:askForSkillInvoke(self:objectName(),data)
@@ -12606,7 +12613,10 @@ chuhai = sgs.CreateTriggerSkill{
                 room:useCard(use)  
                 duel:deleteLater()
             end
-            player:skip(sgs.Player_Draw)
+            --room:setPlayerFlag(player,"chuhai_used")
+            --player:skip(sgs.Player_Draw)
+            local count = data:toInt()
+            data:setValue(0)
         end
         return false  
     end  
@@ -12617,10 +12627,10 @@ chuhai_draw = sgs.CreateDrawCardsSkill{
     frequency = sgs.Skill_Compulsory,  
       
     draw_num_func = function(self, player, n)  
-        if player:hasFlag("@chuhai") then
-            return math.max(n-2,0)
+        if player:hasFlag("chuhai_used") then
+            return 0
         else
-            return name
+            return n
         end
     end  
 }  
@@ -12639,7 +12649,7 @@ sgs.LoadTranslationTable{
     [":gaiguo"] = "你造成或受到1点伤害时，获得1个'过'标记。你的'过'标记为3的倍数时，摸三张牌。",  
       
     ["chuhai"] = "除害",   
-    [":chuhai"] = "准备阶段，你可以跳过摸牌阶段，视为对一名其他势力角色使用1张【决斗】。",  
+    [":chuhai"] = "摸牌阶段，你可以改为视为对一名其他势力角色使用1张【决斗】。",  
     ["@chuhai-target"] = "除害：选择【决斗】的目标",  
 }  
   
