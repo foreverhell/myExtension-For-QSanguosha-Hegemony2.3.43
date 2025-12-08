@@ -583,10 +583,10 @@ HuoshouDamage = sgs.CreateTriggerSkill{
 
 ZaiqiDraw = sgs.CreateTriggerSkill{  
     name = "zaiqiDraw",  
-    events = {sgs.EventPhaseStart},  
+    events = {sgs.DrawNCards},  
     can_trigger = function(self, event, room, player, data)  
-        if player and player:isAlive() and player:hasSkill(self:objectName())   
-           and player:getPhase() == sgs.Player_Start then  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then
+           --and player:getPhase() == sgs.Player_Start then  
             local times = player:getMark("zaiqi_times")  
             if times < 7 then  
                 return self:objectName()  
@@ -598,7 +598,9 @@ ZaiqiDraw = sgs.CreateTriggerSkill{
         return player:askForSkillInvoke(self:objectName(), data)  
     end,  
     on_effect = function(self, event, room, player, data)  
-        player:skip(sgs.Player_Draw)
+        --player:skip(sgs.Player_Draw)
+        local count = data:toInt()
+        data:setValue(0)
         local times = player:getMark("zaiqi_times")  
           
         -- 亮出牌堆顶X+1张牌  
@@ -665,7 +667,7 @@ sgs.LoadTranslationTable{
     ["huoshouDamage"] = "祸首",  
     [":huoshouDamage"] = "其他角色受到【南蛮入侵】的伤害时，你可以弃置一张牌，令此伤害+1。",  
     ["zaiqiDraw"] = "再起",  
-    [":zaiqiDraw"] = "每局游戏限7次，准备阶段，你可以跳过摸牌阶段，改为亮出牌堆顶X+1张牌，然后获得其中一种颜色的所有牌（X为本技能发动的次数）。",  
+    [":zaiqiDraw"] = "每局游戏限7次，摸牌阶段，你可以改为亮出牌堆顶X+1张牌，然后获得其中一种颜色的所有牌（X为本技能发动的次数）。",  
     ["@huoshou-discard"] = "祸首：你可以弃置一张牌令此【南蛮入侵】伤害+1",  
     ["red"] = "红色",  
     ["black"] = "黑色"  
