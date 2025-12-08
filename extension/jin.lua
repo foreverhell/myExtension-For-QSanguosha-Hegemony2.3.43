@@ -155,13 +155,13 @@ simaliang = sgs.General(extension, "simaliang", "jin", 3)
 gongzhi = sgs.CreateTriggerSkill{  
     name = "gongzhi",  
     view_as_skill = gongZhiVS,  
-    events = {sgs.EventPhaseStart}, 
+    events = {sgs.DrawNCards}, 
     frequency = sgs.Skill_Frequent, 
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) then  
-            if player:getPhase() == sgs.Player_Start then
+            --if player:getPhase() == sgs.Player_Start then
                 return self:objectName()
-            end
+            --end
         end  
         return false  
     end,  
@@ -172,7 +172,9 @@ gongzhi = sgs.CreateTriggerSkill{
         return false  
     end,  
     on_effect = function(self, event, room, player, data)  
-        player:skip(sgs.Player_Draw)  
+        --player:skip(sgs.Player_Draw)
+        local count = data:toInt()
+        data:setValue(0)
 
         local jin_players = {}  
         for _, p in sgs.qlist(room:getAlivePlayers()) do  
@@ -245,12 +247,12 @@ sgs.LoadTranslationTable{
   
 -- 技能翻译  
 ["gongzhi"] = "共执",  
-[":gongzhi"] = "摸牌阶段开始时，你可以跳过摸牌阶段，然后令与你势力相同的角色轮流摸1张牌，共计摸4张。",  
+[":gongzhi"] = "摸牌阶段开始时，你可以改为令与你势力相同的角色轮流摸1张牌，共计摸4张。",  
 ["shenju"] = "慎惧",  
 [":shenju"] = "锁定技，与你势力相同的其他角色明置武将牌后，若你已受伤，你恢复一点体力并弃置所有手牌。",  
   
 -- 提示信息  
-["@gongzhi"] = "共执：是否跳过摸牌阶段，令晋势力角色轮流摸4张牌？",  
+["@gongzhi"] = "共执：是否改为令晋势力角色轮流摸4张牌？",  
 ["#shenju-recover"] = "慎惧[回复体力]",  
 ["#shenju-discard"] = "慎惧[弃置手牌]",
 }
@@ -2593,10 +2595,10 @@ zhangchunhua_yingbian = sgs.General(extension, "zhangchunhua_yingbian", "jin", 3
 
 huishi = sgs.CreateTriggerSkill{  
     name = "huishi",  
-    events = {sgs.EventPhaseStart},  
+    events = {sgs.DrawNCards},  
     can_trigger = function(self, event, room, player, data)  
-        if player and player:isAlive() and player:hasSkill(self:objectName())   
-           and player:getPhase() == sgs.Player_Start then  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then
+           --and player:getPhase() == sgs.Player_Start then  
             return self:objectName()  
         end  
         return ""  
@@ -2605,7 +2607,10 @@ huishi = sgs.CreateTriggerSkill{
         return player:askForSkillInvoke(self:objectName(), data)  
     end,  
     on_effect = function(self, event, room, player, data)  
-        player:skip(sgs.Player_Draw)
+        --player:skip(sgs.Player_Draw)
+        local count = data:toInt()
+        data:setValue(0)
+
         local n = 0
         for _, p in sgs.qlist(room:getAlivePlayers()) do
             if not p:hasShownOneGeneral() then
@@ -2659,7 +2664,7 @@ zhangchunhua_yingbian:addSkill(qingleng)
 sgs.LoadTranslationTable{
     ["zhangchunhua_yingbian"] = "张春华-应变",
     ["huishi"] = "慧识",
-    [":huishi"] = "准备阶段，你可以观看牌堆顶的X张牌（X为未确定势力的角色数）并将其任意排列，并摸X/2（向上取整）张牌，然后跳过摸牌阶段",
+    [":huishi"] = "摸牌阶段，你可以改为观看牌堆顶的X张牌（X为未确定势力的角色数）并将其任意排列，并摸X/2（向上取整）张牌",
     ["qingleng"] = "清冷",
     [":qingleng"] = "其他势力角色的回合结束时，若其体力值小于等于你，你可以弃置一张基本牌，视为对其使用一张杀"
 }
