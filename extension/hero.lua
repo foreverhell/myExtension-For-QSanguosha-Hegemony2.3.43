@@ -2924,6 +2924,7 @@ zhudao = sgs.CreateTriggerSkill{
         --if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then return "" end  
         if event == sgs.CardUsed then  
             local use = data:toCardUse()
+            if use.card:getTypeId()==sgs.Card_TypeSkill then return "" end
             -- 检查是否在使用主道后的出牌阶段  
             if use.from:getMark("@zhudao_discard_sum") > 0 and use.from:getPhase() == sgs.Player_Play then  
                 return self:objectName()  
