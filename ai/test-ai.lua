@@ -1249,14 +1249,14 @@ sgs.ai_skill_choice["docommand_luamibei"] = function(self, choices, data)
             if index == 2 or (index == 1 and is_friend) then --只被兵，只执行打一、摸一，体流看血量和手牌数
                 return "yes"
             elseif index == 3 then
-                if self.player:getHp() > 1 and source:getHandcardNum() >= 3 then
+                if self.player:getHp() > 1 and (source:getHandcardNum() - self.player:getHandcardNum() >= 2) then
                     return "yes"
                 else
                     return "no"
                 end
             end
         elseif index == 3 then
-            if self.player:getHp() > 1 and source:getHandcardNum() >= 3 then
+            if self.player:getHp() > 1 and (source:getHandcardNum() - self.player:getHandcardNum() >= 2) then
                 return "yes"
             else
                 return "no"
@@ -1465,7 +1465,8 @@ sgs.ai_skill_invoke.luajintao = function(self, data)
     local slash = sgs.cloneCard("slash")
     self:sort(self.enemies, "hp")
     for _, enemy in pairs(self.enemies) do
-        if self.player:distanceTo(enemy) > 0 and #cards >= self.player:distanceTo(enemy) and self:slashIsEffective(slash, enemy) then
+        if self.player:distanceTo(enemy) > 0 and #cards >= self.player:distanceTo(enemy) and self:slashIsEffective(slash, enemy) and
+        not enemy:hasShownSkills("jianxiong") then
             if enemy:getArmor() and enemy:getArmor():objectName() == "Vine" then
                 if self.player:getWeapon() and (self.player:getWeapon():objectName() == "Fan" or 
                 self.player:getWeapon():objectName() == "QinggangSword") then
@@ -1961,7 +1962,7 @@ end
 sgs.ai_skill_invoke.jiechengshang = function(self, data)
     local use = data:toCardUse()
     assert(use)
-    self.luachengshangcard = use.card
+    self.luachengshangcard = use.card:getId()
     func = function(cards, use_card) --判断是否有与承赏一样花色和点数的牌
         local suit = use_card:getSuitString()
         local num = use_card:getNumber()
@@ -2023,7 +2024,8 @@ end
 sgs.ai_skill_exchange.jiechengshang = function(self, pattern, max_num, min_num, expand_pile)
     local target = sgs.findPlayerByShownSkillName("jiechengshang")
 	if not target then return {} end
-    local card = self.luachengshangcard
+    local card_id = self.luachengshangcard
+    local card = sgs.Sanguosha:getCard(card_id)
     local hecard = sgs.QList2Table(self.player:getCards("he"))
     if not self.player:isFriendWith(target) then
         for _, c in pairs(hecard) do
@@ -2248,8 +2250,8 @@ luaxinggong_skill.getTurnUseCard = function(self, inclusive)
         if (self.player:hasArmorEffect("IronArmor") and not self.player:canBeChainedBy()) or self.player:hasArmorEffect("PeaceSpell") then 
             return sgs.Card_Parse("#luaxinggongCard:.:&luaxinggong")
         end
-        for _, p in sgs.qlist(self.room:getOtherPlayers(self.player)) do
-            if self.player:isFriendWith(p) and p:isChained() then
+        for _, p in sgs.qlist(self.room:getAlivePlayers()) do
+            if self.player:isFriendWith(p) and p:isChained() and p:objectName() ~= self.player:objectName() then
                 return sgs.Card_Parse("#luaxinggongCard:.:&luaxinggong")
             end
         end
@@ -2260,23 +2262,25 @@ end
 
 sgs.ai_skill_use_func["#luaxinggongCard"] = function(card, use, self)
     local room = self.player:getRoom()
-    local targets = sgs.QList2Table(room:getOtherPlayers(self.player))
+    local targets = sgs.QList2Table(room:getAlivePlayers())
     self:sort(targets, "hp")
     for _, p in pairs(targets) do
-        if self.player:isFriendWith(p) and (p:isChained() or not p:canBeChainedBy() or p:hasArmorEffect("PeaceSpell")) then
+        if self.player:isFriendWith(p) and (p:isChained() or not p:canBeChainedBy() or p:hasArmorEffect("PeaceSpell")) and
+        p:objectName() ~= self.player:objectName() then
             self.luaxinggongPlayer = p
         end
     end
     if not self.luaxinggongPlayer then
         for i = #targets, 1, -1 do
-            if self.player:isFriendWith(targets[i]) and targets[i]:getHp() > 1 then
+            if self.player:isFriendWith(targets[i]) and targets[i]:getHp() > 1 and p:objectName() ~= self.player:objectName() then
                 self.luaxinggongPlayer = targets[i]
             end
         end
     end
     if not self.luaxinggongPlayer then
         for _, p in pairs(targets) do
-            if self:isFriend(self.player, p) and (p:isChained() or not p:canBeChainedBy() or p:hasArmorEffect("PeaceSpell")) then
+            if self:isFriend(self.player, p) and (p:isChained() or not p:canBeChainedBy() or p:hasArmorEffect("PeaceSpell")) and
+            p:objectName() ~= self.player:objectName() then
                 self.luaxinggongPlayer = p
             end
         end
@@ -2301,7 +2305,7 @@ sgs.ai_use_priority.luaxinggongCard = 9.3
 
 sgs.ai_skill_choice.luaxinggong = function(self, choices, data)
     local target = data:toPlayer()
-    if self.player:isFriendWith(target) then return "yes" end
+    if self.player:isFriendWith(target) or self.player:willBeFriendWith(target) then return "yes" end
     return "no"
 end
 
@@ -2658,12 +2662,19 @@ sgs.ai_skill_use["@@luazhuanxingShortage"] = function(self, prompt, method)
 end
 
 --君曹丕
-sgs.ai_skill_invoke.luazhuanxing = function(self, data)
+sgs.ai_skill_invoke.luahuandou = function(self, data)
     return true
 end
 sgs.ai_skill_playerchosen["luahuandou_move"] = function(self, targets)
     targets = sgs.QList2Table(targets)
-    local hasThreaten = self.player:getCardsNum("ThreatenEmperor")
+    local hasThreaten = false
+    local hcard = self:getCards("h")
+    for _, c in pairs(hcard) do
+        if c:isKindOf("ThreatenEmperor") then 
+            hasThreaten = true
+            break
+        end
+    end
     if self.player:hasSkills("daoshu") or (hasThreaten and not self.player:isBigKingdomPlayer()) then
         for _, p in pairs(targets) do
             if p:getTreasure() and p:getTreasure():isKindOf("JadeSeal") then
@@ -2679,7 +2690,6 @@ sgs.ai_skill_playerchosen["luahuandou_move"] = function(self, targets)
     return ""
 end
 sgs.ai_skill_playerchosen["luahuandou_get"] = function(self, targets)
-    --if targets:contains(self.player) then return self.player end
     self.room:sortByActionOrder(targets)
     for _, p in sgs.qlist(targets) do
         if self.player:isFriendWith(p) then
@@ -2700,7 +2710,60 @@ local luachenyin_skill = {}
 luachenyin_skill.name = "luachenyin"
 table.insert(sgs.ai_skills, luachenyin_skill)
 luachenyin_skill.getTurnUseCard = function(self, inclusive)
-    if self.player:hasUsed("#luachenyinCard") or self.player:isNude() then return false end
-
+    if self.player:hasUsed("#luachenyinCard") then return false end
+    sgs.ai_use_priority.luachenyinCard = 2.8
+    local suit_spade = "luachenyin_spade"
+    local suit_club = "luachenyin_club"
+    local suit_diamond = "luachenyin_diamond"
+    local suit_heart = "luachenyin_heart"
+    if self.player:getPlayerNumWithSameKingdom("AI", "wei", 1) > 1 and self.player:hasFlag(suit_spade) and 
+    self.player:hasFlag(suit_club) and self.player:hasFlag(suit_diamond) and self.player:hasFlag(suit_heart) then
+        local hpIs1, hpOver1, hcOver = {}, {}, {}
+        for _, p in pairs(self.friends_noself) do
+            if p:getSeemingKingdom() == "wei" and p:canRecover() then
+                if p:getHp() == 1 then
+                    table.insert(hpIs1, p)
+                elseif p:isWounded() then
+                    table.insert(hpOver1, p)
+                elseif self:getOverflow(p) > 2 then
+                    table.insert(hcOver, p)
+                end
+            end
+        end
+        if #hpIs1 > 0 then
+            sgs.ai_use_priority.luachenyinCard = 8.2
+            self.luachenyinTarget = hpIs1[1]
+            return sgs.Card_Parse("#luachenyinCard:.:&luachenyin")
+        elseif #hpOver1 > 0 then
+            sgs.ai_use_priority.luachenyinCard = 8.2
+            self.luachenyinTarget = hpOver1[1]
+            return sgs.Card_Parse("#luachenyinCard:.:&luachenyin")
+        elseif #hcOver > 0 then
+            sgs.ai_use_priority.luachenyinCard = 4.3
+            self.luachenyinTarget = hcOver[1]
+            return sgs.Card_Parse("#luachenyinCard:.:&luachenyin")
+        end
+    end
+    if self:getOverflow() - 2 >= -1 or not (self.player:getCardsNum("Peach") > 0 and self.player:getHandcardNum() <= 2) then
+        local hasThreaten = false
+        local hcard = self:getCards("h")
+        for _, c in pairs(hcard) do
+            if c:isKindOf("ThreatenEmperor") then 
+                hasThreaten = true
+                break
+            end
+        end
+        if not (hasThreaten and self.player:isBigKingdomPlayer() and self.player:isNude()) then
+            sgs.ai_use_priority.luachenyinCard = 2.8
+            self.luachenyinTarget = self.player
+            return sgs.Card_Parse("#luachenyinCard:.:&luachenyin")
+        end
+    end
     return false
+end
+sgs.ai_skill_use_func.luachenyinCard = function(card, use, self)
+    if self.luachenyinTarget and use.to then
+        use.card = card
+        use.to:append(self.luachenyinTarget)
+    end
 end
