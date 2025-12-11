@@ -160,8 +160,7 @@ provinceSeal = sgs.CreateTreasure{
             if hasBig then
                 local isBig = player:isBigKingdomPlayer()
                 for _, p in sgs.qlist(room:getOtherPlayers(player)) do
-                    if (isBig and player:isFriendWith(p)) or (not isBig and not p:isBigKingdomPlayer()) and player:isAlive() 
-                    and not p:isNude() then
+                    if isBig or (not isBig and not p:isBigKingdomPlayer()) and player:isAlive() and not p:isNude() then
                         local d = sgs.QVariant()
                         d:setValue(player)
                         local choice = room:askForChoice(p, "provinceSeal_give", "yes+no", d, "@provinceSeal_askforgive::" .. 
@@ -393,27 +392,35 @@ sgs.LoadTranslationTable{
 --君主及其他武将部分
 luayanxi = sgs.CreateTriggerSkill{
     name = "luayanxi$",
-    events = {sgs.GeneralShown},
+    events = {sgs.GeneralShown, sgs.EventLoseSkill},
     on_record = function(self, event, room, player, data)
-        if player and player:isAlive() and player:hasLordSkill(self:objectName()) and data:toBool() == 
-        player:inHeadSkills(self:objectName()) then
-            room:sendCompulsoryTriggerLog(player, self:objectName())
-            room:broadcastSkillInvoke(self:objectName(), player)
-            for _, p in sgs.qlist(room:getAlivePlayers()) do
-                if p:getSeemingKingdom() == "shu" then
+        if event == sgs.GeneralShown then
+            if player and player:isAlive() and player:hasLordSkill(self:objectName()) and data:toBool() == 
+            player:inHeadSkills(self:objectName()) then
+                room:sendCompulsoryTriggerLog(player, self:objectName())
+                room:broadcastSkillInvoke(self:objectName(), player)
+                for _, p in sgs.qlist(room:getAlivePlayers()) do
+                    if p:getSeemingKingdom() == "shu" then
+                        room:setPlayerMark(player, "luayanxiHas", 1)
+                    else
+                        room:setPlayerMark(player, "luayanxiHas", 0)
+                    end
+                end
+                if player:getMark("Global_RoundCount") == 1 then
+                    room:setPlayerMark(player, "luapingming_mark", 1)
+                end
+            elseif player and player:isAlive() then
+                local skill_owners = room:findPlayersBySkillName(self:objectName())
+                if skill_owners:isEmpty() then return false end
+                if player:getSeemingKingdom() == "shu" then
                     room:setPlayerMark(player, "luayanxiHas", 1)
-                else
-                    room:setPlayerMark(player, "luayanxiHas", 0)
                 end
             end
-            if player:getMark("Global_RoundCount") == 1 then
-                room:setPlayerMark(player, "luapingming_mark", 1)
-            end
-        elseif player and player:isAlive() then
-            local skill_owners = room:findPlayersBySkillName(self:objectName())
-            if skill_owners:isEmpty() then return false end
-            if player:getSeemingKingdom() == "shu" then
-                room:setPlayerMark(player, "luayanxiHas", 1)
+        elseif event == sgs.EventLoseSkill and data:toString():split(":")[1] == self:objectName() and player then
+			for _, p in sgs.qlist(room:getAlivePlayers()) do
+                if p:getMark("luayanxiHas") > 0 then
+                    room:setPlayerMark(player, "luayanxiHas", 0)
+                end
             end
         end
     end,
@@ -806,7 +813,7 @@ luazhanjue = sgs.CreateZeroCardViewAsSkill{
 
 luazhanjue_draw = sgs.CreateTriggerSkill{
     name = "#luazhanjue_draw",
-    events = {sgs.DamageCaused, sgs.CardFinished, sgs.EventPhaseChanging, sgs.Damaged},
+    events = {sgs.Predamage, sgs.CardFinished, sgs.EventPhaseChanging, sgs.Damaged},
     priority = -1,
     frequency = sgs.Skill_Compulsory,
     on_record = function(self, event, room, player, data)
@@ -822,12 +829,12 @@ luazhanjue_draw = sgs.CreateTriggerSkill{
         if player and player:isAlive() then
             local current = room:getCurrent()
             if current and current:isAlive() and current:hasSkill("luazhanjue") then
-                if event == sgs.DamageCaused or event == sgs.Damaged then
+                if event == sgs.Predamage or event == sgs.Damaged then
                     local damage = data:toDamage()
-                    if damage.card:isKindOf("Duel") and damage.card:getSkillName() == "luazhanjue" and damage.damage > 0 then
+                    if damage.card:isKindOf("Duel") and damage.card:getSkillName() == "luazhanjue" then
                         if event == sgs.Damaged then
                             room:setPlayerFlag(damage.to, "luazhanjueDamaged")
-                        elseif event == sgs.DamageCaused then
+                        elseif event == sgs.Predamage then
                             room:setPlayerFlag(current, "luazhanjueDamage")
                         end
                     end
@@ -892,6 +899,7 @@ luahuangchu = sgs.CreateTriggerSkill{
         if player and player:isAlive() and player:hasLordSkill(self:objectName()) and data:toBool() == 
         player:inHeadSkills(self:objectName()) then
             room:sendCompulsoryTriggerLog(player, self:objectName())
+            room:broadcastSkillInvoke(self:objectName(), player)
             local weiMax, allMax = {}, {}
             for _, p in sgs.qlist(room:getAlivePlayers()) do
                 if p:getSeemingKingdom() == "wei" then
@@ -951,7 +959,7 @@ luajpzzg = sgs.CreateTriggerSkill{
               
             if event == sgs.Death then
                 local death = data:toDeath()
-                if death.who:getActualGeneral1Name() == "lord_caopi" then
+                if death.who:getGeneralName() == "lord_caopi" or death.who:getGeneralName() == "lord_caopi$" then
                     for _, p in sgs.qlist(room:getAlivePlayers()) do
                         if p:getMark("##luajpzzg_peach") > 0 then
                             room:setPlayerMark(p, "##luajpzzg_peach", 0)
@@ -970,8 +978,8 @@ luajpzzg = sgs.CreateTriggerSkill{
                     for _, p in sgs.qlist(room:getAlivePlayers()) do--先清标记
                         if p:getMark("##luajpzzg_killer") > 0 then
                             room:setPlayerMark(p, "##luajpzzg_killer", 0)
+                            break
                         end
-                        break
                     end
 
                     local killPlayer = death.damage.from
@@ -1006,7 +1014,7 @@ luajpzzg = sgs.CreateTriggerSkill{
                 local move_datas = data:toList()
 				for _, move_data in sgs.qlist(move_datas) do
 					local move = move_data:toMoveOneTime()
-                    if not move.from_places:contains(sgs.Player_PlaceHand) then return false end
+                    --if not move.from_places:contains(sgs.Player_PlaceHand) then return false end
                     if (move.from and move.from:getSeemingKingdom() ~= "wei") or (move.to and move.to:getSeemingKingdom() ~= "wei") then
                         return false
                     end
@@ -1123,7 +1131,7 @@ luajpzzg_markEffect = sgs.CreateTriggerSkill{
                     if p:getMark("luajpzzg_jink") > 0 then
                         room:setPlayerMark(p, "luajpzzg_jink", 0)
                     end
-                    if p:getMark("luajpluajpzzg_nullificationzzg_jink") > 0 then
+                    if p:getMark("luajpzzg_nullification") > 0 then
                         room:setPlayerMark(p, "luajpzzg_nullification", 0)
                     end
                 end
@@ -1175,7 +1183,7 @@ luachenyinCard = sgs.CreateSkillCard{
     name = "luachenyinCard",
     skill_name = "luachenyin",
 	filter = function(self, targets, to_select, Self)
-		return #targets == 0 and not to_select:isNude() and to_select:getKingdom() == "wei"
+		return #targets == 0 and not to_select:isNude() and to_select:getSeemingKingdom() == "wei"
 	end,
 	on_use = function(self, room, source, targets)
 		room:askForDiscard(targets[1], "luachenyin", 2, 2, false, true)
