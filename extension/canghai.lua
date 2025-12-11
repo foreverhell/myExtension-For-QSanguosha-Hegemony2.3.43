@@ -1,5 +1,6 @@
 -- 创建扩展包  
 extension = sgs.Package("canghai",sgs.Package_GeneralPack)  
+local skills = sgs.SkillList()
 
 caiyong = sgs.General(extension, "caiyong", "qun", 3) -- 吴苋，蜀势力，3血，女性
 zhudian = sgs.CreateTriggerSkill{  
@@ -1116,7 +1117,7 @@ qinqing = sgs.CreateTriggerSkill{
         end
         return false  
     end,
-}  
+}   
 
 huisheng = sgs.CreateTriggerSkill{  
     name = "huisheng",   
@@ -1769,6 +1770,206 @@ sgs.LoadTranslationTable{
     ["mizhao"] = "密诏",  
     [":mizhao"] = "出牌阶段限1次，你可以将X张牌交给一名其他角色（X为场上势力数-1），令其与另一名角色拼点，赢的角色视为对没赢的角色使用一张【杀】。",  
     ["@mizhao-pindian"] = "请选择拼点的目标",  
+}
+
+liuyan = sgs.General(extension, "liuyan", "qun", 3)
+
+zifengCard = sgs.CreateSkillCard{
+    name = "zifengCard",
+    skill_name = "zifeng",
+    target_fixed = true,--是否需要指定目标，默认false，即需要
+    on_use = function(self, room, source)
+        local card_id = self:getSubcards():first()
+        local card = sgs.Sanguosha:getCard(card_id)
+		local supCard = sgs.Sanguosha:cloneCard("indulgence", card:getSuit(), card:getNumber())
+        supCard:addSubcard(card_id)
+        supCard:setSkillName("zifeng")
+        supCard:setShowSkill("zifeng")
+        room:useCard(sgs.CardUseStruct(supCard, source, source), true)
+        supCard:deleteLater()
+    end
+}
+
+zifengToIndu = sgs.CreateOneCardViewAsSkill{
+    name = "zifengToIndu",
+    response_pattern = "@@zifengToIndu",
+    filter_pattern = ".|.|.|zifengIndu",
+    expand_pile = "zifengIndu",
+
+	view_as = function(self, card)
+        local supCard = zifengCard:clone()
+        supCard:addSubcard(card:getId())
+        supCard:setSkillName("zifeng")
+		supCard:setShowSkill("zifeng")
+        return supCard
+    end,
+}
+
+zifeng = sgs.CreateTriggerSkill{  
+    name = "zifeng",
+    events = {sgs.CardUsed, sgs.CardResponded},  --集合，可以有多个触发条件
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        local owner = room:findPlayerBySkillName(self:objectName())
+        if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+        if owner:hasFlag("zifeng_used") then return "" end --每回合限一次
+        local who, card = nil, nil
+        if event == sgs.CardUsed then
+            local use = data:toCardUse()
+            who = use.from
+            card = use.card
+        elseif event == sgs.CardResponded then
+            local response = data:toCardResponse() 
+            --m_who是响应目标, m_isUse判断响应是否为使用（如闪响应杀）, m_isHandcard是否来自手牌, m_isRetrial是否用于改判
+            who = player
+            card = response.m_card
+        end
+        if who == owner then return "" end --自己用
+        if card:isKindOf("Jink") and card:getSkillName() == "" then --非转化的闪
+            --判断转化牌的方法：
+            --card:getSkillName(), card:getSubcards()
+            return self:objectName(), owner:objectName()
+        end
+        return ""
+    end,  
+    on_cost = function(self, event, room, player, data, ask_who)  
+        return ask_who:askForSkillInvoke(self:objectName(),data)  
+    end,  
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local jcards = ask_who:getCards("j")
+        local hasIndulgence, JudgeAreaCard = false, nil
+        for _, c in sgs.qlist(jcards) do
+            if c:isKindOf("Indulgence") then 
+                hasIndulgence = true 
+                JudgeAreaCard = c
+            end
+        end
+        if hasIndulgence and JudgeAreaCard then --有乐不思蜀，获得之
+            ask_who:obtainCard(JudgeAreaCard)
+        else --没有乐不思蜀，将这张闪当作乐不思蜀
+            
+            local card = nil
+            if event == sgs.CardUsed then
+                local use = data:toCardUse()
+                card = use.card
+            elseif event == sgs.CardResponded then
+                local response = data:toCardResponse() --m_isUse判断响应是否为使用（如闪响应杀）, m_isHandcard是否来自手牌, m_isRetrial是否用于改判
+                card = response.m_card
+            end
+            if card ~= nil then
+                ask_who:addToPile("zifengIndu", card, false)
+                local invoke = (room:askForUseCard(ask_who, "@@zifengToIndu", "@zifengAsk")) == nil
+                if invoke then 
+                    ask_who:clearOnePrivatePile("zifengIndu")
+                    return false
+                end
+            end
+        end
+        room:setPlayerFlag(ask_who, "zifeng_used")
+        return false  
+    end
+}  
+
+
+juxian = sgs.CreateTriggerSkill{  
+    name = "juxian",        
+    events = {sgs.StartJudge, sgs.FinishJudge},  -- 监听判定开始事件  
+    frequency = sgs.Skill_Compulsory,  -- 锁定技，自动触发  
+      
+    can_trigger = function(self, event, room, player, data)  
+        -- 检查是否为乐不思蜀判定  
+        local judge = data:toJudge() 
+        if not judge.who:hasSkill(self:objectName()) then return "" end
+        if event == sgs.StartJudge then 
+            if judge.reason == "indulgence" then  --必须是自己判定
+                return self:objectName()  
+            end  
+        elseif event == sgs.FinishJudge then
+            if judge.reason == "indulgence" or judge.reason == "supply_shortage" or judge.reason == "lightning" then  --必须是自己判定
+                return self:objectName()  
+            end  
+        end
+        return false  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        -- 锁定技无需消耗  
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local judge = data:toJudge()  
+        
+        if event == sgs.StartJudge then 
+            -- 反转乐不思蜀的判定结果  
+            -- 乐不思蜀默认：红桃为好判定（good=true），其他为坏判定  
+            -- 反转后：红桃为坏判定，其他为好判定  
+            if judge.reason == "indulgence" then  
+                judge.good = not judge.good  -- 反转好坏标志  
+                
+                -- 更新判定结果  
+                room:sendCompulsoryTriggerLog(player, self:objectName())
+                data:setValue(judge)
+
+                -- 发送日志消息  
+                local log = sgs.LogMessage()  
+                log.type = "#ReverseIndulgence"  
+                log.from = player  
+                log.to:append(judge.who)  
+                log.arg = "juxian"  
+                room:sendLog(log)  
+                
+                -- 播放技能音效  
+                room:broadcastSkillInvoke(self:objectName())  
+            end  
+        elseif event == sgs.FinishJudge then
+            local choices = {}  
+            -- 检查是否有牌可以弃置  
+            if not player:isNude() then  
+                table.insert(choices, "damage")  
+            end  
+            
+            -- 摸牌选项总是可用  
+            table.insert(choices, "draw")  
+            
+            -- 让玩家选择效果  
+            local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"))  
+            
+            if choice == "draw" then  
+                -- 摸一张牌  
+                player:drawCards(1)  
+            elseif choice == "damage" then  
+                -- 弃置一张牌并对其他角色造成伤害  
+                if room:askForDiscard(player, self:objectName(), 1, 1, true, true) then -- 弃牌        
+                    local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())  
+                    if target then  
+                        -- 造成1点伤害  
+                        local damage = sgs.DamageStruct()  
+                        damage.from = player  
+                        damage.to = target  
+                        damage.damage = 1  
+                        room:damage(damage)  
+                    end  
+                end  
+            end  
+        end
+        return false  
+    end  
+}  
+liuyan:addSkill(zifeng)
+liuyan:addSkill(juxian)
+
+if not sgs.Sanguosha:getSkill("zifengToIndu") then skills:append(zifengToIndu) end
+-- 翻译文本  
+sgs.LoadTranslationTable{  
+    ["liuyan"] = "刘焉",
+    ["zifeng"] = "自封",
+    [":zifeng"] = "每回合限一次。其他角色使用或打出非转化的闪时，你可以将此牌当作乐不思蜀置于判定区，或获得判定区的乐不思蜀",
+    ["juxian"] = "据险",  
+    [":juxian"] = "锁定技，你的乐不思蜀判定反转（红桃变为坏判定，其他花色变为好判定）。你的延时锦囊牌结算完成后，你摸一张牌，或弃置1张牌并对1名其他角色造成1点伤害", 
+    ["@zifengAsk"] = "请选择一张【闪】发动“自封”",
+    ["zifengIndu"] = "自封",
+    ["damage"] = "弃牌造成伤害"
 }
 
 luyusheng_canghai = sgs.General(extension, "luyusheng_canghai", "wu", 3, false)  
@@ -4471,58 +4672,5 @@ sgs.LoadTranslationTable{
     [":huomo"] = "若你本回合没有失去过牌，你可以将一张黑色非基本牌当作任意基本牌使用，然后将该牌放在牌堆顶",
 }
 
-
-transferfirstshow = sgs.CreateTriggerSkill{  
-    name = "transferfirstshow",  
-    events = {sgs.EventPhaseStart, sgs.Damage},
-    can_trigger = function(self, event, room, player, data)  
-        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
-            return ""  
-        end  
-        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
-            return self:objectName()
-        elseif event == sgs.Damage then
-            return self:objectName()
-        end
-        return ""  
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
-            return player:askForSkillInvoke(self:objectName(), data)  
-        elseif event == sgs.Damage then
-            return true
-        end
-    end,  
-      
-    on_effect = function(self, event, room, player, data)  
-        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
-            local targets = sgs.SPlayerList()  
-            for _, p in sgs.qlist(room:getAlivePlayers()) do  
-                if not player:isFriendWith(p) then  
-                    targets:append(p)  
-                end  
-            end  
-            if not targets:isEmpty() then  
-                local target = room:askForPlayerChosen(player, targets, self:objectName(), "@firstshow-give")  
-                if target then  
-                    target:gainMark("@firstshow",1)
-                end  
-            end 
-        elseif event == sgs.Damage then
-            local damage = data:toDamage()
-            if damage.to:getMark("@firstshow") > 0 then
-                damage.to:loseMark("@firstshow",1)
-                player:gainMark("@firstshow",1)
-            end
-        end
-        return false  
-    end  
-}  
---:addSkill(transferfirstshow)
-sgs.LoadTranslationTable{
-    ["transferfirstshow"] = "",
-    [":transferfirstshow"] = "准备阶段，你可以令一名势力不同角色获得先驱。你对角色造成伤害后，你可以获得其先驱"
-}
-
+sgs.Sanguosha:addSkills(skills)
 return {extension}
