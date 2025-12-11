@@ -1772,8 +1772,8 @@ beimin = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data)  
         -- 进行判定  
         local judge = sgs.JudgeStruct()  
-        judge.pattern = "."  
-        judge.good = false  
+        judge.pattern = ".|.|1~6" -- 判定牌点数小于7。第一个点表示任意花色，第二个点表示任意类型
+        judge.good = true -- 判定成功对玩家有利  
         judge.reason = self:objectName()  
         judge.who = player  
         judge.play_animation = false  
@@ -4040,7 +4040,7 @@ cike = sgs.CreateTriggerSkill{
 
 	on_effect = function(self, event, room, skill_target, data, player)          
         local judge = sgs.JudgeStruct()  
-        judge.pattern = ".|black"  
+        judge.pattern = "."  
         judge.good = true  
         judge.reason = self:objectName()  
         judge.who = player  
@@ -4818,7 +4818,7 @@ lianque = sgs.CreateTriggerSkill{
         local target = effect.to  
           
         local judge = sgs.JudgeStruct()  
-        --judge.pattern = ".|black"  
+        --judge.pattern = "."  
         --judge.good = true  
         judge.reason = self:objectName()  
         judge.who = player  
@@ -8318,7 +8318,7 @@ yicai = sgs.CreateTriggerSkill{
           
         repeat  
             local judge = sgs.JudgeStruct()  
-            --judge.pattern = "red"
+            --judge.pattern = ".|red"
             --judge.good = true  
             judge.play_animation = false  
             judge.who = player  
@@ -12177,8 +12177,8 @@ lianxi = sgs.CreateTriggerSkill{
           
         -- 发起判定  
         local judge = sgs.JudgeStruct()  
-        judge.pattern = "."  
-        judge.good = true  
+        judge.pattern = ".|red" -- 判定牌点数小于7。第一个点表示任意花色，第二个点表示任意类型
+        judge.good = true -- 判定成功对玩家有利  
         judge.reason = self:objectName()  
         judge.who = player  
           
