@@ -2025,8 +2025,8 @@ jianying = sgs.CreateTriggerSkill{
           
         if event == sgs.EventPhaseChanging then  
             local change = data:toPhaseChange()  
-            if change.from == sgs.Player_Play then  
-                -- 清除出牌阶段结束时的记录  
+            if change.from == sgs.Player_Play or change.to == sgs.Player_Play then  
+                -- 出牌阶段结束清除标记；出牌阶段开始时清除标记，避免第一个回合黑桃枚举值为0时摸牌  
                 return self:objectName()  
             end  
         elseif player:getPhase() == sgs.Player_Play then  
@@ -2045,10 +2045,10 @@ jianying = sgs.CreateTriggerSkill{
               
             if card and card:getTypeId() ~= sgs.Card_TypeSkill then  
                 -- 检查是否与上一张牌花色或点数相同  
-                local last_suit = player:getMark("combo_last_suit")  
+                local last_suit = player:getMark("combo_last_suit") - 1
                 local last_number = player:getMark("combo_last_number")  
                 -- 记录当前牌的花色和点数  
-                room:setPlayerMark(player, "combo_last_suit", card:getSuit())  
+                room:setPlayerMark(player, "combo_last_suit", card:getSuit() + 1)  
                 room:setPlayerMark(player, "combo_last_number", card:getNumber())  
                 if (last_suit ~= -1 and card:getSuit() == last_suit) or   
                    (last_number > 0 and card:getNumber() == last_number) then  
