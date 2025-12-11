@@ -1595,8 +1595,7 @@ cifu = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data)  
         -- 进行判定  
         local judge = sgs.JudgeStruct()  
-        judge.pattern = "."  
-        --judge.pattern = "black" -- 判定牌点数小于7。第一个点表示任意花色，第二个点表示任意类型
+        judge.pattern = ".|black" -- 判定牌点数小于7。第一个点表示任意类型，第二个点表示任意花色
         judge.good = true -- 判定成功对玩家有利  
         judge.play_animation = true  
         judge.who = player  
@@ -8318,8 +8317,8 @@ yicai = sgs.CreateTriggerSkill{
           
         repeat  
             local judge = sgs.JudgeStruct()  
-            --judge.pattern = ".|red"
-            --judge.good = true  
+            judge.pattern = ".|red"  --第一个点表示任意类型，第二个点表示任意花色
+            judge.good = true  
             judge.play_animation = false  
             judge.who = player  
             judge.reason = self:objectName()  
@@ -8548,7 +8547,7 @@ qiuhuang = sgs.CreatePhaseChangeSkill{
             
         -- 创建判定结构  
         local judge = sgs.JudgeStruct()  
-        judge.pattern = ".|.|1~6" -- 判定牌点数小于7。第一个点表示任意花色，第二个点表示任意类型
+        judge.pattern = ".|.|1~6"  -- 判定牌点数小于7。第一个点表示任意类型，第二个点表示任意花色
         judge.good = true -- 判定成功对玩家有利  
         judge.reason = self:objectName()  
         judge.who = player  
@@ -9449,8 +9448,8 @@ qianglve = sgs.CreateTriggerSkill{
         local target = effect.to  
           
         local judge = sgs.JudgeStruct()  
-        judge.pattern = ".|black"  
-        judge.good = true  
+        --judge.pattern = ".|black"  
+        --judge.good = true  
         judge.reason = self:objectName()  
         judge.who = player  
         
@@ -9504,8 +9503,8 @@ qianglve = sgs.CreateTriggerSkill{
 
 	on_effect = function(self, event, room, skill_target, data, player)          
         local judge = sgs.JudgeStruct()  
-        judge.pattern = ".|black"  
-        judge.good = true  
+        --judge.pattern = ".|black"  
+        --judge.good = true  
         judge.reason = self:objectName()  
         judge.who = player  
         
