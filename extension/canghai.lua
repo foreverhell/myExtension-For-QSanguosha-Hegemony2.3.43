@@ -1073,7 +1073,7 @@ qinqing = sgs.CreateTriggerSkill{
 					--if reasonx ~= sgs.CardMoveReason_S_REASON_USE and reasonx ~= sgs.CardMoveReason_S_REASON_RESPONSE then
 					if reasonx == sgs.CardMoveReason_S_REASON_DISCARD then --and reasonx ~= sgs.CardMoveReason_S_REASON_RECAST then
                         if move.from_places:contains(sgs.Player_PlaceHand) or move.from_places:contains(sgs.Player_PlaceEquip) then
-                            if move.from and move.from:isAlive() and move.from:getPhase() ~= sgs.Player_Discard and player:objectName()==move.from:objectName() then
+                            if move.from and move.from:isAlive() and move.from:getPhase() ~= sgs.Player_Discard and player:objectName()==move.from:objectName() and not move.from:hasFlag("qinqing_recast") then
                                 return self:objectName()
                             end
                         end
@@ -1095,9 +1095,11 @@ qinqing = sgs.CreateTriggerSkill{
         end  
         local target = room:askForPlayerChosen(player, targets, self:objectName(), "@qinqing-target")  --选的角色必须有牌
         if target then
+            --为了让重铸时不反复触发这个技能，
+            room:setPlayerFlag(target, "qinqing_recast")
             room:askForDiscard(target, self:objectName(), 1, 1, false, true)
+            room:setPlayerFlag(target, "-qinqing_recast")
             --[[
-            --为了让重铸时不反复触发这个技能，不能使用askForDiscard
             local card = room:askForCard(target, ".|.|.|.", "选择一张牌重铸")  
             if not card then return false end
             local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_RECAST, target:objectName(), "", self:objectName(), "")  --原因，卡牌移动来源的玩家，卡牌移动目标的玩家，导致移动的技能，其他事件名称
