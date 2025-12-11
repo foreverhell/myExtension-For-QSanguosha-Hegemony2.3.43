@@ -15,6 +15,7 @@ luacaorui = sgs.General(canghaiz, "luacaorui", "wei", 3)
 --luaqinmi = sgs.General(canghaiz,"luaqinmi", "shu", 3)
 luawuban = sgs.General(canghaiz, "luawuban", "shu")
 luadongyun = sgs.General(canghaiz, "luadongyun", "shu", 3)
+--luazhangsong = sgs.General(canghaiz, "luazhangsong", "shu", 3)
 
 --吴势力
 luayufan = sgs.General(canghaiz, "luayufan", "wu", 3)
@@ -25,6 +26,7 @@ luasunchen = sgs.General(canghaiz, "luasunchen", "wu")
 luajushou = sgs.General(canghaiz, "luajushou", "qun", 3)
 luahuangfusong = sgs.General(canghaiz, "luahuangfusong", "qun")
 luachengong = sgs.General(canghaiz, "luachengong", "qun", 3)
+lualiuyan = sgs.General(canghaiz, "lualiuyan", "qun", 3)
 
 
 local skills = sgs.SkillList()
@@ -517,14 +519,11 @@ luaqinzheng = sgs.CreateTriggerSkill{
                         room:addPlayerMark(player, "luaqinzheng_type", 4)
                     end
                 end
-                if player:getMark("luaqinzheng_color") < 3 or player:getMark("luaqinzheng_color") == 4 and 
-                player:getMark("luaqinzheng_colorUsed") == 0 then --0没有记录颜色，1黑色，2红色，4无色
+                if player:getMark("luaqinzheng_color") < 3 and player:getMark("luaqinzheng_colorUsed") == 0 then --0没有记录颜色，1黑色，2红色
                     if use.card:isBlack() and player:getMark("luaqinzheng_color") ~= 1 then 
                         room:addPlayerMark(player, "luaqinzheng_color", 1)
                     elseif use.card:isRed() and player:getMark("luaqinzheng_color") ~= 2 then
                         room:addPlayerMark(player, "luaqinzheng_color", 2)
-                    elseif not use.card:isBlack() and not use.card:isRed() and player:getMark("luaqinzheng_color") <= 2 then --不是4才可以加4
-                        room:addPlayerMark(player, "luaqinzheng_color", 4)
                     end
                 end
                 if player:getMark(suit_mark) == 0 and player:getMark("luaqinzheng_suitUsed") == 0 then
@@ -534,8 +533,7 @@ luaqinzheng = sgs.CreateTriggerSkill{
             if player:getMark("luaqinzheng_type") == 7 and player:getMark("luaqinzheng_typeUsed") == 0 then
                 table.insert(skill_list, self:objectName())
             end
-            if (player:getMark("luaqinzheng_color") == 3 or player:getMark("luaqinzheng_color") > 4) and 
-            player:getMark("luaqinzheng_colorUsed") == 0 then
+            if player:getMark("luaqinzheng_color") == 3 and player:getMark("luaqinzheng_colorUsed") == 0 then
                 table.insert(skill_list, self:objectName())
             end
             if player:getMark(suit_spade) == 1 and player:getMark(suit_club) == 1 and player:getMark(suit_diamond) == 1 and
@@ -543,7 +541,7 @@ luaqinzheng = sgs.CreateTriggerSkill{
                 table.insert(skill_list, self:objectName())
             end
             return table.concat(skill_list, ",")
-        elseif player and player:isAlive() and player:getPhase() == sgs.TurnStart and event == sgs.EventPhaseStart then
+        elseif player and player:isAlive() and player:getPhase() == sgs.Player_RoundStart and event == sgs.EventPhaseStart then
             local skill_owners = room:findPlayersBySkillName("luaqinzheng")
             local suit_spade = "luaqinzheng_spade_suit"
             local suit_club = "luaqinzheng_club_suit"
@@ -589,8 +587,7 @@ luaqinzheng = sgs.CreateTriggerSkill{
             local Analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, -1)
 			Analeptic:setSkillName("luaqinzheng")
 			room:useCard(sgs.CardUseStruct(Analeptic, player, player), false)
-        elseif (player:getMark("luaqinzheng_color") == 3 or player:getMark("luaqinzheng_color") > 4) and 
-        player:getMark("luaqinzheng_colorUsed") == 0 then
+        elseif player:getMark("luaqinzheng_color") == 3 and player:getMark("luaqinzheng_colorUsed") == 0 then
             room:addPlayerMark(player, "luaqinzheng_colorUsed", 1)
             local target_to = sgs.SPlayerList() --获取除选择目标的其他角色
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
@@ -1668,7 +1665,7 @@ luapindiCard = sgs.CreateSkillCard{
         elseif string.find(choice, "dxt1") then
             room:askForDiscard(targets[1], "luapindi", x, x, false, true)
         end
-        if source:isAlive() and targets[1]:getLostHp() > 0 and source:canBeChainedBy() then
+        if source:isAlive() and targets[1]:getLostHp() > 0 and source:canBeChainedBy() and not source:isChained() then
             --横置,要serverplayer类型
             room:setPlayerProperty(getServerPlayer(room, source:objectName()), "chained", sgs.QVariant(true))
         end
@@ -2217,6 +2214,7 @@ luahuituo = sgs.CreateTriggerSkill{
         local target = skill_owner:getTag("luahuituoTarget"):toPlayer()
         if target then
             local judge = sgs.JudgeStruct()
+            judge.pattern = ".|red"
             judge.good = true
             judge.who = target
             judge.reason = self:objectName()
@@ -2426,6 +2424,196 @@ sgs.LoadTranslationTable{
     ["$luazhuanxing1"] = "卿有成材良木，可妆吾家江山。",
     ["$luazhuanxing2"] = "吾好锦衣玉食，卿家可愿割爱否？",
     ["~luasunchen"] = "臣家火起，请离席救之。",
+}
+
+luazifengCard = sgs.CreateSkillCard{
+    name = "luazifengCard",
+    skill_name = "luazifeng",
+    target_fixed = true,--是否需要指定目标，默认false，即需要
+    on_use = function(self, room, source)
+        local card_id = self:getSubcards():first()
+        local card = sgs.Sanguosha:getCard(card_id)
+		local supCard = sgs.Sanguosha:cloneCard("indulgence", card:getSuit(), card:getNumber())
+        supCard:addSubcard(card_id)
+        supCard:setSkillName("luazifeng")
+        supCard:setShowSkill("luazifeng")
+        room:useCard(sgs.CardUseStruct(supCard, source, source), true)
+        supCard:deleteLater()
+    end
+}
+
+luazifengToIndu = sgs.CreateOneCardViewAsSkill{
+    name = "luazifengToIndu",
+    response_pattern = "@@luazifengToIndu",
+    filter_pattern = ".|.|.|luazifengIndu",
+    expand_pile = "luazifengIndu",
+
+	view_as = function(self, card)
+        local supCard = luazifengCard:clone()
+        supCard:addSubcard(card:getId())
+        supCard:setSkillName("luazifeng")
+		supCard:setShowSkill("luazifeng")
+        return supCard
+    end,
+}
+
+luazifeng = sgs.CreateTriggerSkill{
+    name = "luazifeng",
+    events = {sgs.CardUsed, sgs.CardResponded},
+    can_trigger = function(self, event, room, player, data)
+        local owner = room:findPlayerBySkillName(self:objectName())
+        if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+        if owner:hasFlag("luazifeng_used") then return "" end
+        local who, card = nil, nil
+        if event == sgs.CardUsed then
+            local use = data:toCardUse()
+            who = use.from
+            card = use.card
+        elseif event == sgs.CardResponded then
+            local response = data:toCardResponse() 
+            --m_who是响应目标, m_isUse判断响应是否为使用（如闪响应杀）, m_isHandcard是否来自手牌, m_isRetrial是否用于改判
+            who = player
+            card = response.m_card
+        end
+        if who == owner then return "" end
+        if card:isKindOf("Jink") and card:getSkillName() == "" then
+            --判断转化牌的方法：
+            --card:getSkillName(), card:getSubcards()
+            return self:objectName(), owner:objectName()
+        end
+        return false
+    end,
+
+    on_cost = function(self, event, room, player, data, ask_who)
+        if ask_who:askForSkillInvoke(self:objectName()) then
+			room:broadcastSkillInvoke(self:objectName(), ask_who)
+			return true
+		end
+        return false 
+    end,
+
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local jcards = ask_who:getCards("j")
+        local hasIndulgence, JudgeAreaCard = false, nil
+        for _, c in sgs.qlist(jcards) do
+            if c:isKindOf("Indulgence") then 
+                hasIndulgence = true 
+                JudgeAreaCard = c
+            end
+        end
+        if hasIndulgence and JudgeAreaCard then
+            ask_who:obtainCard(JudgeAreaCard)
+        else
+            local card = nil
+            if event == sgs.CardUsed then
+                local use = data:toCardUse()
+                card = use.card
+            elseif event == sgs.CardResponded then
+                local response = data:toCardResponse() --m_isUse判断响应是否为使用（如闪响应杀）, m_isHandcard是否来自手牌, m_isRetrial是否用于改判
+                card = response.m_card
+            end
+            if card ~= nil then
+                --[[local supCard = sgs.Sanguosha:cloneCard("indulgence", card:getSuit(), -1)
+                supCard:addSubcard(card:getId())
+                supCard:setSkillName(self:objectName())
+                room:useCard(sgs.CardUseStruct(supCard, ask_who, ask_who), true)
+                supCard:deleteLater()]] --会闪退
+                ask_who:addToPile("luazifengIndu", card, false)
+                local invoke = (room:askForUseCard(ask_who, "@@luazifengToIndu", "@luazifengAsk")) == nil
+                if invoke then 
+                    ask_who:clearOnePrivatePile("luazifengIndu")
+                    return false
+                end
+            end
+        end
+        room:setPlayerFlag(ask_who, "luazifeng_used")
+        return false  
+    end,
+}  
+
+
+luajuxian = sgs.CreateTriggerSkill{
+    name = "luajuxian",
+    events = {sgs.StartJudge, sgs.FinishJudge},
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)  
+        local judge = data:toJudge() 
+        if not judge.who:hasSkill(self:objectName()) then return "" end
+        if event == sgs.StartJudge then
+            if judge.reason == "indulgence" then
+                return self:objectName()  
+            end  
+        elseif event == sgs.FinishJudge then
+            if judge.reason == "indulgence" or judge.reason == "supply_shortage" or judge.reason == "lightning" then  --必须是自己判定
+                return self:objectName()  
+            end  
+        end
+        return false  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local judge = data:toJudge()  
+        if event == sgs.StartJudge then 
+            -- 反转乐不思蜀的判定结果  
+            -- 乐不思蜀默认：红桃为好判定（good=true），其他为坏判定  
+            -- 反转后：红桃为坏判定，其他为好判定  
+            if judge.reason == "indulgence" then  
+                judge.good = not judge.good
+                
+                -- 更新判定结果  
+                room:sendCompulsoryTriggerLog(player, self:objectName())
+                data:setValue(judge)
+                room:broadcastSkillInvoke(self:objectName())  
+            end  
+        elseif event == sgs.FinishJudge then
+            local choices = {"luajuxianDraw"}
+            if not player:isNude() then
+                table.insert(choices, "luajuxianDamage")
+            end
+            local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"))  
+            
+            if choice == "luajuxianDraw" then
+                player:drawCards(1)
+            elseif choice == "luajuxianDamage" then
+                if room:askForDiscard(player, self:objectName(), 1, 1, true, true) then     
+                    local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())  
+                    if target then
+                        local damage = sgs.DamageStruct()  
+                        damage.from = player  
+                        damage.to = target  
+                        damage.damage = 1  
+                        room:damage(damage)  
+                    end  
+                end  
+            end  
+        end
+        return false  
+    end  
+}  
+lualiuyan:addSkill(luazifeng)
+lualiuyan:addSkill(luajuxian)
+
+if not sgs.Sanguosha:getSkill("luazifengToIndu") then skills:append(luazifengToIndu) end
+
+sgs.LoadTranslationTable{  
+    ["lualiuyan"] = "刘焉",
+    ["luazifeng"] = "自封",
+    [":luazifeng"] = "每回合限一次。其他角色使用或打出非转化的闪时，你可以将此牌当作乐不思蜀置于判定区，或获得判定区的乐不思蜀",
+    ["luajuxian"] = "据险",  
+    [":luajuxian"] = "锁定技，你的乐不思蜀判定反转。你的延时锦囊牌结算完成后，你摸一张牌，或弃置1张牌并对1名其他角色造成1点伤害",
+    ["@luazifengAsk"] = "请选择一张【闪】发动“自封”",
+    ["luazifengIndu"] = "自封",
+    ["luajuxianDamage"] = "弃置1张牌造成伤害",
+    ["luajuxianDraw"] = "摸1张牌",
+    ["$luazifeng1"] = "卿有成材良木，可妆吾家江山。",
+    ["$luazifeng2"] = "吾好锦衣玉食，卿家可愿割爱否？",
+    ["$luajuxian1"] = "卿有成材良木，可妆吾家江山。",
+    ["$luajuxian2"] = "吾好锦衣玉食，卿家可愿割爱否？",
+    ["~lualiuyan"] = "臣家火起，请离席救之。",
 }
 
 sgs.Sanguosha:addSkills(skills)
