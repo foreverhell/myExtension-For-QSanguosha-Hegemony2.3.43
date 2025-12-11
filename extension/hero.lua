@@ -2771,7 +2771,7 @@ sgs.LoadTranslationTable{
 [":qing2guo"] = "结束阶段开始时，若你于此回合内未使用过基本牌或未使用过锦囊牌，你摸一张牌。",
 }  
 
---[[
+
 hanfeizi = sgs.General(extension, "hanfeizi", "qun", 3)  -- 吴国，4血，男性  
 
 -- 拒绝谏言技能卡  
@@ -2977,7 +2977,7 @@ sgs.LoadTranslationTable{
     ["zhudao"] = "主道",
     [":zhudao"] = "出牌阶段限一次。你可以弃置X手牌，摸2X张牌（X至多为3），然后若你使用牌点数之和大于等于弃置牌点数之和，你结束出牌阶段",
 }
-]]
+
 --[[
 hanxin = sgs.General(extension, "hanxin", "wu", 3)  -- 吴国，4血，男性  
 
