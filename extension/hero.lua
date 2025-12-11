@@ -2972,6 +2972,7 @@ zhudao = sgs.CreateTriggerSkill{
 hanfeizi:addSkill(junfa)
 hanfeizi:addSkill(zhudao)
 sgs.LoadTranslationTable{
+    ["hanfeizi"] = "韩非子",
     ["junfa"] = "君法",
     [":junfa"] = "出牌阶段限一次。你可以弃置一张牌，然后选择任意名其他角色，其可以交给你1张牌，令本回合你对其使用牌无效",
     ["zhudao"] = "主道",
