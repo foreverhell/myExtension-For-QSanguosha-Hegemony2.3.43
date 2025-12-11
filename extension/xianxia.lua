@@ -2117,5 +2117,57 @@ sgs.LoadTranslationTable{
     ["@simashi2-discard"] = "要弃的牌数"
 }
 
+transferfirstshow = sgs.CreateTriggerSkill{  
+    name = "transferfirstshow",  
+    events = {sgs.EventPhaseStart, sgs.Damage},
+    can_trigger = function(self, event, room, player, data)  
+        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
+            return ""  
+        end  
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
+            return self:objectName()
+        elseif event == sgs.Damage then
+            return self:objectName()
+        end
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
+            return player:askForSkillInvoke(self:objectName(), data)  
+        elseif event == sgs.Damage then
+            return true
+        end
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
+            local targets = sgs.SPlayerList()  
+            for _, p in sgs.qlist(room:getAlivePlayers()) do  
+                if not player:isFriendWith(p) then  
+                    targets:append(p)  
+                end  
+            end  
+            if not targets:isEmpty() then  
+                local target = room:askForPlayerChosen(player, targets, self:objectName(), "@firstshow-give")  
+                if target then  
+                    target:gainMark("@firstshow",1)
+                end  
+            end 
+        elseif event == sgs.Damage then
+            local damage = data:toDamage()
+            if damage.to:getMark("@firstshow") > 0 then
+                damage.to:loseMark("@firstshow",1)
+                player:gainMark("@firstshow",1)
+            end
+        end
+        return false  
+    end  
+}  
+--:addSkill(transferfirstshow)
+sgs.LoadTranslationTable{
+    ["transferfirstshow"] = "",
+    [":transferfirstshow"] = "准备阶段，你可以令一名势力不同角色获得先驱。你对角色造成伤害后，你可以获得其先驱"
+}
 sgs.Sanguosha:addSkills(skills)
 return {extension}
