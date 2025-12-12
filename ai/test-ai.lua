@@ -1849,8 +1849,9 @@ sgs.ai_skill_invoke.luasheyan = function(self, data)
                 return true
             else
                 for _, p in sgs.qlist(playersByAction) do
-                    if not table.contains(tos, p) and p:isFriendWith(from) and self:trickIsEffective(card, p, from) and not p:getJudgingArea() and
+                    if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) and p:getJudgingArea():isEmpty() and
                     not p:isNude() and from:objectName() ~= p:objectName() then
+                        Global_room:writeToConsole("舍宴进入1")
                         if p:hasSkills(sgs.lose_equip_skill) and p:isKongcheng() then continue end
                         self.luasheyanchooseplayer = p
                         return true
@@ -1962,7 +1963,7 @@ end
 sgs.ai_skill_invoke.jiechengshang = function(self, data)
     local use = data:toCardUse()
     assert(use)
-    self.luachengshangcard = use.card:getId()
+    --self.luachengshangcard = use.card:getId()
     func = function(cards, use_card) --判断是否有与承赏一样花色和点数的牌
         local suit = use_card:getSuitString()
         local num = use_card:getNumber()
@@ -2024,8 +2025,13 @@ end
 sgs.ai_skill_exchange.jiechengshang = function(self, pattern, max_num, min_num, expand_pile)
     local target = sgs.findPlayerByShownSkillName("jiechengshang")
 	if not target then return {} end
-    local card_id = self.luachengshangcard
-    local card = sgs.Sanguosha:getCard(card_id)
+    local card_id = self.player:getMark("jiechengshangCardId") - 1
+    local card
+    if card_id >= 0 then
+        card = sgs.Sanguosha:getCard(card_id)
+    else
+        card = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
+    end
     local hecard = sgs.QList2Table(self.player:getCards("he"))
     if not self.player:isFriendWith(target) then
         for _, c in pairs(hecard) do
@@ -2272,7 +2278,7 @@ sgs.ai_skill_use_func["#luaxinggongCard"] = function(card, use, self)
     end
     if not self.luaxinggongPlayer then
         for i = #targets, 1, -1 do
-            if self.player:isFriendWith(targets[i]) and targets[i]:getHp() > 1 and p:objectName() ~= self.player:objectName() then
+            if self.player:isFriendWith(targets[i]) and targets[i]:getHp() > 1 and targets[i]:objectName() ~= self.player:objectName() then
                 self.luaxinggongPlayer = targets[i]
             end
         end
@@ -2766,4 +2772,20 @@ sgs.ai_skill_use_func.luachenyinCard = function(card, use, self)
         use.card = card
         use.to:append(self.luachenyinTarget)
     end
+end
+
+--刘焉
+sgs.ai_skill_invoke.luazifeng = function(self, data)
+    local current = self.room:getCurrent()
+    if current:getNextAlive():objectName() == self.player:objectName() then return false end
+    return true
+end
+
+sgs.ai_skill_use["@@luazifengToIndu"] = function(self, prompt)
+    local card_ids = self.player:getPile("luazifengIndu")
+    return "#luazifengCard:" .. card_ids:first() .. ":&luazifeng"
+end
+
+sgs.ai_skill_choice.luajuxian = function(self, choices)
+
 end
