@@ -160,7 +160,7 @@ provinceSeal = sgs.CreateTreasure{
             if hasBig then
                 local isBig = player:isBigKingdomPlayer()
                 for _, p in sgs.qlist(room:getOtherPlayers(player)) do
-                    if isBig or (not isBig and not p:isBigKingdomPlayer()) and player:isAlive() and not p:isNude() then
+                    if (isBig and p:isBigKingdomPlayer()) or (not isBig and not p:isBigKingdomPlayer()) and player:isAlive() and not p:isNude() then
                         local d = sgs.QVariant()
                         d:setValue(player)
                         local choice = room:askForChoice(p, "provinceSeal_give", "yes+no", d, "@provinceSeal_askforgive::" .. 
@@ -900,6 +900,20 @@ luahuangchu = sgs.CreateTriggerSkill{
         player:inHeadSkills(self:objectName()) then
             room:sendCompulsoryTriggerLog(player, self:objectName())
             room:broadcastSkillInvoke(self:objectName(), player)
+        end
+        if player and player:isAlive() and player:getSeemingKingdom() == "wei" then
+            for _, p in sgs.qlist(room:getAlivePlayers()) do --先清标记
+                if p:getMark("##luajpzzg_peach") > 0 then
+                    room:setPlayerMark(p, "##luajpzzg_peach", 0)
+                end
+                if p:getMark("##luajpzzg_killer") > 0 then
+                    room:setPlayerMark(p, "##luajpzzg_killer", 0)
+                end
+                if p:getMark("##luajpzzg_handcards") > 0 then
+                    room:setPlayerMark(p, "##luajpzzg_handcards", 0)
+                end
+            end
+
             local weiMax, allMax = {}, {}
             for _, p in sgs.qlist(room:getAlivePlayers()) do
                 if p:getSeemingKingdom() == "wei" then
@@ -923,6 +937,46 @@ luahuangchu = sgs.CreateTriggerSkill{
                     break
                 end
             end
+
+            local weiMax2, allMax2 = {}, {}
+            local weiMaxcard, allMaxcard = {}, {}
+            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                if p:getSeemingKingdom() == "wei" then
+                    table.insert(weiMax2, p:getHandcardNum())
+                    table.insert(weiMaxcard, p:getMaxCards())
+                else
+                    table.insert(allMax2, p:getHandcardNum())
+                    table.insert(allMaxcard, p:getMaxCards())
+                end
+            end
+            table.sort(weiMax2, function(a, b) return a > b end)
+            table.sort(allMax2, function(a, b) return a > b end)
+            table.sort(weiMaxcard, function(a, b) return a > b end)
+            table.sort(allMaxcard, function(a, b) return a > b end)
+            if weiMax2[1] ~= weiMax2[2] and player:getPlayerNumWithSameKingdom("AI", "wei", 1) > 1 then 
+                for _, p in sgs.qlist(room:getAlivePlayers()) do
+                    if p:getSeemingKingdom() == "wei" and p:getHandcardNum() == weiMax2[1] then
+                        if weiMax2[1] >= allMax2[1] then
+                            room:setPlayerMark(p, "##luajpzzg_handcards", 2)
+                        else
+                            room:setPlayerMark(p, "##luajpzzg_handcards", 1)
+                        end
+                        break
+                    end
+                end
+            end
+    
+            if weiMaxcard[1] == weiMaxcard[2] or player:getPlayerNumWithSameKingdom("AI", "wei", 1) <= 1 then return false end
+            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                if p:getSeemingKingdom() == "wei" and p:getMaxCards() == weiMaxcard[1] then
+                    if weiMaxcard[1] >= allMaxcard[1] then
+                        room:setPlayerMark(p, "##luajpzzg_peach", 2)
+                    else
+                        room:setPlayerMark(p, "##luajpzzg_peach", 1)
+                    end
+                    break
+                end
+            end
         end
         return false
     end
@@ -938,14 +992,6 @@ luajpzzg = sgs.CreateTriggerSkill{
             local skill_owners1 = room:findPlayersBySkillName("luahuangchu")
             local skill_owners2 = room:findPlayersBySkillName("xingshang")
             if skill_owners1:isEmpty() and skill_owners2:isEmpty() then return false end
-            --[[local isFirstRound = false
-            for _, skill_owner in sgs.qlist(skill_owners2) do
-                if skillTriggerable(skill_owner, "fangzhu") and skill_owner:getMark("Global_RoundCount") <= 1 then
-                    isFirstRound = true
-                    break
-                end
-            end
-            if isFirstRound then return false end]]
             local hasAnjiang = false
             for _, p in sgs.qlist(room:getAlivePlayers()) do
                 if sgs.isAnjiang(p) then
@@ -957,7 +1003,8 @@ luajpzzg = sgs.CreateTriggerSkill{
                 return false --若没有暗将且魏势力角色数不足两人，则无大旗效果，无需再往下执行
             end
               
-            if event == sgs.Death then
+            if event == sgs.Death and (player:getGeneralName() == "lord_caopi" or player:getGeneralName() == "lord_caopi$" or
+            player:getGeneralName() == "caopi") then --只读取一次
                 local death = data:toDeath()
                 if death.who:getGeneralName() == "lord_caopi" or death.who:getGeneralName() == "lord_caopi$" then
                     for _, p in sgs.qlist(room:getAlivePlayers()) do
