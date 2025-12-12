@@ -2569,14 +2569,15 @@ sgs.LoadTranslationTable{
 
 jiechengshang = sgs.CreateTriggerSkill{
 	name = "jiechengshang",
-	events = {sgs.CardFinished, sgs.PreDamageDone},
+	events = {sgs.CardFinished, sgs.PreDamageDone, sgs.CardUsed},
 	on_record = function(self, event, room, player, data)
 		if player and event == sgs.PreDamageDone then
 			local skill_owners = room:findPlayersBySkillName(self:objectName())
             if skill_owners:isEmpty() then return false end
 			local damage = data:toDamage()
 			for _, skill_owner in sgs.qlist(skill_owners) do
-				if damage.damage > 0 and damage.from and damage.from:objectName() == skill_owner:objectName() then
+				local card_id = skill_owner:getMark("jiechengshangCardId") - 1
+				if damage.damage > 0 and damage.card and damage.card:getId() == card_id then
 					local card = damage.card
 					if not card:hasFlag("jiechengshangDamaged") then
 						card:setFlags("jiechengshangDamaged")
@@ -2584,15 +2585,21 @@ jiechengshang = sgs.CreateTriggerSkill{
 					break
 				end
 			end
+		elseif player and event == sgs.CardUsed then
+			local use = data:toCardUse()
+			local card_id = use.card:getId()
+			if card_id >= 0 then
+				room:setPlayerMark(player, "jiechengshangCardId", card_id + 1)
+			end
 		end
 	end,
 
 	can_trigger = function(self, event, room, player, data)
 		if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Play and not 
-		player:hasFlag("luachengshangUsed") then
+		player:hasFlag("luachengshangUsed") and event == sgs.CardFinished then
 			local use = data:toCardUse()
 			if use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill and not use.card:isKindOf("DelayedTrick") then
-				if not use.card:hasFlag("jiechengshangDamaged") then return false end
+				if use.card:hasFlag("jiechengshangDamaged") then return false end
 				for _, p in sgs.qlist(use.to) do
 					if not player:isFriendWith(p) then
 						return self:objectName()
@@ -2628,12 +2635,13 @@ jiechengshang = sgs.CreateTriggerSkill{
 			local move = sgs.CardsMoveStruct(card_id, player, sgs.Player_PlaceHand, reason)
 			room:moveCardsAtomic(move, false)
 
-			local card = sgs.Sanguosha:getCard(card_id)
+			local card = sgs.Sanguosha:getCard(card_id:first())
 			if use.card:getSuitString() == card:getSuitString() and use.card:getNumber() == card:getNumber() then
 				room:detachSkillFromPlayer(player, self:objectName())
 				room:detachSkillFromPlayer(player, self:objectName(), false, false, false)
 			end
 		end
+		room:setPlayerMark(player, "jiechengshangCardId", 0)
 		return false
 	end
 }
