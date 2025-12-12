@@ -2,6 +2,191 @@
 extension = sgs.Package("canghai",sgs.Package_GeneralPack)  
 local skills = sgs.SkillList()
 
+caifuren = sgs.General(extension, "caifuren", "qun", 3, false) -- 吴苋，蜀势力，3血，女性
+
+qieting = sgs.CreateTriggerSkill{  
+    name = "qieting",  
+    frequency = sgs.Skill_Frequent,  
+    events = {sgs.CardUsed, sgs.EventPhaseStart}, -- 结束阶段触发  
+      
+    can_trigger = function(self, event, room, player, data)            
+        -- 检查是否是其他角色的结束阶段  
+        local current = room:getCurrent()  
+        if current:hasSkill(self:objectName()) then return ""  end  
+        if event == sgs.CardUsed then  
+            local use = data:toCardUse()
+            if use.from ~= current then return "" end
+            if use.card and use.to then  
+                for _, p in sgs.qlist(use.to) do  
+                    if p:objectName() ~= current:objectName() then  
+                        current:setFlags("qieting_used_card_to_others")  
+                        break  
+                    end  
+                end  
+            end  
+            return ""
+        end  
+
+        if not current or current:isDead() or current:getPhase() ~= sgs.Player_Finish then  return ""  end      
+          
+        -- 检查该角色本回合是否对除其外的角色使用过牌  
+        if current:hasFlag("qieting_used_card_to_others") then  
+            return ""  
+        end  
+        local owner = room:findPlayerBySkillName(self:objectName())
+        return self:objectName(), owner:objectName()
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        local current = room:getCurrent()  
+        local _data = sgs.QVariant()  
+        _data:setValue(current)  
+          
+        if ask_who:askForSkillInvoke(self:objectName(), _data) then  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local current = room:getCurrent()  
+          
+        -- 检查目标是否有装备牌  
+        local equips = current:getEquips()  
+        local has_equips = not equips:isEmpty()  
+          
+        local choices = "draw"  
+        if has_equips then  
+            choices = "draw+move"  
+        end  
+          
+        local choice = room:askForChoice(ask_who, self:objectName(), choices)  
+          
+        if choice == "draw" then  
+            -- 摸1张牌  
+            ask_who:drawCards(1, self:objectName())  
+        elseif choice == "move" then  
+            -- 移动装备区1张牌到自己的装备区  
+            local card_id = room:askForCardChosen(ask_who, current, "e", self:objectName())  
+            local card = sgs.Sanguosha:getCard(card_id)  
+                
+            -- 移动装备  
+            room:moveCardTo(card, ask_who, sgs.Player_PlaceEquip,   
+                sgs.CardMoveReason(sgs.CardMoveReason.S_REASON_TRANSFER, ask_who:objectName(), current:objectName(), self:objectName(), ""))  
+        end  
+          
+        return false  
+    end  
+}  
+-- 技能2：献州（限定技）  
+xianzhouCard = sgs.CreateSkillCard{  
+    name = "xianzhou_card",  
+    target_fixed = false,  
+    will_throw = false,  
+      
+    filter = function(self, targets, to_select, player)  
+        return #targets == 0 and to_select:objectName() ~= player:objectName()  
+    end,  
+      
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+        local equips = source:getEquips()  
+          
+        if equips:isEmpty() then return false end  
+          
+        local equip_count = 0  
+        local equip_ids = sgs.IntList()
+          
+        -- 收集所有装备牌  
+        for _, card in sgs.qlist(equips) do  
+            equip_ids:append(card:getEffectiveId())  
+            equip_count = equip_count + 1  
+        end  
+          
+        -- 将装备交给目标  
+        local move = sgs.CardsMoveStruct()  
+        move.card_ids = equip_ids  
+        move.from = source  
+        move.from_place = sgs.Player_PlaceEquip  
+        move.to = target  
+        move.to_place = sgs.Player_PlaceEquip  
+        move.reason = sgs.CardMoveReason(sgs.CardMoveReason.S_REASON_GIVE, source:objectName(), target:objectName(), "xianzhou", "")  
+          
+        room:moveCardsAtomic(move, false)  
+          
+        -- 目标选择攻击范围内的角色造成伤害  
+        if equip_count > 0 then  
+            local damage_targets = sgs.SPlayerList()
+            local victims = room:getAlivePlayers()  
+              
+            for _, victim in sgs.qlist(victims) do  
+                if victim:objectName() ~= target:objectName() and target:inMyAttackRange(victim) then  
+                    damage_targets:append(victim)  
+                end  
+            end  
+              
+            local max_targets = math.min(equip_count, damage_targets:length())  
+            if max_targets > 0 then  
+                --至多 max_targets 名
+                local selected_targets = room:askForPlayersChosen(source,  damage_targets, self:objectName(), 0, max_targets, "请选择玩家", false)
+    
+                -- 造成伤害  
+                for _, victim in sgs.qlist(selected_targets) do  
+                    local damage = sgs.DamageStruct()  
+                    damage.from = target  
+                    damage.to = victim  
+                    damage.damage = 1  
+                    damage.reason = "xianzhou"  
+                    room:damage(damage)  
+                end  
+                  
+                -- 蔡夫人回复等量体力  
+                local recover = sgs.RecoverStruct()  
+                recover.recover = selected_targets:length()
+                recover.who = source  
+                room:recover(source, recover)  
+            end  
+        end  
+        room:setPlayerMark(source, "@xianzhou", 0)
+        return false  
+    end  
+}  
+  
+xianzhou = sgs.CreateZeroCardViewAsSkill{  
+    name = "xianzhou",  
+    limit_mark = "@xianzhou",       
+    view_as = function(self)  
+        local card = xianzhouCard:clone()  
+        card:setShowSkill(self:objectName())
+        return card
+    end,
+    enabled_at_play = function(self, player)  
+        return player:getMark("@xianzhou") > 0 and not player:getEquips():isEmpty()  
+    end
+}  
+  
+-- 添加技能到武将  
+caifuren:addSkill(qieting)  
+caifuren:addSkill(xianzhou)  
+
+sgs.LoadTranslationTable{
+    ["caifuren"] = "蔡夫人",  
+    ["#caifuren"] = "荆州的妇人",  
+    ["&caifuren"] = "蔡夫人",  
+    ["illustrator:caifuren"] = "未知",  
+    
+    ["qieting"] = "窃听",  
+    [":qieting"] = "其他角色的结束阶段，若其本回合未对除其外的角色使用牌，你可以（1）摸1张牌（2）将其装备区1张牌移动到你的装备区。",  
+    ["qieting:draw"] = "摸1张牌",  
+    ["qieting:move"] = "移动其1张装备牌",  
+    
+    ["xianzhou"] = "献州",  
+    [":xianzhou"] = "限定技，出牌阶段，你可以将装备区所有牌交给一名其他角色，其对攻击范围内至多等量角色造成1点伤害，然后你恢复等量体力。",  
+    ["@xianzhou"] = "献州",  
+    ["@xianzhou-damage"] = "献州：请选择攻击范围内的一名角色造成1点伤害",
+}
+
 caiyong = sgs.General(extension, "caiyong", "qun", 3) -- 吴苋，蜀势力，3血，女性
 zhudian = sgs.CreateTriggerSkill{  
     name = "zhudian",  
