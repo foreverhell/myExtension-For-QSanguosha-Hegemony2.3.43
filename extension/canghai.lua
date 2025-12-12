@@ -934,16 +934,16 @@ yanhuo = sgs.CreateTriggerSkill{
         end  
           
         -- 计算X值：死亡玩家的牌数  
-        local x = player:getHandcardNum() + #player:getEquips()  
+        local x = player:getCardCount(true)  
           
         if x <= 0 then return false end  
           
         -- 弃置杀死你的角色至多X张牌  
         local to_discard = math.min(x, killer:getCardCount(true))  
-        if to_discard > 0 then  
-            room:askForDiscard(killer, self:objectName(), to_discard, to_discard, false, true) --这里要改成让自己选，但是可能会有问题，先这样测 
-        end  
-          
+        for i = 1, to_discard do
+            local card_id = room:askForCardChosen(player, killer, "he", "yanhuo")
+            room:throwCard(card_id, killer, player)
+        end
         return false  
     end  
 }
@@ -1180,7 +1180,7 @@ gue = sgs.CreateOneCardViewAsSkill{
         return nil  
     end,  
     enabled_at_play = function(self, player)  
-        return player:getHandcardNum() == 1 and not player:hasUsed("#gue")  --player:usedTimes("ViewAsSkill_gueCard")==0
+        return player:getHandcardNum() == 1 --and not player:hasUsed("#gue")  --player:usedTimes("ViewAsSkill_gueCard")==0
     end,  
     enabled_at_response = function(self, player, pattern)  
         return player:getHandcardNum() == 1 and (pattern == "slash" or pattern == "jink")  
@@ -1771,7 +1771,7 @@ sgs.LoadTranslationTable{
     [":mizhao"] = "出牌阶段限1次，你可以将X张牌交给一名其他角色（X为场上势力数-1），令其与另一名角色拼点，赢的角色视为对没赢的角色使用一张【杀】。",  
     ["@mizhao-pindian"] = "请选择拼点的目标",  
 }
-
+--[[
 liuyan = sgs.General(extension, "liuyan", "qun", 3)
 
 zifengCard = sgs.CreateSkillCard{
@@ -1877,15 +1877,14 @@ juxian = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Compulsory,  -- 锁定技，自动触发  
       
     can_trigger = function(self, event, room, player, data)  
-        -- 检查是否为乐不思蜀判定  
         local judge = data:toJudge() 
         if not judge.who:hasSkill(self:objectName()) then return "" end
         if event == sgs.StartJudge then 
-            if judge.reason == "indulgence" then  --必须是自己判定
+            if judge.reason == "indulgence" then
                 return self:objectName()  
             end  
         elseif event == sgs.FinishJudge then
-            if judge.reason == "indulgence" or judge.reason == "supply_shortage" or judge.reason == "lightning" then  --必须是自己判定
+            if judge.reason == "indulgence" or judge.reason == "supply_shortage" or judge.reason == "lightning" then
                 return self:objectName()  
             end  
         end
@@ -1893,7 +1892,6 @@ juxian = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data)  
-        -- 锁定技无需消耗  
         return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)  
     end,  
       
@@ -1971,7 +1969,7 @@ sgs.LoadTranslationTable{
     ["zifengIndu"] = "自封",
     ["damage"] = "弃牌造成伤害"
 }
-
+]]
 luyusheng_canghai = sgs.General(extension, "luyusheng_canghai", "wu", 3, false)  
 
 fengwu = sgs.CreateTriggerSkill{  
@@ -3290,7 +3288,7 @@ YanzhuCard = sgs.CreateSkillCard{
         end  
         local prev_player = current  
 
-        if target:getHandcardNum() >= 2 and next_player ~= target and prev_player ~= target then  
+        if target:getCardCount(true) >= 2 and next_player ~= target and prev_player ~= target then  
             table.insert(choices, "give_cards")  
         end  
         table.insert(choices, "slash_effect")  
