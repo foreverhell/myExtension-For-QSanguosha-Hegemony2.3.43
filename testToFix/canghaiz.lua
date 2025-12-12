@@ -1021,7 +1021,7 @@ luajiushiDamaged = sgs.CreateTriggerSkill{
                 if isHead ~= nil then --防止“化身”移除武将
                     player:removeGeneral(isHead)
                 end
-                room:setPlayerMark(p, "##luajiushi", 0)
+                room:setPlayerMark(player, "##luajiushi", 0)
             elseif event == sgs.CardUsed then
                 local use = data:toCardUse()
                 if use and use.card:getSkillName() == "luajiushi" then  
@@ -2142,9 +2142,9 @@ luahuituo = sgs.CreateTriggerSkill{
             for _, skill_owner in sgs.qlist(skill_owners) do
                 if skillTriggerable(skill_owner, self:objectName()) and skill_owner:isFriendWith(damage.to) then
                     if skill_owner:objectName() == damage.to:objectName() then
-                        room:setPlayerMark(skill_owner, "luahuituoDamaged_self", damage.damage)
+                        room:addPlayerMark(skill_owner, "luahuituoDamaged_self", damage.damage)
                     else --需考虑君主死亡等其他变野的情况
-                        room:setPlayerMark(skill_owner, "luahuituoDamaged_" .. damage.to:objectName(), damage.damage)
+                        room:addPlayerMark(skill_owner, "luahuituoDamaged_" .. damage.to:objectName(), damage.damage)
                     end
                 end
             end
@@ -2313,11 +2313,7 @@ luazhuanxing = sgs.CreateTriggerSkill{
     end,
 
     on_cost = function(self, event, room, player, data, skill_owner)
-        if skill_owner:askForSkillInvoke(self:objectName(), data) then
-            room:broadcastSkillInvoke(self:objectName(), skill_owner)
-			return true
-        end
-        return false
+        return skill_owner:askForSkillInvoke(self:objectName(), data)
     end,
 
     on_effect = function(self, event, room, player, data, skill_owner)
@@ -2485,7 +2481,7 @@ luazifeng = sgs.CreateTriggerSkill{
     end,
 
     on_cost = function(self, event, room, player, data, ask_who)
-        if ask_who:askForSkillInvoke(self:objectName()) then
+        if ask_who:askForSkillInvoke(self:objectName(), data) then
 			room:broadcastSkillInvoke(self:objectName(), ask_who)
 			return true
 		end
@@ -2552,7 +2548,7 @@ luajuxian = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data)
-        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)  
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data)  
     end,  
       
     on_effect = function(self, event, room, player, data)  
