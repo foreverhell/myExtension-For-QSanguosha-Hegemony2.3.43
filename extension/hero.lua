@@ -2074,13 +2074,23 @@ shefu2 = sgs.CreateTriggerSkill{
         return false  
     end,  
     on_effect = function(self, event, room, player, data, ask_who)  
-        local fanzeng_player = ask_who--room:findPlayerBySkillName(self:objectName())  
-        fanzeng_player:drawCards(1)
-        card = fanzeng_player:getHandcards():last()
-        room:showCard(fanzeng_player, card:getEffectiveId())
-        --room:throwCard(card:getEffectiveId(), fanzeng_player)            
+        local card_ids = room:getNCards(1)  
+        card = sgs.Sanguosha:getCard(card_ids:first())
+        
+        -- 创建卡牌移动结构，从牌堆移动到桌面（可见）  
+        local move = sgs.CardsMoveStruct()  
+        move.from = nil  
+        move.from_place = sgs.Player_DrawPile  
+        move.to = nil  -- 移动到桌面  
+        move.to_place = sgs.Player_PlaceTable  
+        move.card_ids = card_ids  
+        move.reason = sgs.CardMoveReason(sgs.CardMoveReason.S_REASON_DEMONSTRATE, player:objectName())  
+        
+        -- 执行移动并展示  
+        room:moveCardsAtomic(move, true)
         room:moveCardTo(card, nil, sgs.Player_DrawPile, true)                 
 
+        local fanzeng_player = ask_who--room:findPlayerBySkillName(self:objectName())  
         if card:getTypeId() == sgs.Card_TypeBasic then  
             if fanzeng_player:isNude() or room:askForDiscard(fanzeng_player, self:objectName(), 1, 1, false, true) then
                 local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_SuitToBeDecided, -1)  
@@ -9658,16 +9668,27 @@ gewu = sgs.CreateTriggerSkill{
         return false  
     end,  
     on_effect = function(self, event, room, player, data)  
-        player:drawCards(1)
-        card = player:getHandcards():last()
-        room:showCard(player, card:getEffectiveId())
-          
+        local card_ids = room:getNCards(1)  
+        card = sgs.Sanguosha:getCard(card_ids:first())
+        
+        -- 创建卡牌移动结构，从牌堆移动到桌面（可见）  
+        local move = sgs.CardsMoveStruct()  
+        move.from = nil  
+        move.from_place = sgs.Player_DrawPile  
+        move.to = nil  -- 移动到桌面  
+        move.to_place = sgs.Player_PlaceTable  
+        move.card_ids = card_ids  
+        move.reason = sgs.CardMoveReason(sgs.CardMoveReason.S_REASON_DEMONSTRATE, player:objectName())  
+        
+        -- 执行移动并展示  
+        room:moveCardsAtomic(move, true)
+
+        -- 将牌放回牌堆顶  
+        room:moveCardTo(card, nil, sgs.Player_DrawPile, true)
+
         -- 记录花色到玩家标记  
         local suit = card:getSuit()+1
-        player:setMark("gewu_suit", suit)  
-          
-        -- 将牌放回牌堆顶  
-        room:moveCardTo(card, nil, sgs.Player_DrawPile, true)                 
+        player:setMark("gewu_suit", suit)               
         return false  
     end  
 }
