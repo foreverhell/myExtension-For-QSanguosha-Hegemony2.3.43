@@ -2121,8 +2121,10 @@ sgs.LoadTranslationTable{
     ["@simashi2-discard"] = "要弃的牌数"
 }
 
-transferfirstshow = sgs.CreateTriggerSkill{  
-    name = "transferfirstshow",  
+quyi = sgs.General(extension, "quyi", "qun", 4)
+
+yiqi = sgs.CreateTriggerSkill{  
+    name = "yiqi",  
     events = {sgs.EventPhaseStart, sgs.Damage},
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
@@ -2168,10 +2170,11 @@ transferfirstshow = sgs.CreateTriggerSkill{
         return false  
     end  
 }  
---:addSkill(transferfirstshow)
+quyi:addSkill(yiqi)
 sgs.LoadTranslationTable{
-    ["transferfirstshow"] = "",
-    [":transferfirstshow"] = "准备阶段，你可以令一名势力不同角色获得先驱。你对角色造成伤害后，你可以获得其先驱"
+    ["quyi"] = "麹义",
+    ["yiqi"] = "刈旗",
+    [":yiqi"] = "准备阶段，你可以令一名势力不同角色获得先驱。你对角色造成伤害后，你可以获得其先驱"
 }
 sgs.Sanguosha:addSkills(skills)
 return {extension}
