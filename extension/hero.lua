@@ -1825,7 +1825,90 @@ sgs.LoadTranslationTable{
 }
 
 fanli = sgs.General(extension, "fanli", "wu", 3)  
-  
+--[[
+quancaiVS = sgs.CreateViewAsSkill{  
+    name = "quancai",  
+    n = 2,  
+    view_filter = function(self, selected, to_select)  
+        if to_select:isEquipped() then return false end --必须是手牌，不能是装备区的牌
+        if #selected == 0 then 
+            if sgs.Self:hasFlag("quancai_black") and sgs.Self:hasFlag("quancai_mix") and to_select:isBlack() then return false end
+            if sgs.Self:hasFlag("quancai_red") and sgs.Self:hasFlag("quancai_mix") and to_select:isRed() then return false end
+            return true
+        end
+        if #selected >= 2 then return false end
+        if #selected == 1 then
+            if selected[1]:isBlack() then --第一张是黑色
+                if to_select:isBlack() and sgs.Self:hasFlag("quancai_black") then return false end
+                if to_select:isRed() and sgs.Self:hasFlag("quancai_mix") then return false end
+                return true
+            elseif selected[1]:isRed() then --第一张是红色
+                if to_select:isBlack() and sgs.Self:hasFlag("quancai_mix") then return false end
+                if to_select:isRed() and sgs.Self:hasFlag("quancai_red") then return false end
+                return true
+            end
+        end
+    end,  
+    view_as = function(self, cards)  
+        if #cards == 2 then  
+            local card_name = ""
+            if cards[1]:getColor() == cards[2]:getColor() then
+                if cards[1]:isBlack() then 
+                    if not sgs.Self:hasFlag("quancai_black") then card_name = "snatch" end
+                elseif cards[1]:isRed() then
+                    if not sgs.Self:hasFlag("quancai_red") then card_name = "ex_nihilo" end
+                end
+            else
+                if not sgs.Self:hasFlag("quancai_mix") then card_name = "duel" end
+            end
+            if card_name == "" then return nil end
+            local card = sgs.Sanguosha:cloneCard(card_name)
+            for _, c in ipairs(cards) do  
+                card:addSubcard(c:getId())  
+            end  
+            card:setSkillName("quancai")  
+            card:setShowSkill("quancai")  
+            return card  
+        end  
+    end,  
+    enabled_at_play = function(self, player)  
+        return not (player:hasFlag("quancai_black") and player:hasFlag("quancai_red") and player:hasFlag("quancai_mix"))
+    end,  
+}  
+
+quancai = sgs.CreateTriggerSkill{  
+    name = "quancai",  
+    events = {sgs.CardUsed},
+    view_as_skill = quancaiVS,
+    --frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then  
+            local use = data:toCardUse()  
+            if use.card and use.card:getSkillName() == "quancai" then  
+                return self:objectName()  
+            end  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return true  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        local use = data:toCardUse()
+        local card = use.card
+        if card:isKindOf("snatch") then
+            room:setPlayerFlag(player,"quancai_black")
+        elseif card:isKindOf("ex_nihilo") then
+            room:setPlayerFlag(player,"quancai_red")
+        elseif card:isKindOf("duel") then
+            room:setPlayerFlag(player,"quancai_mix")
+        end
+        return false  
+    end  
+}  
+]]
+
+
 quancaiWuzhongshengyouCard = sgs.CreateSkillCard{  
     name = "quancaiWuzhongshengyouCard",  
     target_fixed = true,  
@@ -1962,8 +2045,6 @@ quancaiMix = sgs.CreateViewAsSkill{
     end,  
 }  
   
-  
--- 技能2：慧眼  
 shiyong4 = sgs.CreateTriggerSkill{  
     name = "shiyong4",  
     events = {sgs.CardUsed},  
@@ -1987,21 +2068,24 @@ shiyong4 = sgs.CreateTriggerSkill{
 }  
   
 -- 添加技能到武将  
+--fanli:addSkill(quancai)  
 fanli:addSkill(quancaiRed)  
 fanli:addSkill(quancaiBlack)  
-fanli:addSkill(quancaiMix)  
+fanli:addSkill(quancaiMix) 
 fanli:addSkill(shiyong4)  
 -- 翻译表  
 sgs.LoadTranslationTable{  
     ["hero"] = "英雄",  
     ["fanli"] = "范蠡",  
+    ["quancai"] = "全才",  
+    [":quancai"] = "出牌阶段每项限一次。你可以将两张红色手牌视为【无中生有】，两张黑色手牌视为【顺手牵羊】，一红一黑两张手牌视为【决斗】。",  
     ["quancaiRed"] = "全才-红",  
     [":quancaiRed"] = "出牌阶段，你可以使用两张红色手牌视为【无中生有】，每回合限一次。",  
     ["quancaiBlack"] = "全才-黑",  
     [":quancaiBlack"] = "出牌阶段，你可以使用两张黑色手牌视为【顺手牵羊】，每回合限一次。",  
     ["quancaiMix"] = "全才-混",  
     [":quancaiMix"] = "出牌阶段，你可以使用一红一黑两张手牌视为【决斗】。每回合限一次。",  
-
+    
     ["shiyong4"] = "时用",  
     [":shiyong4"] = "锁定技，你使用转化牌时，你摸一张牌。"  
 }  
