@@ -4744,34 +4744,35 @@ zuoding = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Frequent,  
       
     can_trigger = function(self, event, room, player, data)
+        local owner = room:findPlayerBySkillName(self:objectName())  
+        if not (owner and owner:isAlive() and owner:hasSkill(self:objectName()) then return "" end   
+
         local current = room:getCurrent()
         if event == sgs.Damaged then
             room:setPlayerFlag(current, "zuoding_damaged") --本回合有人受过伤
             return ""
         end
-        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
-            return ""  
-        end
         if current:hasFlag("zuoding_damaged") then return "" end
+
         local use = data:toCardUse()  
-        if use.from == player or use.from ~= current then return "" end
+        if use.from == owner or use.from ~= current then return "" end
         if use.card and use.card:getSuitString()=="spade" and use.card:getTypeId()~=sgs.Card_TypeSkill then 
-            return self:objectName()  
+            return self:objectName(), owner:objectName()
         end  
         return ""  
     end,  
       
-    on_cost = function(self, event, room, player, data)  
-        if player:askForSkillInvoke(self:objectName(), data) then  
-            room:broadcastSkillInvoke(self:objectName(), player)  
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName(), ask_who)  
             return true  
         end  
         return false  
     end,  
       
-    on_effect = function(self, event, room, player, data)  
+    on_effect = function(self, event, room, player, data, ask_who)  
         local use = data:toCardUse()  
-        local target = room:askForPlayerChosen(player, use.to, self:objectName(), "@zuoding_target", true, true)    
+        local target = room:askForPlayerChosen(ask_who, use.to, self:objectName(), "@zuoding_target", true, true)    
         if target then
             target:drawCards(1,self:objectName())
         end
