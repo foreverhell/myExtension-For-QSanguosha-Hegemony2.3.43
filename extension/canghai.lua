@@ -4740,12 +4740,12 @@ zhongyao = sgs.General(extension, "zhongyao", "wei", 3)
 
 zuoding = sgs.CreateTriggerSkill{  
     name = "zuoding",  
-    events = {sgs.TargetConfirmed, sgs.Damaged},  
+    events = {sgs.TargetConfirming, sgs.Damaged},  
     frequency = sgs.Skill_Frequent,  
       
     can_trigger = function(self, event, room, player, data)
         local owner = room:findPlayerBySkillName(self:objectName())  
-        if not (owner and owner:isAlive() and owner:hasSkill(self:objectName()) then return "" end   
+        if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end   
 
         local current = room:getCurrent()
         if event == sgs.Damaged then
