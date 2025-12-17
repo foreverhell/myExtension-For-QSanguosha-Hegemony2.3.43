@@ -2725,6 +2725,8 @@ wenwu = sgs.CreateTriggerSkill{
                 card_type = "BasicCard"  
             elseif card:isKindOf("TrickCard") then  
                 card_type = "TrickCard"  
+            else --不管是什么类型，都得记录。上一张牌既不是基础牌、也不是锦囊牌，就不应该触发
+                card_type = "Invalid"
             end  
                 
             if card_type ~= "" then  
@@ -2754,7 +2756,11 @@ wenwu = sgs.CreateTriggerSkill{
             elseif card:isKindOf("TrickCard") then  
                 room:setPlayerFlag(player,"wenwu_extra_trick")  
             end
-            room:useCard(use, true) -- 额外结算  
+            local new_use = sgs.CardUseStruct()  
+            new_use.card = use.card  
+            new_use.from = use.from  
+            new_use.to = use.to  
+            room:useCard(new_use) --额外结算。直接用use，方天画戟杀不会再次生效
         end  
         return false  
     end  
@@ -4087,7 +4093,7 @@ cike = sgs.CreateTriggerSkill{
 
 	on_effect = function(self, event, room, skill_target, data, player)          
         local judge = sgs.JudgeStruct()  
-        judge.pattern = "."  
+        judge.pattern = ".|black"  --虽然没有明显好坏，先设置一个默认好判定
         judge.good = true  
         judge.reason = self:objectName()  
         judge.who = player  
@@ -4095,10 +4101,10 @@ cike = sgs.CreateTriggerSkill{
         room:judge(judge)  
         
         -- 若判定牌为黑色，获得目标一张牌  
-        if judge:isGood() and not skill_target:isNude() then  
+        if judge:isBlack() and not skill_target:isNude() then  
             local card_id = room:askForCardChosen(player, skill_target, "he", self:objectName())  
             room:throwCard(card_id, skill_target, player)  
-        elseif judge:isBad() then
+        elseif judge:isRed() then
             room:obtainCard(player,judge.card)
         end  
     end
@@ -4865,8 +4871,8 @@ lianque = sgs.CreateTriggerSkill{
         local target = effect.to  
           
         local judge = sgs.JudgeStruct()  
-        --judge.pattern = "."  
-        --judge.good = true  
+        judge.pattern = "."  
+        judge.good = true  
         judge.reason = self:objectName()  
         judge.who = player  
         
@@ -8728,7 +8734,8 @@ zhuolue = sgs.CreateViewAsSkill{
         for _, card in ipairs(cards) do  
             new_card:addSubcard(card)  
         end  
-        new_card:setSkillName(self:objectName())  
+        new_card:setSkillName(self:objectName())
+        new_card:setShowSkill(self:objectName())
         return new_card  
     end,  
     enabled_at_play = function(self, player)
@@ -9496,18 +9503,18 @@ qianglve = sgs.CreateTriggerSkill{
         local target = effect.to  
           
         local judge = sgs.JudgeStruct()  
-        --judge.pattern = ".|black"  
-        --judge.good = true  
+        judge.pattern = ".|red"  --虽然没有明显好坏，先设置一个默认好判定
+        judge.good = true  
         judge.reason = self:objectName()  
         judge.who = player  
         
         room:judge(judge)  
         
         -- 若判定牌为黑色，获得目标一张牌  
-        if judge:isGood() and not target:isAllNude() then  
+        if judge.card:isBlack() and not target:isAllNude() then  
             local card_id = room:askForCardChosen(player, target, "hej", self:objectName())  
             room:obtainCard(player,card_id)  
-        elseif judge:isBad() then
+        elseif judge.card:isRed() then
             local damage = sgs.DamageStruct()  
             damage.from = player  
             damage.to = target  
@@ -9551,18 +9558,18 @@ qianglve = sgs.CreateTriggerSkill{
 
 	on_effect = function(self, event, room, skill_target, data, player)          
         local judge = sgs.JudgeStruct()  
-        --judge.pattern = ".|black"  
-        --judge.good = true  
+        judge.pattern = ".|red"  --虽然没有明显好坏，先设置一个默认好判定
+        judge.good = true  
         judge.reason = self:objectName()  
         judge.who = player  
         
         room:judge(judge)  
         
         -- 若判定牌为黑色，获得目标一张牌  
-        if judge:isGood() and not skill_target:isAllNude() then  
+        if judge.card:isBlack() and not skill_target:isAllNude() then  
             local card_id = room:askForCardChosen(player, skill_target, "hej", self:objectName())  
             room:obtainCard(player,card_id)  
-        elseif judge:isBad() then
+        elseif judge.card:isRed() then
             local damage = sgs.DamageStruct()  
             damage.from = player  
             damage.to = skill_target  
