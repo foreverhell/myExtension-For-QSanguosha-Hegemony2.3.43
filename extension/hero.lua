@@ -9468,6 +9468,182 @@ sgs.LoadTranslationTable{
     ["~tangbohu"] = "吾一生风流，今日竟折于此！"  
 }  
 
+tianji4 = sgs.General(extension, "tianji4", "qun", 3)  --wei 
+
+saimaCard = sgs.CreateSkillCard{  
+    name = "saimaCard",  
+    target_fixed = false,
+    will_throw = true,
+    filter = function(self, targets, to_select)  
+        -- 第一个目标是接收手牌并使用杀的角色  
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName() and not to_select:isKongcheng() and to_select:hasFlag("saima_target")
+    end,
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]
+        if target and not source:isKongcheng() and not target:isKongcheng() then
+            source:pindian(target,"saima")
+        end
+    end  
+}  
+  
+saimaVS = sgs.CreateZeroCardViewAsSkill{  
+    name = "saima",  
+    view_as = function(self)  
+        local vs_card = saimaCard:clone()  
+        vs_card:setSkillName("saima")  
+        vs_card:setShowSkill("saima")  
+        return vs_card  
+    end,  
+      
+    enabled_at_play = function(self, player)  
+        local used_times = player:usedTimes("ViewAsSkill_saimaCard")
+        return not player:isKongcheng() and used_times < 3 --出牌阶段，最多拼点3次
+    end  
+}  
+  
+  
+-- 注册技能  
+saima = sgs.CreateTriggerSkill{  
+    name = "saima",  
+    view_as_skill = saimaVS,  
+    events = {sgs.EventPhaseStart, sgs.Pindian},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then
+            return ""
+        end
+        if event == sgs.EventPhaseStart then
+            if player:getPhase()==sgs.Player_Start then --准备阶段，选择拼点目标
+                local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())
+                room:setPlayerFlag(target,"saima_target")
+            elseif player:getPhase()==sgs.Player_Finish then --结束阶段，找到赢次数多的人
+                return self:objectName()
+            end
+        elseif event == sgs.Pindian then
+            local pindian = data:toPindian()
+            if pindian.reason == self:objectName() then
+                return self:objectName()
+            end
+        end
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        return true 
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Finish then
+            local target = nil --准备阶段选择的目标
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+                if p:hasFlag("saima_target") then
+                    target = p
+                    break
+                end
+            end
+            if not target then return false end
+            local winner = nil
+            local loser = nil
+            if player:getMark("@saima_win") > target:getMark("@saima_win") then
+                winner = player
+                loser = target
+            elseif player:getMark("@saima_win") < target:getMark("@saima_win") then
+                winner = target
+                loser = player
+            else --平局，没有后续效果
+                return false
+            end
+            if not winner then return false end
+            local choice = room:askForChoice(winner, "saima", "draw+damage")
+            if choice == "draw" then
+                winner:drawCards(winner:getMark("@saima_win"),self:objectName())
+            else
+                local damage = sgs.DamageStruct()  
+                damage.from = winner  
+                damage.to = loser  
+                damage.damage = winner:getMark("@saima_win")
+                damage.reason = self:objectName()  
+                room:damage(damage)  
+            end
+            room:setPlayerMark(player,"@saima_win",0)
+            room:setPlayerMark(target,"@saima_win",0)
+        elseif event == sgs.Pindian then
+            local pindian = data:toPindian()
+            if pindian.reason == self:objectName() then
+                local winner = nil  
+                local loser = nil  
+                if pindian.from_number == pindian.to_number then
+                    return false
+                end
+                if pindian.success then  
+                    winner = pindian.from  
+                    loser = pindian.to  
+                else  
+                    winner = pindian.to  
+                    loser = pindian.from  
+                end  
+                room:addPlayerMark(winner,"@saima_win")
+            end
+        end
+        return false  
+    end  
+}  
+
+
+weijiuCard = sgs.CreateSkillCard{  
+    name = "weijiuCard",  
+    target_fixed = false,  
+    will_throw = false,  
+    handling_method = sgs.Card_MethodNone,  
+    filter = function(self, targets, to_select)  
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()  
+    end,  
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+        if not target then return end  
+        source:drawCards(1,self:objectName())
+        local to_give = room:askForExchange(source, self:objectName(),   
+                                               1, 1,   
+                                               "@weijiu-give", "", ".|.|.|.")  
+          
+        for _,card_id in sgs.qlist(to_give) do  
+            room:obtainCard(target, card_id, false)  
+        end  
+
+        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_SuitToBeDecided, -1)  
+        slash:setSkillName("weijiu")  
+        local use = sgs.CardUseStruct()  
+        use.card = slash  
+        use.from = source  
+        use.to:append(target)  
+        room:useCard(use)  
+        slash:deleteLater()
+    end  
+}  
+  
+-- 平讨视为技能  
+weijiu = sgs.CreateZeroCardViewAsSkill{  
+    name = "weijiu",  
+    view_as = function(self)  
+        local card = weijiuCard:clone()  
+        card:setShowSkill("weijiu")  
+        return card  
+    end,  
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#weijiuCard")  
+    end  
+}
+
+tianji4:addSkill(saima)
+tianji4:addSkill(weijiu)
+sgs.LoadTranslationTable{
+    ["tianji4"] = "田忌",
+    ["saima"] = "赛马",
+    [":saima"] = "准备阶段，你可以选择一名其他角色，出牌阶段你可以与其拼点至多3次，结束阶段，获胜更多者执行：摸x张牌或对另一方造成x点伤害（x为其获胜次数）。",
+    ["weijiu"] = "围救",
+    [":weijiu"] = "出牌阶段限1次，你可以摸1张牌并交给其他角色1张手牌，视为你对其使用1张杀"
+}
+
 tiemuzhen = sgs.General(extension, "tiemuzhen", "shu", 4)  
   
 -- 技能2：遗毒  
