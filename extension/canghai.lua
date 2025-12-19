@@ -3390,7 +3390,7 @@ qianya = sgs.CreateTriggerSkill{
             if damage.card then
                 return self:objectName()
             end
-        elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then  
+        elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and player:hasShownSkill(self:objectName()) then  
             return self:objectName()
         end  
           
@@ -4756,7 +4756,8 @@ zuoding = sgs.CreateTriggerSkill{
 
         local use = data:toCardUse()  
         if use.from == owner or use.from ~= current then return "" end
-        if use.card and use.card:getSuitString()=="spade" and use.card:getTypeId()~=sgs.Card_TypeSkill then 
+        if use.card and use.card:getSuitString()=="spade" and use.card:getTypeId()~=sgs.Card_TypeSkill and not use.card:hasFlag("zuoding_used") then 
+            use.card:setFlags("zuoding_used")
             return self:objectName(), owner:objectName()
         end  
         return ""  
@@ -4814,16 +4815,16 @@ huomo = sgs.CreateTriggerSkill{
     view_as_skill = huomoVS,
     frequency = sgs.Compulsory,         
     can_trigger = function(self, event, room, player, data)  
-        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
-            return false  
-        end 
         if event == sgs.CardUsed then
             local use = data:toCardUse()  
             if use.card:getSkillName() == self:objectName() then
                 room:moveCardTo(use.card, nil, sgs.Player_DrawPile, true) 
             end
         elseif event == sgs.CardsMoveOneTime then
-			local current = room:getCurrent()
+            if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
+                return false  
+            end 
+            local current = room:getCurrent()
 			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
 				local move_datas = data:toList()
 				for _, move_data in sgs.qlist(move_datas) do
