@@ -1,6 +1,99 @@
 extension = sgs.Package("xianxia", sgs.Package_GeneralPack)
 local skills = sgs.SkillList()
 
+
+caifuren_xianxia = sgs.General(extension, "caifuren_xianxia", "qun", 3, false) -- 吴苋，蜀势力，3血，女性
+
+qietingX = sgs.CreateTriggerSkill{  
+    name = "qietingX",  
+    frequency = sgs.Skill_Frequent,  
+    events = {sgs.CardUsed, sgs.Damage, sgs.EventPhaseStart}, -- 结束阶段触发  
+      
+    can_trigger = function(self, event, room, player, data)            
+        -- 检查是否是其他角色的结束阶段  
+        local current = room:getCurrent()  
+        if current:hasSkill(self:objectName()) then return ""  end  
+        if event == sgs.CardUsed then  
+            local use = data:toCardUse()
+            if use.from ~= current then return "" end
+            if use.card and use.to then  
+                for _, p in sgs.qlist(use.to) do  
+                    if p:objectName() ~= current:objectName() then  
+                        current:setFlags("qietingX_used_card_to_others")  
+                        break  
+                    end  
+                end  
+            end  
+            return ""
+        end  
+        if event == sgs.Damage then
+            local damage = data:toDamage()
+            if damage.from == current then
+                current:setFlags("qietingX_damage")
+            end
+            return ""
+        end
+        if not current or current:isDead() or current:getPhase() ~= sgs.Player_Finish then  return ""  end      
+          
+        -- 检查该角色本回合是否对除其外的角色使用过牌  
+        if current:hasFlag("qietingX_used_card_to_others") and current:hasFlag("qietingX_damage") then  
+            return ""  
+        end  
+        local owner = room:findPlayerBySkillName(self:objectName())
+        return self:objectName(), owner:objectName()
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        local current = room:getCurrent()  
+        local _data = sgs.QVariant()  
+        _data:setValue(current)  
+          
+        if ask_who:askForSkillInvoke(self:objectName(), _data) then  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local current = room:getCurrent()  
+        if not current:hasFlag("qietingX_used_card_to_others") then
+            ask_who:drawCards(1, self:objectName())
+        end
+        if not current:hasFlag("qietingX_damage") then
+            -- 检查目标是否有装备牌  
+            local equips = current:getEquips()  
+            local has_equips = not equips:isEmpty()  
+            if has_equips then  
+                -- 移动装备区1张牌到自己的装备区  
+                local card_id = room:askForCardChosen(ask_who, current, "e", self:objectName())  
+                local card = sgs.Sanguosha:getCard(card_id)  
+                    
+                -- 移动装备  
+                room:moveCardTo(card, ask_who, sgs.Player_PlaceEquip,   
+                    sgs.CardMoveReason(sgs.CardMoveReason.S_REASON_TRANSFER, ask_who:objectName(), current:objectName(), self:objectName(), ""))  
+            end  
+        end
+        return false  
+    end  
+}  
+  
+-- 添加技能到武将  
+caifuren_xianxia:addSkill(qietingX)  
+caifuren_xianxia:addSkill("xianzhou")  
+
+sgs.LoadTranslationTable{
+    ["caifuren_xianxia"] = "蔡夫人",  
+    ["#caifuren_xianxia"] = "荆州的妇人",  
+    ["&caifuren_xianxia"] = "蔡夫人",  
+    ["illustrator:caifuren_xianxia"] = "未知",  
+    
+    ["qietingX"] = "窃听",  
+    [":qietingX"] = "其他角色的结束阶段：若其本回合未对除其外的角色使用牌，你可以摸1张牌；若其本回合未造成伤害，你可以将其装备区1张牌移动到你的装备区。",  
+    ["qietingX:draw"] = "摸1张牌",  
+    ["qietingX:move"] = "移动其1张装备牌",  
+}
+
 caozhi_xianxia = sgs.General(extension, "caozhi_xianxia", "wei", 3) -- 蜀势力，4血，男性（默认）  
 
 linlang = sgs.CreateTriggerSkill{  
