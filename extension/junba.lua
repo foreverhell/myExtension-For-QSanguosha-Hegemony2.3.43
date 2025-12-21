@@ -3400,7 +3400,7 @@ kaiji = sgs.CreateTriggerSkill{
             room:setPlayerMark(dying.who,"@kaiji",1)
         elseif event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_Start and player:hasSkill(self:objectName()) then
             for _, p in sgs.qlist(room:getAlivePlayers()) do
-                if p:getMark("@kaiji") then
+                if p:getMark("@kaiji") > 0 then
                     return self:objectName()
                 end
             end
@@ -3416,7 +3416,7 @@ kaiji = sgs.CreateTriggerSkill{
         --统计濒死但还活着的人数
         local num = 0
         for _, p in sgs.qlist(room:getAlivePlayers()) do
-            if p:getMark("@kaiji") then
+            if p:getMark("@kaiji") > 0 then
                 num = num + 1
             end
         end
@@ -3432,7 +3432,9 @@ kaiji = sgs.CreateTriggerSkill{
         local has_diamond = false
         for _, chosen_player in sgs.qlist(chosen_players) do  
             room:drawCards(chosen_player, 1)  
-            if chosen_player:getHandcards():last():getSuit() == sgs.Card_Diamond then
+            local last_card = chosen_player:getHandcards():last()
+            if last_card:getSuit() == sgs.Card_Diamond then
+                room:showCard(chosen_player, last_card:getEffectiveId())
                 has_diamond = true
             end
         end
