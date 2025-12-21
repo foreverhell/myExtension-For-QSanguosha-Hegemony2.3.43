@@ -303,13 +303,13 @@ botongVS = sgs.CreateViewAsSkill{
         local view_as_card = nil
         if card_name ~= "" then
             view_as_card = sgs.Sanguosha:cloneCard(card_name)  
+            view_as_card:setSkillName(self:objectName()) 
         else
             view_as_card = botongCard:clone()
         end
         for _, c in ipairs(cards) do
             view_as_card:addSubcard(c)
-        end
-        view_as_card:setSkillName(self:objectName())  
+        end 
         view_as_card:setShowSkill(self:objectName())  
         return view_as_card  
     end,  
