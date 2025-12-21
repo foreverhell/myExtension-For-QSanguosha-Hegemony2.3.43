@@ -1,5 +1,6 @@
 -- 创建一个武将包  
 extension = sgs.Package("hero", sgs.Package_GeneralPack)  
+local skills = sgs.SkillList()
 
 baiqi = sgs.General(extension, "baiqi", "wei", 4)  --wei,wu
   
@@ -9214,7 +9215,7 @@ suqin = sgs.General(extension, "suqin", "shu", 3)
 
 hezong = sgs.CreateTriggerSkill{  
     name = "hezong",  
-    events = {sgs.EventPhaseStart, sgs.CardEffected},  
+    events = {sgs.EventPhaseStart, sgs.TargetConfirming},  
     frequency = sgs.Skill_Limited,  
     limit_mark = "@hezong",  
     can_trigger = function(self, event, room, player, data)  
@@ -9241,15 +9242,17 @@ hezong = sgs.CreateTriggerSkill{
                 end
                 return self:objectName(), source:objectName()
             end
-        elseif event == sgs.CardEffected then  
+        elseif event == sgs.TargetConfirming then  
             -- 当角色成为目标时  
-            local effect = data:toCardEffect()  
-            if effect.to:getMark("@zong") > 0 and effect.to:objectName() ~= effect.from:objectName() and effect.card:getTypeId()==sgs.Card_TypeSkill then  
-                -- 寻找拥有此技能的角色  
-                local source = room:findPlayerBySkillName(self:objectName())  
-                if source and source:isAlive() then  
-                    return self:objectName(), source:objectName()  
-                end  
+            local use = data:toCardUse()  
+            if use.card==sgs.Card_TypeSkill then return "" end
+            for _, p in sgs.qlist(use.to) do
+                if p:getMark("@zong") > 0 and use.from ~= p then
+                    local source = room:findPlayerBySkillName(self:objectName())  
+                    if source and source:isAlive() then  
+                        return self:objectName(), source:objectName()  
+                    end 
+                end 
             end  
         end  
         return ""  
@@ -9257,7 +9260,7 @@ hezong = sgs.CreateTriggerSkill{
     on_cost = function(self, event, room, player, data, ask_who)  
         if event == sgs.EventPhaseStart then  
             return ask_who:askForSkillInvoke(self:objectName(),data)
-        elseif event == sgs.CardEffected then  
+        elseif event == sgs.TargetConfirming then  
             return ask_who:askForSkillInvoke(self:objectName(),data)  
         end  
         return false  
@@ -9269,7 +9272,7 @@ hezong = sgs.CreateTriggerSkill{
                 room:setPlayerMark(ask_who, "@hezong", 0)  
                 room:setPlayerMark(target, "@zong", 1)  
             end  
-        elseif event == sgs.CardEffected then  
+        elseif event == sgs.TargetConfirming then  
             -- 摸1张牌  
             ask_who:drawCards(1, self:objectName())  
             -- 若手牌数不为1，弃置1张牌  
@@ -9279,6 +9282,55 @@ hezong = sgs.CreateTriggerSkill{
         end  
         return false  
     end  
+}
+wangjiCard = sgs.CreateSkillCard{
+    name = "wangjiCard",
+    skill_name = "wangji",
+    target_fixed = true,--是否需要指定目标，默认false，即需要
+    --[[
+    filter = function(self, targets, to_select, Self)
+		return #targets == 0 and not Self:isFriendWith(to_select)
+	end,
+    ]]
+    on_use = function(self, room, source, targets)
+        local target = nil  
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if  p:hasFlag("wangji_target") then  
+                target = p
+            end  
+        end  
+        if target then  
+            local jcards = target:getCards("j")
+            local hasIndulgence = false
+            for _, c in sgs.qlist(jcards) do
+                if c:isKindOf("Indulgence") then 
+                    hasIndulgence = true 
+                end
+            end
+            if not hasIndulgence then
+                local supCard = sgs.Sanguosha:cloneCard("indulgence")
+                local card_id = self:getSubcards():first()
+                supCard:addSubcard(card_id)
+                supCard:setSkillName("wangji")
+                supCard:setShowSkill("wangji")
+                room:useCard(sgs.CardUseStruct(supCard, source, target), true)
+                supCard:deleteLater()
+            end
+        end
+    end
+}
+
+wangjiToIndu = sgs.CreateOneCardViewAsSkill{
+    name = "wangjiToIndu",
+    response_pattern = "@@wangjiToIndu",
+    filter_pattern = ".|.|.|.",
+	view_as = function(self, card)
+        local supCard = wangjiCard:clone()
+        supCard:addSubcard(card:getId())
+        supCard:setSkillName("wangji")
+		supCard:setShowSkill("wangji")
+        return supCard
+    end,
 }
 
 wangji = sgs.CreateTriggerSkill{  
@@ -9305,7 +9357,20 @@ wangji = sgs.CreateTriggerSkill{
         end  
         local target = room:askForPlayerChosen(player, targets, self:objectName(), "@wangji-invoke", false, true)  
         if target then  
+            --一定造成伤害
             room:damage(sgs.DamageStruct(self:objectName(), player, target, 1))  
+            --判定区没有乐不思蜀，并且自己有牌，将自己的一张牌当作乐不思蜀置于其判定区
+            local jcards = target:getCards("j")
+            local hasIndulgence = false
+            for _, c in sgs.qlist(jcards) do
+                if c:isKindOf("Indulgence") then 
+                    hasIndulgence = true 
+                end
+            end
+            if not hasIndulgence then
+                room:setPlayerFlag(target,"wangji_target")
+                room:askForUseCard(player, "@@wangjiToIndu", "@wangji-invoke")
+            end
         end  
         return false  
     end  
@@ -9313,8 +9378,7 @@ wangji = sgs.CreateTriggerSkill{
 
 suqin:addSkill(hezong)  
 suqin:addSkill(wangji)
-
-
+if not sgs.Sanguosha:getSkill("wangjiToIndu") then skills:append(wangjiToIndu) end
 sgs.LoadTranslationTable{
     ["#suqin"] = "纵横家",  
     ["suqin"] = "苏秦",  
@@ -9325,8 +9389,8 @@ sgs.LoadTranslationTable{
     ["@hezong-invoke"] = "合纵：你可以选择一名其他角色，令其获得'纵'标记",  
     ["zong"] = '纵',  
     ["wangji"] = "亡计",  
-    [":wangji"] = "你死亡时，你可以对一名其他势力角色造成1点伤害。",  
-    ["@wangji-invoke"] = "亡计：你可以选择一名角色，对其造成1点伤害",  
+    [":wangji"] = "你死亡时，你可以对一名其他势力角色造成1点伤害，并将一张牌当作乐不思蜀置于其判定区。",  
+    ["@wangji-invoke"] = "亡计：你可以选择一名角色，对其造成1点伤害，并将一张牌当作乐不思蜀置于其判定区",  
 }
 
 -- 创建武将：唐伯虎  
@@ -13702,4 +13766,5 @@ menghuo_hero:addCompanion("zhurong_hero")
 zhurong_hero:addCompanion("menghuo")
 zhurong_hero:addCompanion("zhurong")
 ]]
+sgs.Sanguosha:addSkills(skills)
 return {extension}
