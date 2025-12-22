@@ -1280,7 +1280,7 @@ luachengxu = sgs.CreateTriggerSkill{
                     room:setPlayerMark(firstPlayer, "teExtraTurn", 1)
                 end --开挟天子不算新的轮次
 				if not firstPlayer:hasFlag("fangquanInvoked") and firstPlayer:getMark("teExtraTurn") <= 0 and 
-                firstPlayer:getPhase() == sgs.TurnStart then
+                firstPlayer:getPhase() == sgs.Player_RoundStart then
 					local skill_owners = room:findPlayersBySkillName("luachengxu")
 					if skill_owners:isEmpty() then return false end
 					for _, skill_owner in sgs.qlist(skill_owners) do
@@ -1289,7 +1289,7 @@ luachengxu = sgs.CreateTriggerSkill{
                         room:setPlayerMark(skill_owner, "teExtraTurn", 0)
 					end
 					break
-                elseif firstPlayer:getPhase() == sgs.TurnStart then
+                elseif firstPlayer:getPhase() == sgs.Player_RoundStart then
                     room:setPlayerMark(firstPlayer, "teExtraTurn", 0)
 				end
 			end
@@ -2572,9 +2572,7 @@ luajuxian = sgs.CreateTriggerSkill{
             end
             local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"))  
             
-            if choice == "luajuxianDraw" then
-                player:drawCards(1)
-            elseif choice == "luajuxianDamage" then
+            if choice == "luajuxianDamage" then
                 if room:askForDiscard(player, self:objectName(), 1, 1, true, true) then     
                     local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())  
                     if target then
@@ -2584,7 +2582,9 @@ luajuxian = sgs.CreateTriggerSkill{
                         damage.damage = 1  
                         room:damage(damage)  
                     end  
-                end  
+                end
+            else --锁定技，若超时没有选择则默认摸1
+                player:drawCards(1)
             end  
         end
         return false  
