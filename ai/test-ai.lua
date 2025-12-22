@@ -1975,8 +1975,8 @@ sgs.ai_skill_invoke.jiechengshang = function(self, data)
         return false
     end
     for _, p in sgs.qlist(use.to) do
-        if self:isEnemy(p) and p:hasSkills("jijiu|tianxiang|lixia|beige|zhendu|fudi|liuli|leiji") then
-            if not p:isNude() and not (p:getEquips() and p:hasSkills(sgs.lose_equip_skill)) and not self:needKongcheng(p) then
+        if self:isEnemy(p) and p:hasShownSkills("jijiu|tianxiang|lixia|beige|zhendu|fudi|liuli|leiji") then
+            if not p:isNude() and not (p:getEquips() and p:hasShownSkills(sgs.lose_equip_skill)) and not self:needKongcheng(p) then
                 local cards = p:getCards("h")
                 if not cards:isEmpty() and not func(cards, use.card) then
                     self.jiechengshangPlayer = p
@@ -1987,7 +1987,7 @@ sgs.ai_skill_invoke.jiechengshang = function(self, data)
     end
     for _, p in sgs.qlist(use.to) do
         if self:isEnemy(p) then
-            if not p:isNude() and not (p:getEquips() and p:hasSkills(sgs.lose_equip_skill)) and not self:needKongcheng(p) then
+            if not p:isNude() and not (p:getEquips() and p:hasShownSkills(sgs.lose_equip_skill)) and not self:needKongcheng(p) then
                 local cards = p:getCards("h")
                 if not cards:isEmpty() and not func(cards, use.card) then
                     self.jiechengshangPlayer = p
@@ -1998,7 +1998,7 @@ sgs.ai_skill_invoke.jiechengshang = function(self, data)
     end
     for _, p in sgs.qlist(use.to) do
         if not self.player:isFriendWith(p) then
-            if not p:isNude() and not (p:getEquips() and p:hasSkills(sgs.lose_equip_skill)) and not self:needKongcheng(p) then
+            if not p:isNude() and not (p:getEquips() and p:hasShownSkills(sgs.lose_equip_skill)) and not self:needKongcheng(p) then
                 local cards = p:getCards("h")
                 if not cards:isEmpty() and not func(cards, use.card) then
                     self.jiechengshangPlayer = p
@@ -2634,6 +2634,7 @@ sgs.ai_skill_invoke.luazhuanxing = function(self, data)
         for _, c in pairs(hecards) do
             if c:isBlack() and (c:isKindOf("BasicCard") or c:isKindOf("EquipCard")) then
                 self.luazhuanxingShortage = c:getId()
+                break
             end
         end
         if self.luazhuanxingShortage then
@@ -2787,5 +2788,20 @@ sgs.ai_skill_use["@@luazifengToIndu"] = function(self, prompt)
 end
 
 sgs.ai_skill_choice.luajuxian = function(self, choices)
-
+    local notDiscard = 0
+    local hecards = self.player:getCards("he")
+    for _, c in sgs.qlist(hecards) do
+        if c:isKindOf("Armor") or c:isKindOf("DefensiveHorse") or c:isKindOf("SixDragons") then
+            notDiscard = notDiscard + 1
+        end
+    end
+    if notDiscard > 2 or hecards:length() ~= notDiscard then
+        for _, enemy in sgs.qlist(self.enemies) do
+            if sgs.isGoodTarget(enemy, self.enemies, self) then
+                return "luajuxianDamage"
+            end
+        end
+    end
+    return "luajuxianDraw"
 end
+sgs.ai_skill_playerchosen.luajuxian = sgs.ai_skill_playerchosen.damage
