@@ -233,7 +233,8 @@ provinceSeal_skill = sgs.CreateTriggerSkill{
                         if player:getMaxCards() >= 2 then
                             table.insert(choices, "provinceSeal_reduceMod")
                         end
-                        if player:getMark("##luajpzzg_killer") > 0 then
+                        if player:getMark("##luajpzzg_killer") > 0 or player:hasShownSkills("paoxiao|kuangcai") or
+                        (player:getWeapon() and player:getWeapon():objectName() == "Crossbow") then
                             table.insert(choices, "provinceSeal_reduceSlash")
                         end
                         room:setPlayerMark(player, "provinceSeal_addDraw", 2)
@@ -259,7 +260,8 @@ provinceSeal_skill = sgs.CreateTriggerSkill{
                     else
                         table.insert(choices, "provinceSeal_reduceDrawAndSlash")
                         --同这里加杀次数上限判断（如有）
-                        if player:getMark("##luajpzzg_killer") > 0 then
+                        if player:getMark("##luajpzzg_killer") > 0 or player:hasShownSkills("paoxiao|kuangcai") or
+                        (player:getWeapon() and player:getWeapon():objectName() == "Crossbow") then
                             table.insert(choices, "provinceSeal_reduceSlash")
                         end
                         table.insert(choices, "provinceSeal_reduceDraw")
@@ -813,7 +815,7 @@ luazhanjue = sgs.CreateZeroCardViewAsSkill{
 
 luazhanjue_draw = sgs.CreateTriggerSkill{
     name = "#luazhanjue_draw",
-    events = {sgs.Predamage, sgs.CardFinished, sgs.EventPhaseChanging, sgs.Damaged},
+    events = {sgs.CardFinished, sgs.EventPhaseChanging, sgs.Damaged},
     priority = -1,
     frequency = sgs.Skill_Compulsory,
     on_record = function(self, event, room, player, data)
@@ -829,13 +831,11 @@ luazhanjue_draw = sgs.CreateTriggerSkill{
         if player and player:isAlive() then
             local current = room:getCurrent()
             if current and current:isAlive() and current:hasSkill("luazhanjue") then
-                if event == sgs.Predamage or event == sgs.Damaged then
+                if event == sgs.Damaged then
                     local damage = data:toDamage()
                     if damage.card:isKindOf("Duel") and damage.card:getSkillName() == "luazhanjue" then
                         if event == sgs.Damaged then
-                            room:setPlayerFlag(damage.to, "luazhanjueDamaged")
-                        elseif event == sgs.Predamage then
-                            room:setPlayerFlag(current, "luazhanjueDamage")
+                            room:addPlayerMark(damage.to, "luazhanjueDamaged")
                         end
                     end
                 elseif event == sgs.CardFinished then
@@ -856,31 +856,34 @@ luazhanjue_draw = sgs.CreateTriggerSkill{
 	on_effect = function(self, event, room, player, data)
         local current = room:getCurrent()
         local use = data:toCardUse()
-        local target = use.to
-        if current:hasFlag("luazhanjueDamage") then
-            current:drawCards(1)
-            room:addPlayerMark(current, "luazhanjueDraw", 1)
-            room:setPlayerFlag(current, "-luazhanjueDamage")
-        end
-        if current:hasFlag("luazhanjueDamaged") then
-            current:drawCards(1)
-            room:addPlayerMark(current, "luazhanjueDraw", 1)
-            room:setPlayerFlag(current, "-luazhanjueDamaged")
-        else
-            if target:length() > 0 then
-                room:sortByActionOrder(target)
-            end
-            for _, p in sgs.qlist(target) do
+        local targets = room:getAlivePlayers()
+        room:sortByActionOrder(targets)
+        for _, p in sgs.qlist(targets) do
+            if p:objectName() == current:objectName() and p:getMark("luazhanjueDamaged") > 0 then
+                for i = 1, p:getMark("luazhanjueDamaged") do
+                    current:drawCards(1)
+                    current:drawCards(1)
+                    room:addPlayerMark(current, "luazhanjueDraw", 2)
+                end
+                room:setPlayerMark(current, "luazhanjueDamaged", 0)
+            elseif p:objectName() ~= current:objectName() and p:getMark("luazhanjueDamaged") > 0 then
+                current:drawCards(1)
                 p:drawCards(1)
+                room:addPlayerMark(current, "luazhanjueDraw", 1)
+                room:setPlayerMark(p, "luazhanjueDamaged", 0)
             end
         end
         return false
     end
 }
 
+if not sgs.Sanguosha:getSkill("luazhanjue") then skills:append(luazhanjue) end
+if not sgs.Sanguosha:getSkill("luazhanjue_draw") then skills:append(luazhanjue_draw) end
+secLordGe:insertRelatedSkills("luazhanjue", "#luazhanjue_draw")
+
 --[[lualiuchen:addSkill(luazhanjue)
 lualiuchen:addSkill(luazhanjue_draw)
-secLordGe:insertRelatedSkills("luazhanjue", "#luazhanjue_draw")
+secLordGe:insertRelatedSkills("luazhanjue", "#luazhanjue_draw")--[[
 
 sgs.LoadTranslationTable{
     ["lualiuchen"] = "刘谌",
@@ -1368,6 +1371,7 @@ sgs.LoadTranslationTable{
     [":luachenyin"] = "出牌阶段限一次，你可以令一名魏势力角色弃置两张牌，若弃牌的角色：为你，你获得“放逐”直到你的下回合开始；不为你，你" ..
     "摸两张牌，然后若此阶段置入弃牌堆的牌包含四种花色，其回复1点体力。",
     ["fangzhu_lordcaopi"] = "放逐",
+    [":fangzhu_lordcaopi"] = "当你受到伤害后，你可选择一名其他角色▶其选择：1.摸X张牌，叠置；2.弃置X张牌▷失去1点体力。（X为你已损失的体力值）,
     ["luahuandou"] = "换斗",
     [":luahuandou"] = "准备阶段，若【州郡领兵印】处于场上或弃牌堆，你可以摸一张牌，然后可以移动场上一张宝物牌。",
     ["@luahuandou_player1"] = "换斗：请选择一名场上有宝物牌的角色",
