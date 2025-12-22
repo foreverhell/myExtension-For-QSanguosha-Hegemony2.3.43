@@ -3216,7 +3216,7 @@ function SmartAI:askForTransferFieldCards(targets, reason, equipArea, judgingAre
 end
 
 --positive：为 true 时，本【无懈可击】使 trick 失效，否则本【无懈可击】使 trick 生效
-function SmartAI:askForNullification(trick, from, to, positive)
+function SmartAI:askForNullification(trick, from, to, positive) --from对to使用的trick
 	if self.player:isDead() then return nil end
 	if trick:isKindOf("SavageAssault") and self:isFriend(to) and positive then
 		local menghuo = sgs.findPlayerByShownSkillName("huoshou")
@@ -3407,18 +3407,18 @@ function SmartAI:askForNullification(trick, from, to, positive)
 			end
 		elseif trick:isKindOf("Indulgence") then
 			if self:isFriend(to) and not to:isSkipped(sgs.Player_Play) then
-				if to:hasShownSkills("jieguanxing|jieyizhi") then return nil end--and (Global_room:alivePlayerCount() > 3 or to:hasShownSkills("jieguanxing+jieyizhi")) then return nil end
+				if to:hasShownSkills("jieguanxing|jieyizhi|luajuxian") then return nil end--and (Global_room:alivePlayerCount() > 3 or to:hasShownSkills("jieguanxing+jieyizhi")) then return nil end
 				if to:getHp() - to:getHandcardNum() >= 2 then return nil end
 				if to:hasShownSkill("tuxi") and to:getHp() > 2 then return nil end
-				if to:hasSkills("qiaobian|guicai") and not to:isKongcheng() then return nil end
+				if to:hasShownSkills("qiaobian|guicai") and not to:isKongcheng() then return nil end
 				if (to:containsTrick("supply_shortage") or self:willSkipDrawPhase(to)) and null_num <= 1 and self:getOverflow(to) < -1 then return nil end
 				return null_card
 			end
 		elseif trick:isKindOf("SupplyShortage") then
 			if self:isFriend(to) and not to:isSkipped(sgs.Player_Draw) then
-				if to:hasShownSkills("jieguanxing|jieyizhi") then return nil end--and (Global_room:alivePlayerCount() > 3 or to:hasShownSkills("jieguanxing+jieyizhi")) then return nil end
-				if to:hasShownSkills("guidao|tiandu") then return nil end
-				if to:hasSkills("qiaobian|guicai|guidao") and not to:isKongcheng() then return nil end
+				if to:hasShownSkills("jieguanxing|jieyizhi|luajuxian") then return nil end--and (Global_room:alivePlayerCount() > 3 or to:hasShownSkills("jieguanxing+jieyizhi")) then return nil end
+				if to:hasShownSkills("tiandu") then return nil end
+				if to:hasShownSkills("qiaobian|guicai|guidao") and not to:isKongcheng() then return nil end
 				if (to:containsTrick("indulgence") or self:willSkipPlayPhase(to)) and null_num <= 1 and self:getOverflow(to) > 1 then return nil end
 				return null_card
 			end
@@ -3516,13 +3516,15 @@ function SmartAI:askForNullification(trick, from, to, positive)
 				else return null_card end
 			end
 		elseif trick:isKindOf("Indulgence") then
-			if not self:isFriend(to) and not to:isSkipped(sgs.Player_Play) then
-				if to:hasShownSkills("jieguanxing|jieyizhi") then return nil end
+			if not self:isFriend(to) then--and not to:isSkipped(sgs.Player_Play) then
+				Global_room:writeToConsole(from .. "乐的" .. to .."应打无懈")
+				if to:hasShownSkills("jieguanxing|jieyizhi|luajuxian") then return nil end
 				return null_card
 			end
 		elseif trick:isKindOf("SupplyShortage") then
-			if not self:isFriend(to) and not to:isSkipped(sgs.Player_Draw) then
-				if to:hasShownSkills("jieguanxing|jieyizhi") then return nil end
+			Global_room:writeToConsole(from .. "兵的" .. to .."应打无懈")
+			if not self:isFriend(to) then--and not to:isSkipped(sgs.Player_Draw) then
+				if to:hasShownSkills("jieguanxing|jieyizhi|luajuxian") then return nil end
 				return null_card
 			end
 		end
