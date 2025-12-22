@@ -752,7 +752,7 @@ if not sgs.Sanguosha:getSkill("fangquan_lordliushan") then skills:append(fangqua
 sgs.LoadTranslationTable{
     ["#lord_liushan"] = "仁敏的蒲牢",
     ["lord_liushan"] = "刘禅",
-    ["&lord_liubei"] = "刘禅",
+    ["&lord_liushan"] = "刘禅",
     ["luayanxi"] = "延熙",
     [":luayanxi"] = "君主技，你拥有“续统辅臣诏”。\n\n#\"续统辅臣诏\"\n" ..
     "锁定技，有珠联璧合标记的蜀势力角色手牌上限+1；没有珠联璧合标记的蜀势力角色攻击范围+1。\n" .. 
