@@ -241,16 +241,6 @@ shenduan = sgs.CreateTriggerSkill{
         local new_number = judge.card:getNumber()
         if choice == "suit" or choice == "both" then  
             -- 让玩家选择新花色  
-            --[[
-            local suits = {"spade", "heart", "club", "diamond"}  
-            new_suit_string = room:askForChoice(player, "shenduan_suit", table.concat(suits, "+"))  
-            local string2suits = {}
-            string2suits["spade"] = sgs.Card_Spade
-            string2suits["heart"] = sgs.Card_Heart
-            string2suits["club"] = sgs.Card_Club
-            string2suits["diamond"] = sgs.Card_Diamond
-            new_suit = string2suits[new_suit_string]
-            ]]
             new_suit = room:askForSuit(player, "shenduan_suit") --这个直接就可以选花色，不需要再转换一次
             -- 这里需要创建新的判定牌  
         end  
@@ -392,20 +382,11 @@ shicaiSlashCard = sgs.CreateSkillCard{
     will_throw = false,
     filter = function(self, targets, to_select)  
         -- 第一个目标是接收手牌并使用杀的角色  
-        if #targets == 0 then  
-            return to_select:objectName() ~= sgs.Self:objectName()  
-        end
-        --[[
-        -- 第二个目标是被使用杀的角色  
-        elseif #targets == 1 then  
-            return to_select:objectName() ~= targets[1]:objectName() --and to_select:objectName() ~= sgs.Self:objectName() 
-        end  
-        ]]
-        return false  
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()  
     end,  
       
     feasible = function(self, targets)  
-        return #targets == 1 --1
+        return #targets == 1
     end,  
       
     on_use = function(self, room, source, targets)  
@@ -432,19 +413,6 @@ shicaiSlashCard = sgs.CreateSkillCard{
         local prompt = string.format("@shicaiSlash-slash:%s:%s:", victim:objectName(), target:objectName())  
         if not room:askForUseSlashTo(target, victim, prompt, false, false, false) then  
             -- 如果目标不使用杀，则弃置其两张牌  
-            --[[
-            if not target:isNude() then  
-                local count = math.min(2, target:getCardCount(true))  
-                --room:askForDiscard(target, "shicaiSlash", count, count, false, true)
-                
-                local dummy_reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_DISMANTLE, source:objectName(), target:objectName(), "shicaiSlash", "")  
-                card_ids = room:askForCardsChosen(source, target, "he", "shicaiSlash", count, count)  
-                
-                if #card_ids > 0 then  
-                    room:throwCard(sgs.CardsMoveStruct(card_ids, target, source, sgs.Player_PlaceHand, sgs.Player_DiscardPile, dummy_reason))  
-                end  
-            end
-            ]]
             if source:canDiscard(target, "he") then
                 room:throwCard(room:askForCardChosen(source, target, "he", self:objectName(), false, sgs.Card_MethodDiscard), target, source)
             end
@@ -1118,14 +1086,6 @@ zhuding = sgs.CreateTriggerSkill{
     end,  
     on_cost = function(self, event, room, player, data)  
         if player:askForSkillInvoke(self:objectName(), data) then  
-            --local card_id = room:askForCardChosen(player, player, "h", "@zhuding-discard")  
-            --[[
-            local card = sgs.Sanguosha:getCard(card_id)  
-            if card:isBlack() then  
-                room:broadcastSkillInvoke(self:objectName())  
-                return true  
-            end  
-            ]]
             return room:askForCard(player, ".|black", "@zhuding-discard", data, sgs.Card_MethodDiscard)  
         end  
         return false  
@@ -4102,10 +4062,10 @@ cike = sgs.CreateTriggerSkill{
         room:judge(judge)  
         
         -- 若判定牌为黑色，获得目标一张牌  
-        if judge:isBlack() and not skill_target:isNude() then  
+        if judge.card:isBlack() and not skill_target:isNude() then  
             local card_id = room:askForCardChosen(player, skill_target, "he", self:objectName())  
             room:throwCard(card_id, skill_target, player)  
-        elseif judge:isRed() then
+        elseif judge.card:isRed() then
             room:obtainCard(player,judge.card)
         end  
     end
@@ -4262,17 +4222,6 @@ shouli_card = sgs.CreateSkillCard{
     end,  
     on_use = function(self, room, source, targets)  
         local target = targets[1]  
-        --[[
-        --local card_id = room:askForCardChosen(source, source, "he", self:objectName(), false)  
-        local card_id = room:askForCard(source, ".|.|.|hand,equipped", self:objectName())  
-        room:obtainCard(target, card_id)  
-        if #targets==2 then
-            target = targets[2]  
-        end
-        --local card_id = room:askForCardChosen(source, source, "he", self:objectName(), false)  
-        local card_id = room:askForCard(source, ".|.|.|hand,equipped", self:objectName())  
-        room:obtainCard(target, card_id)  
-        ]]
         local card_ids = room:askForExchange(source, self:objectName(), 2, 2)   
         for _,card_id in sgs.qlist(card_ids) do
             room:obtainCard(target, card_id)  
@@ -5661,19 +5610,10 @@ manwu = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(),data) and room:askForCard(player, ".|heart,spade", self:objectName(), data, sgs.Card_MethodDiscard)  
+        return room:askForCard(player, ".|heart,spade", self:objectName(), data, sgs.Card_MethodDiscard)  
     end,  
       
     on_effect = function(self, event, room, player, data)  
-        --[[
-        local card_id = room:askForCardChosen(player, player, "h", self:objectName(), false, sgs.Card_MethodDiscard)  
-        local card = sgs.Sanguosha:getCard(card_id)
-        if card:getSuit()~=sgs.Card_Spade and card:getSuit()~=sgs.Card_Heart then
-            return false
-        end
-        room:throwCard(card_id, player, player, self:objectName())
-        ]]
-        --local card_id = room:askForCard(player, ".|heart,spade", self:objectName(), data, sgs.Card_MethodDiscard)  
         local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())
         local new_damage = sgs.DamageStruct()  
         local damage = data:toDamage()
@@ -6503,12 +6443,6 @@ tuoying = sgs.CreateTriggerSkill{
         return ""  
     end,  
     on_cost = function(self, event, room, player, data, ask_who) 
-        --[[ 
-        if ask_who:askForSkillInvoke(self:objectName(), data) then  
-            room:broadcastSkillInvoke(self:objectName())  
-            return true  
-        end  
-        ]]
         return ask_who:hasShownSkill(self:objectName()) or ask_who:askForSkillInvoke(self:objectName(), data)
     end,  
     on_effect = function(self, event, room, player, data, ask_who)  
@@ -7516,7 +7450,7 @@ feigongSlash = sgs.CreateTriggerSkill{
         room:drawCards(ask_who, 1, self:objectName())  
           
         -- 如果有牌，交给目标一张牌  
-        if not ask_who:isNude() then  
+        if not ask_who:isNude() and ask_who~=target then  
             --local card_id = room:askForCard(ask_who, ".|.|.|hand,equipped", "@feigongSlash-give:" .. target:objectName(), sgs.QVariant(), sgs.Card_MethodNone)  
             --local card_id = room:askForCardChosen(ask_who, ask_who, "he", self:objectName())  
             local card_ids = room:askForExchange(ask_who, "feigongSlash", 1, 1)  
@@ -7641,19 +7575,7 @@ yingxi = sgs.CreateTriggerSkill{
         if event == sgs.EventPhaseStart or event == sgs.Damaged then  
             -- 询问是否弃置黑色牌获得隐匿标记  
             if player:askForSkillInvoke(self:objectName(), data) then  
-                --local card_id = room:askForCardChosen(player, player, "he", "@yingxi-discard")  
-                local card_id = room:askForCard(player, ".|black", "@yingxi-discard", data, sgs.Card_MethodDiscard)  
-                if card_id then  
-                    --[[
-                    local card = sgs.Sanguosha:getCard(card_id)  
-                    if card:isBlack() then 
-                        room:throwCard(card_id, player, player)  
-                        room:broadcastSkillInvoke(self:objectName())  
-                        return true  
-                    end  
-                    ]]
-                    return true
-                end  
+                return room:askForCard(player, ".|black", "@yingxi-discard", data, sgs.Card_MethodDiscard)  
             end  
         elseif event == sgs.DamageInflicted then  
             -- 询问是否移除隐匿标记免疫伤害  
@@ -8380,11 +8302,6 @@ yicai = sgs.CreateTriggerSkill{
               
             room:judge(judge)  
             table.insert(red_cards, judge.card:getId()) 
-            --[[
-            if judge.card:isRed() then  
-                table.insert(red_cards, judge.card:getId())  
-            end 
-            ]] 
         until judge.card:isBlack()  
           
         if #red_cards > 0 then  
@@ -10772,8 +10689,15 @@ tianfa = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data, ask_who)  
-        local targets = room:askForPlayersChosen(player, room:getAlivePlayers(), self:objectName(), 0, 2, "@tianfa-choose", true)            
-        for _, target in sgs.qlist(targets) do  
+        local targets = sgs.SPlayerList()  
+        -- 收集可选目标  
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if  not player:isFriendWith(p) then  
+                targets:append(p)            
+            end  
+        end  
+        local chosen_targets = room:askForPlayersChosen(player, targets, self:objectName(), 0, 2, "@tianfa-choose", true)            
+        for _, target in sgs.qlist(chosen_targets) do  
             if target and target:isAlive() then  
                 local judge = sgs.JudgeStruct()  
                 judge.pattern = ".|spade"  
@@ -10806,7 +10730,7 @@ sgs.LoadTranslationTable{
     ["shenli"] = "神力",  
     [":shenli"] = "锁定技，你使用【杀】造成伤害时，增加你已失去体力值的伤害。",  
     ["tianfa"] = "天罚",
-    [":tianfa"] = "当你死亡时，你可以选择至多两名角色，令他们分别进行判定，若判定牌为黑桃，则该角色受到3点伤害。",  
+    [":tianfa"] = "当你死亡时，你可以选择至多两名其他势力角色，令他们分别进行判定，若判定牌为黑桃，则该角色受到3点伤害。",  
     ["@tianfa-choose"] = "天罚：选择两名角色进行判定",
 }
 
