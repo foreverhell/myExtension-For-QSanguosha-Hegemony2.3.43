@@ -2500,7 +2500,7 @@ function SmartAI:useCardSnatchOrDismantlement(card, use)
 
 	players = self:exclude(players, card)
 	for _, player in ipairs(players) do
-		if not player:getJudgingArea():isEmpty() and self:trickIsEffective(card, player)
+		if not player:getJudgingArea():isEmpty() and self:trickIsEffective(card, player) and not player:hasShownSkill("luajuxian")
 			and ((player:containsTrick("lightning") and self:getFinalRetrial(player) == 2) or #self.enemies == 0) then
 			tricks = player:getCards("j")
 			for _, trick in sgs.qlist(tricks) do
@@ -2568,7 +2568,7 @@ function SmartAI:useCardSnatchOrDismantlement(card, use)
 	self:sort(self.friends_noself, "defense")
 	local friends = self:exclude(self.friends_noself, card)
 	for _, friend in ipairs(friends) do
-		if (friend:containsTrick("indulgence") or friend:containsTrick("supply_shortage")) then
+		if (friend:containsTrick("indulgence") or friend:containsTrick("supply_shortage")) and not friend:hasShownSkill("luajuxian") then
 			local cardchosen
 			tricks = friend:getJudgingArea()
 			for _, trick in sgs.qlist(tricks) do
