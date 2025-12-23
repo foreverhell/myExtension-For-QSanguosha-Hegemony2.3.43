@@ -885,15 +885,9 @@ jiejianglveCard = sgs.CreateSkillCard{
 				if player:isFriendWith(source) or player:willBeFriendWith(source) then
 					if not player:hasShownOneGeneral() then
 						player:askForGeneralShow("jiejianglve", true, true, true, true)
-						if player:hasShownOneGeneral() then
-							player:doCommand("jiejianglve", commandIndex, source)
-							if player:isAlive() then
-								table.insert(doCommandPlayer, player)
-							end
-						end
-					else
-						player:doCommand("jiejianglve", commandIndex, source)
-						if player:isAlive() then
+					end
+					if player:hasShownOneGeneral() then
+						if player:doCommand("jiejianglve", commandIndex, source) and player:isAlive() then
 							table.insert(doCommandPlayer, player)
 						end
 					end
