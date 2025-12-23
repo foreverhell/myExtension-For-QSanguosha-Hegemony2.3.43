@@ -124,40 +124,46 @@ linlang = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data, ask_who)  
         local caozhi_xianxia = ask_who--room:findPlayerBySkillName(self:objectName())  
         local judge = data:toJudge()  
-        
-        local choice = room:askForChoice(caozhi_xianxia, "linlang", "obtainCard+move+cancel")  
+
+        local targets = sgs.SPlayerList()
+        -- 查找场上所有与判定牌颜色相同的牌  
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            for i = 0, 4 do  
+                local equip = p:getEquip(i)  
+                if equip and (equip:isRed()==judge.card:isRed()) then  
+                    targets:append(p)
+                    break
+                end  
+            end  
+            
+            -- 检查判定区的牌  
+            for _, card in sgs.qlist(p:getJudgingArea()) do  
+                if (card:isRed()==judge.card:isRed()) then  
+                    targets:append(p)
+                    break
+                end  
+            end  
+        end  
+        local choices = "ontainCard"
+        if not targets:isEmpty() then
+            choices = "obtainCard+move"
+        end
+        local choice = room:askForChoice(caozhi_xianxia, "linlang", choices)  
         if choice == "obtainCard" then
             -- 获得判定牌  
             caozhi_xianxia:obtainCard(judge.card)  
         elseif choice == "move" then
             -- 移动场上一张与此牌颜色相同的牌  
-            local targets = sgs.SPlayerList()
-            -- 查找场上所有与判定牌颜色相同的牌  
-            for _, p in sgs.qlist(room:getAlivePlayers()) do  
-                for i = 0, 4 do  
-                    local equip = p:getEquip(i)  
-                    if equip and (equip:isRed()==judge.card:isRed()) then  
-                        targets:append(p)
-                        break
-                    end  
-                end  
-                
-                -- 检查判定区的牌  
-                for _, card in sgs.qlist(p:getJudgingArea()) do  
-                    if (card:isRed()==judge.card:isRed()) then  
-                        targets:append(p)
-                        break
-                    end  
-                end  
-            end  
-            if targets:isEmpty() then return false end
             local from_player = room:askForPlayerChosen(caozhi_xianxia, targets, self:objectName(), "@linlang-move-from")  
             if not from_player then return false end
             local to_player = room:askForPlayerChosen(caozhi_xianxia, room:getOtherPlayers(from_player), self:objectName(), "@linlang-move-to")  
             if from_player and to_player then
                 local card_id = room:askForCardChosen(caozhi_xianxia,from_player,"ej",self:objectName())
                 local card = sgs.Sanguosha:getCard(card_id)
-                if card:isRed()~=judge.card:isRed() then return false end
+                if card:isRed()~=judge.card:isRed() then 
+                    caozhi_xianxia:obtainCard(judge.card) 
+                    return false 
+                end
                 if card:isKindOf("EquipCard") then
                     -- 移动装备牌  
                     room:moveCardTo(card, to_player, sgs.Player_PlaceEquip)  
@@ -165,6 +171,8 @@ linlang = sgs.CreateTriggerSkill{
                     -- 移动判定区的牌  
                     room:moveCardTo(card, to_player, sgs.Player_PlaceDelayedTrick)  
                 end  
+            else
+                caozhi_xianxia:obtainCard(judge.card) 
             end
         end
         return false  
