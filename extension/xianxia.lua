@@ -2214,6 +2214,65 @@ sgs.LoadTranslationTable{
     ["@simashi2-discard"] = "要弃的牌数"
 }
 
+zhoucang = sgs.General(extension, "zhoucang", "shu", 4) 
+
+zhoucangSkillCard = sgs.CreateSkillCard{  
+    name = "zhoucangSkill",  
+    target_fixed = false,  
+    will_throw = false,  
+      
+    filter = function(self, targets, to_select)  
+        if #targets == 0 then  
+            return to_select:objectName() ~= sgs.Self:objectName() and not to_select:isKongcheng()
+        end  
+        return false  
+    end,  
+    feasible = function(self, targets)  
+        return #targets==1
+    end,  
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+
+        local card1 = room:askForCardShow(target, source, self:objectName())  
+        local card2 = room:askForCardShow(source, source, self:objectName())  
+        room:showCard(target, card1:getId())  
+        room:showCard(source, card2:getId())  
+        if card2:isKindOf("Slash") and not card1:isKindOf("Jink") then --你展示的是杀，其展示的不是闪
+            room:throwCard(card2:getId(), source, source)
+            local damage = sgs.DamageStruct()  
+            damage.from = source  
+            damage.to = target  
+            damage.damage = 1  
+            damage.reason = self:objectName() 
+            room:damage(damage)  
+        elseif not card2:isKindOf("Slash") and card1:isKindOf("Jink") then --你展示的不是杀，其展示的是闪
+            room:throwCard(card2:getId(), source, source)
+            local card_id = room:askForCardChosen(source, target, "he", self:objectName(), false, sgs.Card_MethodNone)  
+            room:obtainCard(source, card_id)  
+        end    
+    end  
+}  
+  
+zhoucangSkill = sgs.CreateZeroCardViewAsSkill{  
+    name = "zhoucangSkill",  
+    view_as = function(self)  
+        local card = zhoucangSkillCard:clone()
+        card:setSkillName(self:objectName())  
+        card:setShowSkill(self:objectName())  
+        return card  
+    end,  
+        
+    enabled_at_play = function(self, player)  
+        return not player:isKongcheng() and not player:hasUsed("#zhoucangSkill") 
+    end  
+}  
+zhoucang:addSkill(zhoucangSkill)
+sgs.LoadTranslationTable{
+    ["zhoucang"] = "周仓",
+    ["zhoucangSkill"] = "技能1",
+    [":saima"] = "出牌阶段限一次。你可以和一名其他角色同时展示一张手牌：若你展示的是杀，其展示的不是闪，你可以弃置展示的牌，对其造成1点伤害；若你展示的不是杀，其展示的是闪，你可以弃置展示的牌，获得其1张牌",
+}
+
 quyi = sgs.General(extension, "quyi", "qun", 4)
 
 yiqi = sgs.CreateTriggerSkill{  
