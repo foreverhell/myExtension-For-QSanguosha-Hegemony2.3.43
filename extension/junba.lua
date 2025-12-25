@@ -1590,47 +1590,78 @@ sgs.LoadTranslationTable{
 
 jianshi = sgs.General(extension, "jianshi", "wei", 3, false)  -- 吴国，4血，男性  
 
-jiusiCard = sgs.CreateSkillCard{  
-    name = "jiusiCard",  
-    target_fixed = true,  
-    will_throw = false,  
+jiusiCard = sgs.CreateSkillCard{
+    name = "jiusi",
+    target_fixed = true,
+    will_throw = false,
+    handling_method = sgs.Card_MethodNone,
       
-    on_use = function(self, room, source, targets) 
-        choices = {"analeptic"}
+    on_use = function(self, room, source, targets)
+        --room:askForUseCard(source, "jiusi_basic", "@jiusi-basic")
+        local pattern = sgs.Sanguosha:getCurrentCardUsePattern() --为啥这里只有pattern=="jink"的情况？
+        local choices = {}
         if sgs.Slash_IsAvailable(source) then
             table.insert(choices, "slash")
+            table.insert(choices, "thunder_slash")
+            table.insert(choices, "fire_slash")
         end
-        --[[
         if sgs.Analeptic_IsAvailable(source) then
             table.insert(choices, "analeptic")
         end
-        ]]
         if source:isWounded() then
             table.insert(choices, "peach")
         end
-        if #choices == 0 then return false end
-        choice=room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
-        card = sgs.Sanguosha:cloneCard(choice)  
-        card:setSkillName("jiusi")
+
+        local choice = ""--pattern无除了闪之外的情况，只能先这么写了
+        local isAskforPeach = false
+        local peachToPlayer
+        if source:getHp() <= 0 then
+            choice = room:askForChoice(source, self:objectName(), "analeptic+peach")
+        else
+            for _, p in sgs.qlist(room:getOtherPlayers(source)) do
+                if not p:isDead() and p:getHp() <= 0 then
+                    choice = "peach"
+                    isAskforPeach = true
+                    peachToPlayer = p
+                    break
+                end
+            end
+            if not isAskforPeach and pattern == "jink" then 
+                choice = "jink"
+            elseif not isAskforPeach then
+                choice = room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
+            end
+        end
+        if choice == nil then return false end
+        local card = sgs.Sanguosha:cloneCard(choice, sgs.Card_NoSuit, -1)
+        card:addSubcard(self)
+        card:setSkillName(self:objectName())
+        if choice == "analeptic" and source:getHp() <= 0 then card:setFlags("UsedBySecondWay") end
         card:deleteLater()
-        if choice=="slash" then
-            local targets = sgs.SPlayerList()  
-            for _, p in sgs.qlist(room:getOtherPlayers(source)) do  
-                if source:inMyAttackRange(p) then  
-                    targets:append(p) 
-                end  
-            end  
-            target=room:askForPlayerChosen(source, targets, self:objectName())
-            local use = sgs.CardUseStruct()  
-            use.from = source  
-            use.to:append(target)   
-            use.card = card  
-            room:useCard(use)
+        if choice == "slash" or choice == "thunder_slash" or choice == "fire_slash" then
+            local targets = sgs.SPlayerList()
+            for _, p in sgs.qlist(room:getOtherPlayers(source)) do
+                if p:isAlive() and source:inMyAttackRange(p) then
+                    targets:append(p)
+                end
+            end
+            target = room:askForPlayerChosen(source, targets, self:objectName())
+            if target then
+                local use = sgs.CardUseStruct()  
+                use.from = source
+                use.to:append(target)
+                use.card = card
+                room:useCard(use)
+            end
         else
             local use = sgs.CardUseStruct()  
-            use.from = source  
-            use.to:append(source)   
-            use.card = card  
+            use.from = source
+            if choice == "peach" and isAskforPeach then--对别人用桃
+                use.to:append(peachToPlayer)
+            else
+                use.to:append(source)
+            end
+            use.card = card
             room:useCard(use)
         end
     end  
@@ -1638,38 +1669,21 @@ jiusiCard = sgs.CreateSkillCard{
 
 jiusiVS = sgs.CreateZeroCardViewAsSkill{  
     name = "jiusi",  
-    response_or_use = true,  -- 关键参数，允许既主动使用又响应使用  
-    --guhuo_type = "b",  -- 显示基础牌选择框  
     view_as = function(self)
-        local card_name = ""  
-        local pattern = sgs.Sanguosha:getCurrentCardUsePattern()  
-        if pattern == "slash" then  
-            card_name = "slash"  
-        elseif pattern == "jink" then  
-            card_name = "jink"  
-        elseif string.find(pattern,"peach") then  
-            card_name = "peach"  
-        elseif string.find(pattern,"analeptic") then  
-            card_name = "analeptic"  
-        end  
-        local view_as_card = nil
-        if card_name ~= "" then
-            view_as_card = sgs.Sanguosha:cloneCard(card_name)  
-        else
-            view_as_card = jiusiCard:clone()
-        end
-        view_as_card:setSkillName(self:objectName())  
+        local card_name = ""
+        local view_as_card = jiusiCard:clone()
+        view_as_card:setSkillName(self:objectName())
         view_as_card:setShowSkill(self:objectName())  
         return view_as_card  
     end,  
-    enabled_at_play = function(self, player)  
-        -- 允许在出牌阶段主动使用  
-        return not player:hasFlag("jiusi_used")  
-    end,  
-    enabled_at_response = function(self, player, pattern)  
-        -- 允许在需要基本牌时响应使用  
-        return not player:hasFlag("jiusi_used") and (pattern == "slash" or pattern == "jink" or string.find(pattern,"peach") or string.find(pattern,"analeptic"))
-    end  
+      
+    enabled_at_play = function(self, player)   
+        return not player:hasFlag("jiusi_used")
+    end,
+
+    enabled_at_response = function(self, player, pattern)
+        return not player:hasFlag("jiusi_used") and (pattern == "slash" or pattern == "jink" or string.find(pattern, "peach") or string.find(pattern, "analeptic"))
+    end,
 }
 
 jiusi = sgs.CreateTriggerSkill{  
@@ -3257,88 +3271,6 @@ sgs.LoadTranslationTable{
     ["weimian:draw"] = "摸四张牌",  
     ["@weimian"] = "慰勉：选择弃置所有手牌"  
 }  
-
-wangping_junba = sgs.General(extension, "wangping_junba", "shu", 4)  
-  
-feijunCard = sgs.CreateSkillCard{  
-    name = "FeijunCard",  
-    will_throw = true,  
-    target_fixed = false,  
-    filter = function(self, targets, to_select, Self)  
-        if #targets >= 1 then return false end  
-        if to_select:objectName() == Self:objectName() then return false end  
-
-        return to_select:getHandcardNum() > Self:getHandcardNum()-1 or to_select:getEquips():length() > Self:getEquips():length()-1
-    end,  
-    feasible = function(self, targets, Self)  
-        return #targets == 1  
-    end,  
-    on_use = function(self, room, source, targets)  
-        local target = targets[1]  
-
-        local choices = {}  
-        if target:getHandcardNum() > source:getHandcardNum() then  
-            table.insert(choices, "handcard")  
-        end  
-        if target:getEquips():length() > source:getEquips():length() then  
-            table.insert(choices, "equip")  
-        end       
-        if #choices == 0 then return false end  
-        local choice = room:askForChoice(source, self:objectName(), table.concat(choices, "+"))  
-
-          
-        -- 检查是否第一次选择该目标  
-        local first_time_mark = "feijun_first_" .. target:objectName()  
-        local is_first_time = source:getMark(first_time_mark) == 0  
-        if is_first_time then  
-            room:setPlayerMark(source, first_time_mark, 1)  
-        end  
-          
-        if choice == "handcard" then  
-            -- 选择1：令手牌数大于你的角色交给你一张牌  
-            if target:getHandcardNum() > source:getHandcardNum() and not target:isNude() then  
-                local card_id = room:askForCardChosen(target, target, "he", "feijun", false, sgs.Card_MethodNone)  
-                room:obtainCard(source, sgs.Sanguosha:getCard(card_id))  
-            end  
-        elseif choice == "equip" then  
-            -- 选择2：令装备区大于你的角色弃置装备区的一张装备  
-            if target:getEquips():length() > source:getEquips():length() and not target:getEquips():isEmpty() then  
-                local card_id = room:askForCardChosen(target, target, "e", "feijun", false, sgs.Card_MethodDiscard)  
-                room:throwCard(sgs.Sanguosha:getCard(card_id), target, target)  
-            end  
-        end  
-          
-        -- 若第一次选择该目标，摸2张牌  
-        if is_first_time then  
-            source:drawCards(2, "feijun")  
-        end  
-    end  
-}  
-  
--- 飞军视为技  
-feijun = sgs.CreateOneCardViewAsSkill{  
-    name = "feijun",  
-    filter_pattern = ".",  
-    enabled_at_play = function(self, player)  
-        return not player:hasUsed("#FeijunCard")  
-    end,  
-    view_as = function(self, card)  
-        local acard = feijunCard:clone()  
-        acard:addSubcard(card:getEffectiveId())  
-        acard:setShowSkill(self:objectName())  
-        return acard  
-    end  
-}  
-wangping_junba:addSkill(feijun)
-
-sgs.LoadTranslationTable{
-["wangping_junba"] = "王平",  
-["#wangping_junba"] = "镇北将军",  
-["feijun"] = "飞军",  
-[":feijun"] = "出牌阶段限一次，你可以弃置一张牌，然后选择：1.令一名手牌数大于你的角色交给你一张牌；2.令一名装备区大于你的角色弃置装备区的一张装备。若本局游戏中，你第一次选择该目标，你摸2张牌。",  
-["handcard"] = "令其交给你一张手牌",  
-["equip"] = "令其弃置一张装备",
-}
 
 wangxu = sgs.General(extension, "wangxu", "wei", 3)  
 
