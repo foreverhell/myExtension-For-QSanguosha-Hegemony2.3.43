@@ -186,7 +186,7 @@ sgs.LoadTranslationTable{
     ["@xianzhou"] = "献州",  
     ["@xianzhou-damage"] = "献州：请选择攻击范围内的一名角色造成1点伤害",
 }
-
+--[[
 caiyong = sgs.General(extension, "caiyong", "qun", 3) -- 吴苋，蜀势力，3血，女性
 zhudian = sgs.CreateTriggerSkill{  
     name = "zhudian",  
@@ -391,7 +391,7 @@ sgs.LoadTranslationTable{
     [":botong"] = "你可以将4种不同花色的牌当任意基本牌使用或打出，然后你可以将这些牌分配给任意名势力相同的其他角色",
 }
 
---[[
+
 -- 创建董允武将  
 dongyun = sgs.General(extension, "dongyun", "shu", 3)
 
@@ -2873,33 +2873,17 @@ yinyi_card = sgs.CreateSkillCard{
             end  
         else  
             -- 偶数：选择1-2名角色使用铁索连环  
-            local targets = {}  
-            -- 第一个目标  
-            local target1 = room:askForPlayerChosen(source, room:getAlivePlayers(), "yinyi", "选择第一个铁索连环目标", false, true)  
-            if target1 then  
-                table.insert(targets, target1)  
-                local target2 = room:askForPlayerChosen(source, room:getOtherPlayers(target1), "yinyi", "选择第二个铁索连环目标（可取消）", true, true)  
-                if target2 then  
-                    table.insert(targets, target2)  
-                end  
-                  
-                -- 创建并使用铁索连环  
-                if #targets > 0 then  
-                    local iron_chain = sgs.Sanguosha:cloneCard("iron_chain", sgs.Card_NoSuit, 0)  
-                    iron_chain:setSkillName("yinyi")  
-                      
-                    local use = sgs.CardUseStruct()  
-                    use.card = iron_chain  
-                    use.from = source  
-                    use.to = sgs.SPlayerList()  
-                    for _, target in ipairs(targets) do  
-                        use.to:append(target)  
-                    end  
-                      
-                    room:useCard(use, false)  
-                    iron_chain:deleteLater()
-                end  
-            end  
+            local targets = room:askForPlayersChosen(source, room:getAlivePlayers(), self:objectName(), 1, 2, "请选择玩家", false)
+            -- 创建并使用铁索连环  
+            local iron_chain = sgs.Sanguosha:cloneCard("iron_chain", sgs.Card_NoSuit, 0)  
+            iron_chain:setSkillName("yinyi")  
+                
+            local use = sgs.CardUseStruct()  
+            use.card = iron_chain  
+            use.from = source  
+            use.to = targets                
+            room:useCard(use, false)  
+            iron_chain:deleteLater()
         end  
     end  
 }  
@@ -3148,20 +3132,6 @@ jianhuiCard = sgs.CreateSkillCard{
           
         -- 进行拼点  
         local success = first:pindian(second,"jianhui")
-        --[[
-        -- 获取拼点结果  
-        local winner = nil  
-        local loser = nil  
-          
-        if success then  --平局没处理，所以第一个角色最好不要选自己
-            winner = first  
-            loser = second  
-        else  
-            winner = second  
-            loser = first  
-        end  
-        room:loseHp(loser, 1)  
-        ]]
     end  
 }  
   
@@ -3317,19 +3287,6 @@ shuomengCard = sgs.CreateSkillCard{
           
         -- 执行拼点。可以发起拼点，正式拼点失败
         local success = source:pindian(target, "shuomeng")  
-        --[[
-        if success then
-            --room:setPlayerMark(source,"shuomeng_win")
-            local card = sgs.Sanguosha:cloneCard("befriend_attacking", sgs.Card_NoSuit, 0)  
-            card:setSkillName("_shuomeng")  
-            room:useCard(sgs.CardUseStruct(card, source, target)) 
-        else
-            --room:setPlayerMark(target,"shuomeng_win")
-            local card = sgs.Sanguosha:cloneCard("befriend_attacking", sgs.Card_NoSuit, 0)  
-            card:setSkillName("_shuomeng")  
-            room:useCard(sgs.CardUseStruct(card, target, source))             
-        end  
-        ]]
     end  
 }  
   
@@ -3864,6 +3821,88 @@ sgs.LoadTranslationTable{
 }  
 ]]
 
+
+wangping_canghai = sgs.General(extension, "wangping_canghai", "shu", 4)  
+  
+feijunCard = sgs.CreateSkillCard{  
+    name = "FeijunCard",  
+    will_throw = true,  
+    target_fixed = false,  
+    filter = function(self, targets, to_select, Self)  
+        if #targets >= 1 then return false end  
+        if to_select:objectName() == Self:objectName() then return false end  
+
+        return to_select:getHandcardNum() > Self:getHandcardNum()-1 or to_select:getEquips():length() > Self:getEquips():length()-1
+    end,  
+    feasible = function(self, targets, Self)  
+        return #targets == 1  
+    end,  
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+
+        local choices = {}  
+        if target:getHandcardNum() > source:getHandcardNum() then  
+            table.insert(choices, "handcard")  
+        end  
+        if target:getEquips():length() > source:getEquips():length() then  
+            table.insert(choices, "equip")  
+        end       
+        if #choices == 0 then return false end  
+        local choice = room:askForChoice(source, self:objectName(), table.concat(choices, "+"))  
+
+        -- 检查是否第一次选择该目标  
+        local first_time_mark = "feijun_first_" .. target:objectName()  
+        local is_first_time = source:getMark(first_time_mark) == 0  
+        if is_first_time then  
+            room:setPlayerMark(source, first_time_mark, 1)  
+        end  
+          
+        if choice == "handcard" then  
+            -- 选择1：令手牌数大于你的角色交给你一张牌  
+            if target:getHandcardNum() > source:getHandcardNum() and not target:isNude() then  
+                local card_id = room:askForCardChosen(target, target, "he", "feijun", false, sgs.Card_MethodNone)  
+                room:obtainCard(source, sgs.Sanguosha:getCard(card_id))  
+            end  
+        elseif choice == "equip" then  
+            -- 选择2：令装备区大于你的角色弃置装备区的一张装备  
+            if target:getEquips():length() > source:getEquips():length() and not target:getEquips():isEmpty() then  
+                local card_id = room:askForCardChosen(target, target, "e", "feijun", false, sgs.Card_MethodDiscard)  
+                room:throwCard(sgs.Sanguosha:getCard(card_id), target, target)  
+            end  
+        end  
+          
+        -- 若第一次选择该目标，摸2张牌  
+        if is_first_time and not source:askCommandto(self:objectName(),target) then  
+            source:drawCards(2, "feijun")  
+        end  
+    end  
+}  
+  
+-- 飞军视为技  
+feijun = sgs.CreateOneCardViewAsSkill{  
+    name = "feijun",  
+    filter_pattern = ".",  
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#FeijunCard")  
+    end,  
+    view_as = function(self, card)  
+        local acard = feijunCard:clone()  
+        acard:addSubcard(card:getEffectiveId())  
+        acard:setShowSkill(self:objectName())  
+        return acard  
+    end  
+}  
+wangping_canghai:addSkill(feijun)
+
+sgs.LoadTranslationTable{
+["wangping_canghai"] = "王平",  
+["#wangping_canghai"] = "镇北将军",  
+["feijun"] = "飞军",  
+[":feijun"] = "出牌阶段限一次，你可以弃置一张牌，然后选择：1.令一名手牌数大于你的角色交给你一张牌；2.令一名装备区大于你的角色弃置装备区的一张装备。若本局游戏中，你第一次选择该目标，你可以对其发起军令，若其不执行，你摸2张牌。",  
+["handcard"] = "令其交给你一张手牌",  
+["equip"] = "令其弃置一张装备",
+}
+
 -- 创建武将：
 wangyi = sgs.General(extension, "wangyi", "wei", 3, false)  -- 吴国，4血，男性  
 zhenlie = sgs.CreateTriggerSkill{  
@@ -4254,9 +4293,9 @@ benxiMod = sgs.CreateDistanceSkill{
 		return 0
 	end
 }
---[[
-zhuanzheng1_card = sgs.CreateSkillCard{  
-    name = "zhuanzheng1",  
+
+zhuanzhengOLcard = sgs.CreateSkillCard{  
+    name = "zhuanzhengOL",  
     target_fixed = false,  
     will_throw = false,  
       
@@ -4298,22 +4337,22 @@ zhuanzheng1_card = sgs.CreateSkillCard{
     end  
 }
 
-zhuanzheng1 = sgs.CreateZeroCardViewAsSkill{  
-    name = "zhuanzheng1",  
+zhuanzhengOL = sgs.CreateZeroCardViewAsSkill{  
+    name = "zhuanzhengOL",  
       
     view_as = function(self)  
-        local card = zhuanzheng1_card:clone()  
+        local card = zhuanzhengOLcard:clone()  
         card:setSkillName(self:objectName())
         card:setShowSkill(self:objectName())
         return card
     end,  
       
     enabled_at_play = function(self, player)   
-        local used_times = player:usedTimes("#zhuanzheng1")  
+        local used_times = player:usedTimes("#zhuanzhengOL")  
         return used_times < 2
     end  
 }
-]]
+
 
 zhuanzheng1 = sgs.CreateViewAsSkill{  
     name = "zhuanzheng1",  
@@ -4735,7 +4774,7 @@ sgs.LoadTranslationTable{
     [":fushu"] = "出牌阶段限一次。你可以令一名角色视为使用一张远交近攻，然后其对你指定的另一名与其势力相同的角色造成一点伤害。",  
     ["@fushu-damage"] = "请选择一名与 %src 势力相同的角色，令 %src 对其造成一点伤害",
 }
-
+--[[
 zhongyao = sgs.General(extension, "zhongyao", "wei", 3)
 
 zuoding = sgs.CreateTriggerSkill{  
@@ -4856,6 +4895,6 @@ sgs.LoadTranslationTable{
     ["huomo"] = "活墨",
     [":huomo"] = "若你本回合没有失去过牌，你可以将一张黑色非基本牌当作任意基本牌使用，然后将该牌放在牌堆顶",
 }
-
+]]
 sgs.Sanguosha:addSkills(skills)
 return {extension}
