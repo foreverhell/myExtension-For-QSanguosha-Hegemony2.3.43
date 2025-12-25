@@ -2873,7 +2873,7 @@ yinyi_card = sgs.CreateSkillCard{
             end  
         else  
             -- 偶数：选择1-2名角色使用铁索连环  
-            local targets = room:askForPlayersChosen(source, room:getAlivePlayers(), self:objectName(), 1, 2, "请选择玩家", false)
+            local targets = room:askForPlayersChosen(source, room:getAlivePlayers(), self:objectName(), 1, 2, "请选择铁索连环的目标（1-2名角色）", false)
             -- 创建并使用铁索连环  
             local iron_chain = sgs.Sanguosha:cloneCard("iron_chain", sgs.Card_NoSuit, 0)  
             iron_chain:setSkillName("yinyi")  
