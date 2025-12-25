@@ -160,8 +160,9 @@ sgs.ai_skill_cardask["@guicai-card"] = function(self, data)
 	for _, id in sgs.qlist(self.player:getHandPile()) do
 		table.insert(cards, 1, sgs.Sanguosha:getCard(id))
 	end
-	if self.player:hasSkill("luoshen") and self.player:hasTreasure("JadeSeal") and judge.reason ~= "lightning" then
-		table.removeOne(cards,sgs.Sanguosha:getCard(self.player:getTreasure():getEffectiveId()))--洛神去掉玉玺
+	if self.player:hasSkill("luoshen") and (self.player:hasTreasure("JadeSeal") or self.player:hasTreasure("provinceSeal")) and 
+	judge.reason ~= "lightning" then
+		table.removeOne(cards,sgs.Sanguosha:getCard(self.player:getTreasure():getEffectiveId()))--洛神去掉玉玺和州郡领兵印
 	end
 
 	if self:needRetrial(judge) then
@@ -1803,7 +1804,7 @@ sgs.ai_skill_invoke.xingshang = function(self, data)
 	local x = self.room:getAllPlayers(true):length()
 	local weiPlayer = self.player:getPlayerNumWithSameKingdom("AI", "wei", 1)
 	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
-	self.player:getRole() ~= "careerist" and not self:isWeak() and self.player:inHeadSkills("fangzhu") and not 
+	self.player:getRole() ~= "careerist" and self.player:getHp() > 1 and self.player:inHeadSkills("fangzhu") and not 
 	(weiPlayer >= x / 2) and not self.player:hasShownGeneral1() then
 		return false
 	end
@@ -1837,7 +1838,7 @@ sgs.ai_skill_playerchosen.fangzhu = function(self, targets)
 	local x = self.room:getAllPlayers(true):length()
 	local weiPlayer = self.player:getPlayerNumWithSameKingdom("AI", "wei", 1)
 	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
-	self.player:getRole() ~= "careerist" and not self:isWeak() and self.player:inHeadSkills("fangzhu") and not 
+	self.player:getRole() ~= "careerist" and self.player:getHp() > 1 and self.player:inHeadSkills("fangzhu") and not 
 	(weiPlayer >= x / 2) and not self.player:hasShownGeneral1() then
 		return {}
 	end
