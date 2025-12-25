@@ -1325,7 +1325,7 @@ sgs.LoadTranslationTable{
     [":zunwei"] = "若你弃牌阶段未弃牌或受到伤害后，你可以摸1张牌，并弃置1张牌，直到你的下回合开始，你失去与弃置牌花色相同的牌时，你摸一张牌",  
     ["1r1b"] = "1黑1红"
 }
-
+--[[
 liuchen = sgs.General(extension, "liuchen", "shu", 4) -- 蜀势力，4血，男性（默认）  
 
 zhanjueDuelCard = sgs.CreateSkillCard{  
@@ -1444,7 +1444,7 @@ sgs.LoadTranslationTable{
 ["zhanjueDuel"] = "战绝",  
 [":zhanjueDuel"] = "出牌阶段限一次，你可以将所有手牌当决斗使用，该决斗结算完成后，你和受到此决斗伤害的角色各摸一张牌；若你未受到此决斗伤害，该技能出牌阶段限2次。",
 }
-
+]]
 wangyun = sgs.General(extension, "wangyun", "qun", 3) -- 蜀势力，4血，男性（默认）  
 
 
