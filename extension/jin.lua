@@ -1866,18 +1866,19 @@ bingxin = sgs.CreateTriggerSkill{
         player:drawCards(1, self:objectName())  
           
         -- 视为使用一张基本牌  
-        choices = {"analeptic"}
+        choices = {}
         if sgs.Slash_IsAvailable(player) then
             table.insert(choices, "slash")
+            table.insert(choices, "thunder_slash")
+            table.insert(choices, "fire_slash")
         end
         if player:isWounded() then
             table.insert(choices, "peach")
         end
-        --[[
         if sgs.Analeptic_IsAvailable(player) then
             table.insert(choices, "analeptic")
         end
-        ]]
+ 
         if #choices > 0 then  
             local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"))  
             if choice and choice ~= "" then  
@@ -1885,7 +1886,7 @@ bingxin = sgs.CreateTriggerSkill{
                 virtual_card:setSkillName(self:objectName())  
                 virtual_card:deleteLater()
                 -- 根据卡牌类型设置目标  
-                if choice == "slash" then  
+                if choice == "slash" or choice == "thunder_slash" or choice == "fire_slash" then  
                     local targets = sgs.SPlayerList()  
                     for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
                         if player:inMyAttackRange(p) then  
@@ -1915,7 +1916,6 @@ bingxin = sgs.CreateTriggerSkill{
                 end  
             end  
         end  
-          
         return false  
     end  
 }
@@ -2712,7 +2712,7 @@ shanduan = sgs.CreateTriggerSkill{
   
 -- 善断摸牌数调整  
 shanduan_draw = sgs.CreateDrawCardsSkill{  
-    name = "shanduan_draw",  
+    name = "#shanduan_draw",  
     draw_num_func = function(self, target, n)  
         if target:hasFlag("shanduan_draw") then  
             return target:getHp()
@@ -2723,7 +2723,7 @@ shanduan_draw = sgs.CreateDrawCardsSkill{
   
 -- 善断攻击范围调整  
 shanduan_range = sgs.CreateAttackRangeSkill{  
-    name = "shanduan_range",  
+    name = "#shanduan_range",  
     extra_func = function(self, target, include_weapon)  
         if target:hasFlag("shanduan_range") then  
             return target:getHp()-target:getAttackRange()
@@ -2734,7 +2734,7 @@ shanduan_range = sgs.CreateAttackRangeSkill{
   
 -- 善断杀次数调整  
 shanduan_slash = sgs.CreateTargetModSkill{  
-    name = "shanduan_slash",  
+    name = "#shanduan_slash",  
     pattern = "Slash",  
     residue_func = function(self, from, card)  
         if from:hasFlag("shanduan_slash") then  
@@ -2746,51 +2746,79 @@ shanduan_slash = sgs.CreateTargetModSkill{
 }  
 
 
-yilieCard = sgs.CreateSkillCard{  
-    name = "yilieCard",  
-    target_fixed = true,  
-    will_throw = true,  
+yilieCard = sgs.CreateSkillCard{
+    name = "yilie",
+    target_fixed = true,
+    will_throw = false,
+    handling_method = sgs.Card_MethodNone,
       
-    on_use = function(self, room, source, targets) 
-        --room:setPlayerFlag(source, "yilie_used")
-        local choices = {"analeptic"}
+    on_use = function(self, room, source, targets)
+        local pattern = sgs.Sanguosha:getCurrentCardUsePattern() --为啥这里只有pattern=="jink"的情况？
+        local choices = {}
         if sgs.Slash_IsAvailable(source) then
             table.insert(choices, "slash")
+            table.insert(choices, "thunder_slash")
+            table.insert(choices, "fire_slash")
         end
-        --[[
         if sgs.Analeptic_IsAvailable(source) then
             table.insert(choices, "analeptic")
         end
-        ]]
         if source:isWounded() then
             table.insert(choices, "peach")
         end
-        if #choices == 0 then return false end
-        choice=room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
-        card = sgs.Sanguosha:cloneCard(choice)  
-        card:setSkillName("yilie")
+
+        local choice = ""--pattern无除了闪之外的情况，只能先这么写了
+        local isAskforPeach = false
+        local peachToPlayer
+        if source:getHp() <= 0 then
+            choice = room:askForChoice(source, self:objectName(), "analeptic+peach")
+        else
+            for _, p in sgs.qlist(room:getOtherPlayers(source)) do
+                if not p:isDead() and p:getHp() <= 0 then
+                    choice = "peach"
+                    isAskforPeach = true
+                    peachToPlayer = p
+                    break
+                end
+            end
+            if not isAskforPeach and pattern == "jink" then 
+                choice = "jink"
+            elseif not isAskforPeach then
+                choice = room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
+            end
+        end
+        if choice == nil then return false end
+        local card = sgs.Sanguosha:cloneCard(choice, sgs.Card_NoSuit, -1)
+        card:addSubcard(self)
+        card:setSkillName(self:objectName())
+        if choice == "analeptic" and source:getHp() <= 0 then card:setFlags("UsedBySecondWay") end
         card:deleteLater()
-        if choice=="slash" then
-            local targets = sgs.SPlayerList()  
-            for _, p in sgs.qlist(room:getOtherPlayers(source)) do  
-                if source:inMyAttackRange(p) then  
-                    targets:append(p) 
-                end  
-            end  
-            target=room:askForPlayerChosen(source, targets, self:objectName())
-            local use = sgs.CardUseStruct()  
-            use.from = source  
-            use.to:append(target)   
-            use.card = card  
-            room:useCard(use)
+        if choice == "slash" or choice == "thunder_slash" or choice == "fire_slash" then
+            local targets = sgs.SPlayerList()
+            for _, p in sgs.qlist(room:getOtherPlayers(source)) do
+                if p:isAlive() and source:inMyAttackRange(p) then
+                    targets:append(p)
+                end
+            end
+            target = room:askForPlayerChosen(source, targets, self:objectName())
+            if target then
+                local use = sgs.CardUseStruct()  
+                use.from = source
+                use.to:append(target)
+                use.card = card
+                room:useCard(use)
+            end
         else
             local use = sgs.CardUseStruct()  
-            use.from = source  
-            use.to:append(source)   
-            use.card = card  
+            use.from = source
+            if choice == "peach" and isAskforPeach then--对别人用桃
+                use.to:append(peachToPlayer)
+            else
+                use.to:append(source)
+            end
+            use.card = card
             room:useCard(use)
         end
-        
     end  
 }
 yilie = sgs.CreateViewAsSkill{  
@@ -2807,29 +2835,13 @@ yilie = sgs.CreateViewAsSkill{
     end,  
     view_as = function(self, cards)  
         if #cards == 2 then 
-            local card_name = ""  
-            local pattern = sgs.Sanguosha:getCurrentCardUsePattern()  
-            if pattern == "slash" then  
-                card_name = "slash"  
-            elseif pattern == "jink" then  
-                card_name = "jink"  
-            elseif string.find(pattern,"peach") then  
-                card_name = "peach"  
-            elseif string.find(pattern,"analeptic") then  
-                card_name = "analeptic"  
-            end  
-            local view_as_card = nil
-            if card_name ~= "" then
-                view_as_card = sgs.Sanguosha:cloneCard(card_name)  
-            else
-                view_as_card = yilieCard:clone()
-            end
+            local card_name = ""
+            local view_as_card = yilieCard:clone()
             view_as_card:addSubcard(cards[1]:getId())  
             view_as_card:addSubcard(cards[2]:getId())  
             view_as_card:setSkillName(self:objectName())  
             view_as_card:setShowSkill(self:objectName())  
             return view_as_card  
-            
         end  
         return nil  
     end,  
@@ -2841,12 +2853,14 @@ yilie = sgs.CreateViewAsSkill{
         return pattern=="slash" or pattern=="jink" or string.find(pattern,"peach") or  string.find(pattern,"analeptic") 
     end  
 }
---sgs.insertRelatedSkills(extension, "shanduan", "#shanduan_draw", "#shanduan_range", "#shanduan_slash")
 zhouchu:addSkill(shanduan)
 zhouchu:addSkill(shanduan_draw)
 zhouchu:addSkill(shanduan_range)
 zhouchu:addSkill(shanduan_slash)
 zhouchu:addSkill(yilie)
+extension:insertRelatedSkills("shanduan", "#shanduan_draw")
+extension:insertRelatedSkills("shanduan", "#shanduan_range")
+extension:insertRelatedSkills("shanduan", "#shanduan_slash")
 sgs.LoadTranslationTable{
 ["#zhouchu"] = "除三害",  
 ["zhouchu"] = "周处",  
