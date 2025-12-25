@@ -10,6 +10,7 @@ luachenqun = sgs.General(canghaiz, "luachenqun", "wei", 3)
 lualitong = sgs.General(canghaiz, "lualitong", "wei")
 luacaochun = sgs.General(canghaiz, "luacaochun", "wei")
 luacaorui = sgs.General(canghaiz, "luacaorui", "wei", 3)
+luazhongyao = sgs.General(canghaiz, "luazhongyao", "wei", 3)
 
 --蜀势力
 --luaqinmi = sgs.General(canghaiz,"luaqinmi", "shu", 3)
@@ -27,6 +28,7 @@ luajushou = sgs.General(canghaiz, "luajushou", "qun", 3)
 luahuangfusong = sgs.General(canghaiz, "luahuangfusong", "qun")
 luachengong = sgs.General(canghaiz, "luachengong", "qun", 3)
 lualiuyan = sgs.General(canghaiz, "lualiuyan", "qun", 3)
+luacaiyong = sgs.General(canghaiz, "luacaiyong", "qun", 3)
 
 
 local skills = sgs.SkillList()
@@ -982,7 +984,7 @@ luajiushi = sgs.CreateZeroCardViewAsSkill{
     name = "luajiushi",
     response_or_use = true,
     view_as = function(self)
-        local analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
+        local analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, -1)
 		analeptic:setSkillName(self:objectName())
 		return analeptic
 	end,
@@ -1146,7 +1148,7 @@ luafenyuePindian = sgs.CreateTriggerSkill{
                 room:setPlayerCardLimitation(pdTo, "use,response", ".|.|.|hand", true)
                 room:addPlayerMark(pdTo, "##boyan")
             elseif choice == "luafenyue_slash" then
-                local slash = sgs.Sanguosha:cloneCard("thunder_slash", sgs.Card_NoSuit, 0)
+                local slash = sgs.Sanguosha:cloneCard("thunder_slash", sgs.Card_NoSuit, -1)
                 slash:setSkillName("luafenyue")
                 room:useCard(sgs.CardUseStruct(slash, pdFrom, pdTo), false)
                 slash:deleteLater()
@@ -2600,16 +2602,393 @@ sgs.LoadTranslationTable{
     ["luazifeng"] = "自封",
     [":luazifeng"] = "每回合限一次。其他角色使用或打出非转化的闪时，你可以将此牌当作乐不思蜀置于判定区，或获得判定区的乐不思蜀",
     ["luajuxian"] = "据险",  
-    [":luajuxian"] = "锁定技，你的乐不思蜀判定反转。你的延时锦囊牌结算完成后，你摸一张牌，或弃置1张牌并对1名其他角色造成1点伤害",
+    [":luajuxian"] = "锁定技，你的乐不思蜀判定反转。你的延时锦囊牌结算完成后，你摸一张牌，或弃置一张牌并对一名其他角色造成1点伤害",
     ["@luazifengAsk"] = "请选择一张【闪】发动“自封”",
     ["luazifengIndu"] = "自封",
-    ["luajuxianDamage"] = "弃置1张牌造成伤害",
-    ["luajuxianDraw"] = "摸1张牌",
-    ["$luazifeng1"] = "卿有成材良木，可妆吾家江山。",
-    ["$luazifeng2"] = "吾好锦衣玉食，卿家可愿割爱否？",
-    ["$luajuxian1"] = "卿有成材良木，可妆吾家江山。",
-    ["$luajuxian2"] = "吾好锦衣玉食，卿家可愿割爱否？",
-    ["~lualiuyan"] = "臣家火起，请离席救之。",
+    ["luajuxianDamage"] = "弃置一张牌造成伤害",
+    ["luajuxianDraw"] = "摸一张牌",
+    ["$luazifeng1"] = "今诸州纷乱，当立牧以定！",
+    ["$luazifeng2"] = "此非为偏安一隅，但求一方百姓安宁！",
+    ["$luajuxian1"] = "据险以图进，备策而施为！",
+    ["$luajuxian2"] = "夫战者，可时以奇险之策而图常谋！",
+    ["~lualiuyan"] = "季玉，望你能守好这益州疆土……",
+}
+
+luazhudian = sgs.CreateTriggerSkill{
+    name = "luazhudian",
+    events = {sgs.TargetConfirmed},
+      
+    can_trigger = function(self, event, room, player, data)  
+        if not skillTriggerable(player, self:objectName()) or player:isNude() then return "" end
+        local use = data:toCardUse()  
+        if use.card and use.card:isBlack() and use.from ~= player and use.to:contains(player) then 
+            if use.card:getTypeId() == sgs.Card_TypeSkill then return "" end 
+            return self:objectName()  
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then
+            room:broadcastSkillInvoke(self:objectName(), player)
+            return true
+        end
+        return false
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local use = data:toCardUse()
+        local toRecasts = room:askForExchange(player, self:objectName(), 1, 1)
+        if not toRecasts:isEmpty() then
+            local toRecast = sgs.Sanguosha:getCard(toRecasts:at(0))
+            local log = sgs.LogMessage()
+            log.type = "#Card_Recast"
+            log.from = player
+            log.card_str = toRecast:toString()
+            room:sendLog(log)
+
+            local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_RECAST, player:objectName())--重铸
+            room:moveCardTo(toRecast, player, sgs.Player_DiscardPile, reason)
+            player:drawCards(1, self:objectName())
+
+            local card = player:getHandcards():last()
+            if card:isBlack() and card:getSuit() ~= use.card:getSuit() then --黑色，并且花色不同，即黑色的另一种花色
+                local choice = room:askForChoice(player, self:objectName(), "yes+no", data, "@luazhudian-show")
+                if choice == "yes" then
+                    room:showCard(player, card:getId())
+                    player:drawCards(1, self:objectName())
+                end
+            end
+        end
+        return false
+    end
+}
+
+--[[luabotongBasic = sgs.CreateZeroCardViewAsSkill{
+    name = "luabotong_basic",
+    guhuo_type = "!b",
+    response_pattern = "luabotong_basic",
+    view_as = function(self)
+        local luabotong_card = sgs.Self:getTag("luabotong_basic"):toString()
+        if luabotong_card == nil then return nil end
+        local basicCard = sgs.Sanguosha:cloneCard(luabotong_card, sgs.Card_NoSuit, -1)
+        if basicCard == nil then return nil end
+        basicCard:setSkillName("_luabotong")
+        return basicCard
+    end,
+
+    enabled_to_vs_card = function(self, button_name)
+        local basicCard = sgs.Sanguosha:cloneCard(button_name, sgs.Card_NoSuit, -1)
+        if basicCard == nil then return false end
+        basicCard:setSkillName("_luabotong")
+        return sgs.Self:isCardLimited(basicCard, sgs.Card_MethodUse, false) and basicCard:isAvailable(sgs.Self)
+    end
+}]]
+
+luabotongCard = sgs.CreateSkillCard{
+    name = "luabotongCard",
+    target_fixed = true,
+    will_throw = false,
+    handling_method = sgs.Card_MethodNone,
+      
+    on_use = function(self, room, source, targets)
+        --room:askForUseCard(source, "luabotong_basic", "@luabotong-basic")
+        local pattern = sgs.Sanguosha:getCurrentCardUsePattern() --为啥这里只有pattern=="jink"的情况？
+        local choices = {}
+        if sgs.Slash_IsAvailable(source) then
+            table.insert(choices, "slash")
+            table.insert(choices, "thunder_slash")
+            table.insert(choices, "fire_slash")
+        end
+        if sgs.Analeptic_IsAvailable(source) then
+            table.insert(choices, "analeptic")
+        end
+        if source:isWounded() then
+            table.insert(choices, "peach")
+        end
+
+        local choice = ""--pattern无除了闪之外的情况，只能先这么写了
+        local isAskforPeach = false
+        local peachToPlayer
+        if source:getHp() <= 0 then
+            choice = room:askForChoice(source, self:objectName(), "analeptic+peach")
+        else
+            for _, p in sgs.qlist(room:getOtherPlayers(source)) do
+                if not p:isDead() and p:getHp() <= 0 then
+                    choice = "peach"
+                    isAskforPeach = true
+                    peachToPlayer = p
+                    break
+                end
+            end
+            if not isAskforPeach and pattern == "jink" then 
+                choice = "jink"
+            elseif not isAskforPeach then
+                choice = room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
+            end
+        end
+        if choice == nil then return false end
+        local card = sgs.Sanguosha:cloneCard(choice, sgs.Card_NoSuit, -1)
+        card:addSubcard(self)
+        card:setSkillName(self:objectName())
+        if choice == "analeptic" and source:getHp() <= 0 then card:setFlags("UsedBySecondWay") end
+        card:deleteLater()
+        if choice == "slash" or choice == "thunder_slash" or choice == "fire_slash" then
+            local targets = sgs.SPlayerList()
+            for _, p in sgs.qlist(room:getOtherPlayers(source)) do
+                if p:isAlive() and source:inMyAttackRange(p) then
+                    targets:append(p)
+                end
+            end
+            target = room:askForPlayerChosen(source, targets, self:objectName())
+            if target then
+                local use = sgs.CardUseStruct()  
+                use.from = source
+                use.to:append(target)
+                use.card = card
+                room:useCard(use)
+            end
+        else
+            local use = sgs.CardUseStruct()  
+            use.from = source
+            if choice == "peach" and isAskforPeach then--对别人用桃
+                use.to:append(peachToPlayer)
+            else
+                use.to:append(source)
+            end
+            use.card = card
+            room:useCard(use)
+        end
+
+        room:askForRende(source, card:getSubcards(), "luabotong", true, false, true, -1, 0, room:getOtherPlayers(source),
+        sgs.CardMoveReason(), "@luabotong-give", "#luabotong")
+    end  
+}
+
+luabotong = sgs.CreateViewAsSkill{  
+    name = "luabotong",  
+    view_filter = function(self, selected, to_select)  
+        if #selected == 0 then
+            return true
+        else
+            for _, c in ipairs(selected) do
+                if to_select:getSuit() == c:getSuit() then
+                    return false
+                end
+            end
+            return true
+        end
+    end,
+
+    view_as = function(self, cards)
+        if #cards ~= 4 then return nil end
+        local card_name = ""
+        local view_as_card = luabotongCard:clone()
+        for _, c in ipairs(cards) do
+            view_as_card:addSubcard(c:getId())
+        end
+        view_as_card:setSkillName(self:objectName())
+        view_as_card:setShowSkill(self:objectName())  
+        return view_as_card  
+    end,  
+      
+    enabled_at_play = function(self, player)   
+        return true
+    end,
+
+    enabled_at_response = function(self, player, pattern)
+        return (pattern == "slash" or pattern == "jink" or string.find(pattern, "peach") or string.find(pattern, "analeptic")) and not
+        player:hasFlag("luabotongAskfor")
+    end,
+}
+
+luabotongFlag = sgs.CreateTriggerSkill{
+    name = "#luabotongFlag",
+    events = {sgs.TargetConfirmed, sgs.DamageInflicted, sgs.CardFinished},
+    priority = -1,
+    frequency = sgs.Skill_Compulsory,
+    on_record = function(self, event, room, player, data)
+        if skillTriggerable(player, "luabotong") then
+            local use = data:toCardUse()
+            if use and use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill then
+                if event == sgs.TargetConfirmed then
+                    if use.card:isKindOf("Duel") or use.card:isKindOf("ArcheryAttack") or use.card:isKindOf("SavageAssault") then
+                        room:setPlayerFlag(player, "luabotongAskfor")
+                    end
+                elseif event == sgs.DamageInflicted or event == sgs.CardFinished then
+                    room:setPlayerFlag(player, "-luabotongAskfor")
+                end
+            end
+        end
+    end,
+
+    can_trigger = function(self, event, room, player, data)
+        return false
+    end,
+}
+
+luacaiyong:addSkill(luazhudian)
+luacaiyong:addSkill(luabotong)
+luacaiyong:addSkill(luabotongFlag)
+canghaiz:insertRelatedSkills("luabotong", "#luabotongFlag")
+
+sgs.LoadTranslationTable{
+    ["luacaiyong"] = "蔡邕",
+    ["luazhudian"] = "铸典",
+    [":luazhudian"] = "当你成为其他角色使用黑色牌的目标后，你可以重铸一张牌，然后若你摸的牌为黑色的另一种花色，你可以展示之并摸一张牌。",
+    ["luabotong"] = "博通",
+    [":luabotong"] = "你可以将四张花色各不相同的牌当任意一种基本牌使用，然后你可以将这些牌分配给任意名其他角色。",
+    ["@luabotong-give"] = "博通：你可以选择任意张牌交给任意名其他角色",
+    ["luabotongCard"] = "博通",
+    ["@luabotong-basic"] = "博通：请选择使用其中一种基本牌",
+    ["@luazhudian-recast"] = "铸典：请选择一张牌重铸",
+    ["@luazhudian-show"] = "铸典：是否展示摸到的牌并再摸一张牌",
+    ["$luazhudian1"] = "无墨不成书，无识不成才。",
+    ["$luazhudian2"] = "笔可抒情，亦可诛心。",
+    ["$luabotong1"] = "读万卷书，行万里路。",
+    ["$luabotong2"] = "博学而不穷，笃行而不倦。",
+    ["~luacaiyong"] = "感叹时事，何罪之有？",
+}
+
+luazuoding = sgs.CreateTriggerSkill{  
+    name = "luazuoding",  
+    events = {sgs.TargetChosen, sgs.Damaged},
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() then
+            local current = room:getCurrent()
+            if event == sgs.Damaged then
+                room:setPlayerFlag(current, "luazuoding_damaged") --本回合有人受过伤
+                return false
+            end
+
+            local skill_owners = room:findPlayersBySkillName(self:objectName())
+			local skill_list = {}
+			local name_list = {}
+			if skill_owners:isEmpty() then return false end
+            for _, skill_owner in sgs.qlist(skill_owners) do
+                if current:hasFlag("luazuoding_damaged") then return false end
+                local use = data:toCardUse()  
+                if use and use.from and use.from:objectName() ~= skill_owner:objectName() and use.from:objectName() == 
+                current:objectName() then 
+                    if use.card and use.card:getSuitString() == "spade" and use.card:getTypeId() ~= sgs.Card_TypeSkill and
+                    use.index == 0 then
+                        table.insert(skill_list, self:objectName())
+                        table.insert(name_list, skill_owner:objectName())
+                    end
+                end
+            end
+            return table.concat(skill_list, "|"), table.concat(name_list, "|")
+        end
+        return false 
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName(), ask_who)  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local use = data:toCardUse()  
+        local target = room:askForPlayerChosen(ask_who, use.to, self:objectName(), "@luazuoding_target", true, true)    
+        if target then
+            target:drawCards(1, self:objectName())
+        end
+        return false  
+    end  
+}
+
+luahuomoVS = sgs.CreateOneCardViewAsSkill{  
+    name = "luahuomo",  
+    guhuo_type = "b",  -- 显示基础牌选择框  
+    filter_pattern = "^BasicCard|black|.|.",  --牌名，类型|颜色，花色|点数|位置
+    response_or_use = true,  
+    view_as = function(self, card)  
+        local pattern = sgs.Self:getTag(self:objectName()):toString()  
+        local new_card = sgs.Sanguosha:cloneCard(pattern, sgs.Card_NoSuit, -1)  
+        if new_card then  
+            new_card:addSubcard(card:getId())  
+            new_card:setSkillName(self:objectName())  
+            new_card:setShowSkill(self:objectName())  
+        end  
+        return new_card  
+    end,  
+
+    enabled_at_play = function(self, player)  
+        return not player:isNude() and not player:hasFlag("luahuomo_lose")
+    end,
+    
+    enabled_at_response = function(self, player, pattern)  
+        return not player:isNude() and not player:hasFlag("luahuomo_lose") and (pattern == "slash" or pattern == "jink" or 
+        string.find(pattern, "peach") or string.find(pattern, "analeptic"))
+    end  
+}
+
+
+luahuomo = sgs.CreateTriggerSkill{
+    name = "luahuomo",
+    events = {sgs.CardUsed, sgs.CardsMoveOneTime, sgs.EventPhaseChanging},
+    view_as_skill = luahuomoVS,
+    frequency = sgs.Compulsory,
+    on_record = function(self, event, room, player, data)
+		if event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            local skill_owners = room:findPlayersBySkillName(self:objectName())
+            if skill_owners:isEmpty() then return false end
+            for _, p in sgs.qlist(skill_owners) do
+                if p:isAlive() then
+                    room:setPlayerFlag(p, "-luahuomo_lose")--转阶段清除标记
+                end
+            end
+        end
+    end,
+    
+    can_trigger = function(self, event, room, player, data)  
+        if skillTriggerable(player, self:objectName()) and event == sgs.CardUsed then
+            local use = data:toCardUse()
+            if use.card and use.card:getSkillName() == self:objectName() then
+                local subcard_id = use.card:getSubcards():first()
+                room:showCard(player, subcard_id)
+                room:moveCardTo(sgs.Sanguosha:getCard(subcard_id), nil, sgs.Player_DrawPile, true) 
+            end
+        elseif event == sgs.CardsMoveOneTime then
+            if not skillTriggerable(player, self:objectName()) or player:hasFlag("luahuomo_lose") then  
+                return false  
+            end 
+            local current = room:getCurrent()
+			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					if move.from_places:contains(sgs.Player_PlaceHand) or move.from_places:contains(sgs.Player_PlaceEquip) then
+						if move.from and move.from:isAlive() and player:objectName() == move.from:objectName() then
+                            room:setPlayerFlag(player, "luahuomo_lose")
+						end
+					end
+				end
+			end
+        end
+        return false
+    end,
+}  
+
+luazhongyao:addSkill(luazuoding)
+luazhongyao:addSkill(luahuomo)
+
+sgs.LoadTranslationTable{
+    ["luazhongyao"] = "钟繇",
+    ["luazuoding"] = "佐定",
+    [":luazuoding"] = "其他角色于其出牌阶段使用黑桃牌指定目标后，若此阶段没有角色受到过伤害，你可以令其中一个目标摸一张牌",
+    ["luahuomo"] = "活墨",
+    [":luahuomo"] = "当你需要使用一种任意基本牌时，若此阶段你未失去过牌，你可以展示一张黑色非基本牌并置于牌堆顶，视为使用你需要的牌。",
+    ["@luazuoding_target"] = "佐定：请选择一名目标角色摸一张牌",
+    ["$luazuoding1"] = "只有忠心，没有谋略，是不够的。",
+    ["$luazuoding2"] = "承君恩宠，报效国家！",
+    ["$luahuomo1"] = "笔墨写春秋，挥毫退万敌！",
+    ["$luahuomo2"] = "妙笔在手，研墨在心。",
+    ["~luazhongyao"] = "人有寿终日，笔有墨尽时。",
 }
 
 sgs.Sanguosha:addSkills(skills)

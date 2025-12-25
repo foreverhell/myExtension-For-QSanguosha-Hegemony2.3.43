@@ -12,7 +12,7 @@ lord_caopi = sgs.General(secLordGe, "lord_caopi$", "wei", 4, true, true)
 
 --蜀势力
 lord_liushan = sgs.General(secLordGe, "lord_liushan$", "shu", 4, true, true)
---lualiuchen = sgs.General(secLordGe, "lualiuchen", "shu")
+lualiuchen = sgs.General(secLordGe, "lualiuchen", "shu")
 
 local skills = sgs.SkillList()
 
@@ -734,6 +734,101 @@ luaxtfcz_range = sgs.CreateAttackRangeSkill{
     end
 }
 
+luazhanjueCard_lordliushan = sgs.CreateSkillCard{
+	name = "luazhanjueCard_lordliushan",
+	skill_name = "luazhanjue_lordliushan",
+	will_throw = false,
+	filter = function(self, targets, to_select, Self)
+		return #targets == 0 and to_select:objectName() ~= Self:objectName() and not to_select:isRemoved()
+	end,
+	on_use = function(self, room, source, targets)
+		local hcards = source:getCards("h")
+		local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, -1)
+        for _, c in sgs.qlist(hcards) do duel:addSubcard(c:getId()) end
+        duel:setSkillName("luazhanjue_lordliushan")
+        room:useCard(sgs.CardUseStruct(duel, source, targets[1]), true)
+        duel:deleteLater()
+	end
+}
+
+luazhanjue_lordliushan = sgs.CreateZeroCardViewAsSkill{
+    name = "luazhanjue_lordliushan",
+    view_as = function(self)
+        local card = luazhanjueCard:clone()
+        card:setSkillName(self:objectName())
+		card:setShowSkill(self:objectName())
+        return card  
+    end,  
+      
+    enabled_at_play = function(self, player)  
+        return player:getMark("luazhanjueDrawLord") < 2 and not player:isKongcheng()
+    end
+}
+
+luazhanjue_drawlordliushan = sgs.CreateTriggerSkill{
+    name = "#luazhanjue_drawlordliushan",
+    events = {sgs.CardFinished, sgs.EventPhaseChanging, sgs.Damaged},
+    priority = -1,
+    frequency = sgs.Skill_Compulsory,
+    on_record = function(self, event, room, player, data)
+        if skillTriggerable(player, "luazhanjue") and event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            if change.to == sgs.Player_NotActive then
+                room:setPlayerMark(player, "luazhanjueDrawLord", 0)
+            end
+        end
+    end,
+
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() then
+            local current = room:getCurrent()
+            if skillTriggerable(current, "luazhanjue_lordliushan") then
+                if event == sgs.Damaged then
+                    local damage = data:toDamage()
+                    if damage.card:isKindOf("Duel") and damage.card:getSkillName() == "luazhanjue_lordliushan" then
+                        if event == sgs.Damaged then
+                            room:addPlayerMark(damage.to, "luazhanjueDamaged_lordliushan")
+                        end
+                    end
+                elseif event == sgs.CardFinished then
+                    local use = data:toCardUse()
+                    if use and use.card:isKindOf("Duel") and use.card:getSkillName() == "luazhanjue_lordliushan" then
+                        return self:objectName()
+                    end
+                end
+            end
+        end
+        return false
+    end,
+
+    on_cost = function(self, event, room, player, data)
+		return true
+	end,
+
+	on_effect = function(self, event, room, player, data)
+        local current = room:getCurrent()
+        local use = data:toCardUse()
+        local targets = room:getAlivePlayers()
+        room:sortByActionOrder(targets)
+        for _, p in sgs.qlist(targets) do
+            if p:objectName() == current:objectName() and p:getMark("luazhanjueDamaged_lordliushan") > 0 then
+                for i = 1, p:getMark("luazhanjueDamaged_lordliushan") do
+                    current:drawCards(1)
+                    current:drawCards(1)
+                    room:addPlayerMark(current, "luazhanjueDrawLord", 2)
+                end
+                room:setPlayerMark(current, "luazhanjueDamaged_lordliushan", 0)
+            elseif p:objectName() ~= current:objectName() and p:getMark("luazhanjueDamaged_lordliushan") > 0 then
+                current:drawCards(1)
+                p:drawCards(1)
+                room:addPlayerMark(current, "luazhanjueDrawLord", 1)
+                room:setPlayerMark(p, "luazhanjueDamaged_lordliushan", 0)
+            end
+        end
+        return false
+    end
+}
+
 lord_liushan:addSkill(luayanxi)
 lord_liushan:addSkill(luapingming)
 lord_liushan:addSkill(luayixing)
@@ -748,6 +843,8 @@ secLordGe:insertRelatedSkills("luayanxi", "#luaxtfcz_range")
 
 if not sgs.Sanguosha:getSkill("luayixingToEquip") then skills:append(luayixingToEquip) end
 if not sgs.Sanguosha:getSkill("fangquan_lordliushan") then skills:append(fangquan_lordliushan) end
+if not sgs.Sanguosha:getSkill("luazhanjue_lordliushan") then skills:append(luazhanjue_lordliushan) end
+secLordGe:insertRelatedSkills("luazhanjue_lordliushan", "#luazhanjue_drawlordliushan")
 
 sgs.LoadTranslationTable{
     ["#lord_liushan"] = "仁敏的蒲牢",
@@ -779,6 +876,8 @@ sgs.LoadTranslationTable{
     ["$luapingming2"] = "平安南北，终携百姓致太平！",
     ["$luayixing1"] = "朕虽驽钝，幸有众爱卿襄助！",
     ["$luayixing2"] = "知人善用，任人唯贤！",
+    ["$luazhanjue_lordliushan1"] = "千里锦绣江山，岂能拱手相让！",
+    ["$luazhanjue_lordliushan2"] = "先帝一生心血，安可坐以待毙！",
     ["~lord_liushan"] = "天下分崩离乱，再难建兴……",
 }
 
@@ -830,7 +929,7 @@ luazhanjue_draw = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)
         if player and player:isAlive() then
             local current = room:getCurrent()
-            if current and current:isAlive() and current:hasSkill("luazhanjue") then
+            if skillTriggerable(current, "luazhanjue") then
                 if event == sgs.Damaged then
                     local damage = data:toDamage()
                     if damage.card:isKindOf("Duel") and damage.card:getSkillName() == "luazhanjue" then
@@ -877,23 +976,19 @@ luazhanjue_draw = sgs.CreateTriggerSkill{
     end
 }
 
-if not sgs.Sanguosha:getSkill("luazhanjue") then skills:append(luazhanjue) end
-if not sgs.Sanguosha:getSkill("luazhanjue_draw") then skills:append(luazhanjue_draw) end
-secLordGe:insertRelatedSkills("luazhanjue", "#luazhanjue_draw")
-
---[[lualiuchen:addSkill(luazhanjue)
+lualiuchen:addSkill(luazhanjue)
 lualiuchen:addSkill(luazhanjue_draw)
-secLordGe:insertRelatedSkills("luazhanjue", "#luazhanjue_draw")--[[
+secLordGe:insertRelatedSkills("luazhanjue", "#luazhanjue_draw")
 
 sgs.LoadTranslationTable{
     ["lualiuchen"] = "刘谌",
     ["luazhanjue"] = "战绝",
     [":luazhanjue"] = "出牌阶段，你可以将所有手牌当【决斗】使用，然后你和因此受伤的角色各摸一张牌。若在同一阶段内你以此法摸过两张或更多的牌，则" ..
     "本回合此技能失效。",
-    ["$luazhanjue1"] = "虎豹骁骑，甲兵自当冠宇天下。",
-    ["$luazhanjue2"] = "非虎贲难入我营，唯坚铠方配锐士。",
-    ["~lualiuchen"] = "三属之下，竟也护不住我性命…",
-}]]
+    ["$luazhanjue1"] = "成败在此一举，杀！",
+    ["$luazhanjue2"] = "此刻，唯有死战，安能言降！",
+    ["~lualiuchen"] = "儿欲死战，父亲何故先降...",
+}
 
 luahuangchu = sgs.CreateTriggerSkill{
     name = "luahuangchu$",
