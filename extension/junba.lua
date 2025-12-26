@@ -1590,91 +1590,17 @@ sgs.LoadTranslationTable{
 
 jianshi = sgs.General(extension, "jianshi", "wei", 3, false)  -- 吴国，4血，男性  
 
-jiusiCard = sgs.CreateSkillCard{
-    name = "jiusi",
-    target_fixed = true,
-    will_throw = false,
-    handling_method = sgs.Card_MethodNone,
-      
-    on_use = function(self, room, source, targets)
-        --room:askForUseCard(source, "jiusi_basic", "@jiusi-basic")
-        local pattern = sgs.Sanguosha:getCurrentCardUsePattern() --为啥这里只有pattern=="jink"的情况？
-        local choices = {}
-        if sgs.Slash_IsAvailable(source) then
-            table.insert(choices, "slash")
-            table.insert(choices, "thunder_slash")
-            table.insert(choices, "fire_slash")
-        end
-        if sgs.Analeptic_IsAvailable(source) then
-            table.insert(choices, "analeptic")
-        end
-        if source:isWounded() then
-            table.insert(choices, "peach")
-        end
-
-        local choice = ""--pattern无除了闪之外的情况，只能先这么写了
-        local isAskforPeach = false
-        local peachToPlayer
-        if source:getHp() <= 0 then
-            choice = room:askForChoice(source, self:objectName(), "analeptic+peach")
-        else
-            for _, p in sgs.qlist(room:getOtherPlayers(source)) do
-                if not p:isDead() and p:getHp() <= 0 then
-                    choice = "peach"
-                    isAskforPeach = true
-                    peachToPlayer = p
-                    break
-                end
-            end
-            if not isAskforPeach and pattern == "jink" then 
-                choice = "jink"
-            elseif not isAskforPeach then
-                choice = room:askForChoice(source, self:objectName(), table.concat(choices, "+"))
-            end
-        end
-        if choice == nil then return false end
-        local card = sgs.Sanguosha:cloneCard(choice, sgs.Card_NoSuit, -1)
-        card:addSubcard(self)
-        card:setSkillName(self:objectName())
-        if choice == "analeptic" and source:getHp() <= 0 then card:setFlags("UsedBySecondWay") end
-        card:deleteLater()
-        if choice == "slash" or choice == "thunder_slash" or choice == "fire_slash" then
-            local targets = sgs.SPlayerList()
-            for _, p in sgs.qlist(room:getOtherPlayers(source)) do
-                if p:isAlive() and source:inMyAttackRange(p) then
-                    targets:append(p)
-                end
-            end
-            target = room:askForPlayerChosen(source, targets, self:objectName())
-            if target then
-                local use = sgs.CardUseStruct()  
-                use.from = source
-                use.to:append(target)
-                use.card = card
-                room:useCard(use)
-            end
-        else
-            local use = sgs.CardUseStruct()  
-            use.from = source
-            if choice == "peach" and isAskforPeach then--对别人用桃
-                use.to:append(peachToPlayer)
-            else
-                use.to:append(source)
-            end
-            use.card = card
-            room:useCard(use)
-        end
-    end  
-}
-
 jiusiVS = sgs.CreateZeroCardViewAsSkill{  
     name = "jiusi",  
     view_as = function(self)
-        local card_name = ""
-        local view_as_card = jiusiCard:clone()
-        view_as_card:setSkillName(self:objectName())
-        view_as_card:setShowSkill(self:objectName())  
-        return view_as_card  
+        local card_name = sgs.Self:getTag(self:objectName()):toString()
+		if card_name ~= "" then
+			local view_as_card = sgs.Sanguosha:cloneCard(card_name)
+			view_as_card:setCanRecast(false)
+			view_as_card:setSkillName(self:objectName())
+			view_as_card:setShowSkill(self:objectName())
+			return view_as_card
+		end
     end,  
       
     enabled_at_play = function(self, player)   
@@ -1684,6 +1610,13 @@ jiusiVS = sgs.CreateZeroCardViewAsSkill{
     enabled_at_response = function(self, player, pattern)
         return not player:hasFlag("jiusi_used") and (pattern == "slash" or pattern == "jink" or string.find(pattern, "peach") or string.find(pattern, "analeptic"))
     end,
+
+    vs_card_names = function(self, selected)
+		if #selected == 0 then
+			return "slash+thunder_slash+fire_slash+jink+analeptic+peach"
+		end
+		return ""
+	end,
 }
 
 jiusi = sgs.CreateTriggerSkill{  
