@@ -7546,6 +7546,7 @@ function SmartAI:findCardsToDiscard(flags, include_self, method, players, onebyo
 			if enemy:hasEquip() and not self:doNotDiscard(enemy, "e")
 				and ((isDiscard and self.player:canDiscard(enemy, "e")) or (isGet and self.player:canGetCard(enemy, "e"))) then
 				for _, e in sgs.qlist(enemy:getEquips()) do
+					if e:isKindOf("PeaceSpell") and enemy:hasShownSkill("wendao") then continue end
 					if check(player_table, enemy) then table.insert(player_table, e:getEffectiveId()) end
 				end
 			end
