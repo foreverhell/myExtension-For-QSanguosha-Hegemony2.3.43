@@ -2409,7 +2409,7 @@ sgs.ai_skill_invoke.jinwu = function(self, data)
 	local targets = sgs.SPlayerList()
 	for _, p in sgs.qlist(self.room:getOtherPlayers(self.player)) do
 		local slash = sgs.cloneCard("slash")
-		if self.player:canSlash(p, slash, false) then
+		if self.player:canSlash(p, slash, true) then
 			targets:append(p)
 		end
 	end
