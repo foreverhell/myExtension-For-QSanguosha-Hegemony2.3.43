@@ -1109,16 +1109,13 @@ jieyicheng = sgs.CreateTriggerSkill{
 	events = {sgs.TargetConfirmed, sgs.TargetChosen},
 	can_trigger = function(self, event, room, player, data)
 		local use = data:toCardUse()
-		if player and player:isAlive() and use.card:isKindOf("Slash") then--or (use.from and use.from:isAlive())) and use.card:isKindOf("Slash") then
+		if player and player:isAlive() and use.card:isKindOf("Slash") then
 			local skill_list = {}
 			local name_list = {}
 			local skill_owners = room:findPlayersBySkillName(self:objectName())
 			for _, skill_owner in sgs.qlist(skill_owners) do
-				if not skill_owner:hasFlag("FirstTarget") and (event == sgs.TargetConfirmed or (event == sgs.TargetChosen and 
-				use.index == 0)) then
+				if event == sgs.TargetConfirmed or (event == sgs.TargetChosen and use.index == 0) then
 					if skillTriggerable(skill_owner, self:objectName()) then
-						--if (player:isFriendWith(skill_owner) and use.to and use.to:contains(player)) or 
-						--(use.from and use.from:isFriendWith(skill_owner)) then
 						if player:isFriendWith(skill_owner) then
 							table.insert(skill_list, self:objectName())
 							table.insert(name_list, skill_owner:objectName())
@@ -1126,7 +1123,7 @@ jieyicheng = sgs.CreateTriggerSkill{
 					end
 				end
 			end
-			return table.concat(skill_list,"|"), table.concat(name_list,"|")
+			return table.concat(skill_list, "|"), table.concat(name_list, "|")
 		end
 		return false
 	end,
@@ -1135,35 +1132,28 @@ jieyicheng = sgs.CreateTriggerSkill{
 		local use = data:toCardUse()
 		if (skill_owner:hasShownSkill(self:objectName()) or skill_owner:objectName() == player:objectName()) 
 		and use.card:isKindOf("Slash") then
-			if player:isFriendWith(skill_owner) then--and use.to and use.to:contains(player) then
+			if player:isFriendWith(skill_owner) then
 				if player:askForSkillInvoke(self:objectName(), data) then
 					room:broadcastSkillInvoke("yicheng", skill_owner)
 					room:doAnimate(1, skill_owner:objectName(), player:objectName())
 					return true
 				end
-			--[[elseif use.from and use.from:isFriendWith(skill_owner) then
-				if use.from:askForSkillInvoke(self:objectName(), data) then
-					room:broadcastSkillInvoke("yicheng", skill_owner)
-					room:doAnimate(1, skill_owner:objectName(), use.from:objectName())
-					return true
-				end]]
 			end
 		end
 		return false
 	end,
 
 	on_effect = function(self, event, room, player, data, skill_owner)
-		--local use = data:toCardUse()
-		if player:isFriendWith(skill_owner) then--and use.to and use.to:contains(player) then
+		if player:isFriendWith(skill_owner) then
 			room:drawCards(player, 1, skill_owner:objectName())
 			if player:canDiscard(player, "he") then
-				room:askForDiscard(player, skill_owner:objectName(), 1, 1, false, true, "@jieyicheng_discard")
+				local invoke = room:askForDiscard(player, skill_owner:objectName(), 1, 1, false, true, "@jieyicheng_discard")
+				if not invoke then
+					local hecards = CardList2Table(player:getCards("he"))
+					local n = math.random(#hecards)
+					room:throwCard(hecards[n], player, player, self:objectName())
+				end
 			end
-		--[[elseif use.from and use.from:isFriendWith(skill_owner) then
-			room:drawCards(use.from, 1, skill_owner:objectName())
-			if use.from:canDiscard(use.from, "he") then
-				room:askForDiscard(use.from, skill_owner:objectName(), 1, 1, false, true, "@jieyicheng_discard")
-			end]]
 		end
 		return false
 	end
@@ -1806,11 +1796,23 @@ jiezhengbingCard = sgs.CreateSkillCard{
     name = "jiezhengbingCard",
 	skill_name = "jiezhengbing",
     target_fixed = true,--是否需要指定目标，默认false，即需要
+	will_throw = false,
+	handling_method = sgs.Card_MethodNone,
     on_use = function(self, room, source)
-        source:drawCards(1)
-		if sgs.Sanguosha:getCard(self:getSubcards():first()):isKindOf("Slash") then
+		local use_card = sgs.Sanguosha:getCard(self:getSubcards():first())
+		local log = sgs.LogMessage()
+		log.type = "#Card_Recast"
+		log.from = source
+		log.card_str = use_card:toString()
+		room:sendLog(log)
+
+		local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_RECAST, source:objectName())--重铸
+		room:moveCardTo(use_card, getServerPlayer(room, source:objectName()), sgs.Player_DiscardPile, reason)
+		source:drawCards(1)
+		if use_card:isKindOf("Slash") then
 			room:setPlayerFlag(source, "jiezhengbing_recastSlash")
 		end
+		room:addPlayerHistory(nil, "pushPile")
     end
 }
 
