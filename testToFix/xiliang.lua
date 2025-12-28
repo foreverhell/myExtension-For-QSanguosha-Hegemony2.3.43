@@ -366,7 +366,7 @@ sgs.LoadTranslationTable{
 
 }
 
-dizaiSummonCard = sgs.CreateArraySummonCard{
+--[[dizaiSummonCard = sgs.CreateArraySummonCard{
 	name = "dizai",
     mute = true,
 }
@@ -404,7 +404,7 @@ dizai = sgs.CreateTriggerSkill{
 		return ""
 	end,
 	on_cost = function(self, event, room, player, data, skill_owner)
-		if skill_owner and skill_owner:isAlive() and skill_owner:hasShownSkill(self:objectName()) then
+		if skill_owner and skill_owner:hasShownSkill(self:objectName()) then
 			room:sendCompulsoryTriggerLog(skill_owner, self:objectName())
             room:broadcastSkillInvoke(self:objectName(), skill_owner)
 			return true
@@ -437,7 +437,7 @@ dizai = sgs.CreateTriggerSkill{
 
 
 chendao:addSkill("wanglie")
-chendao:addSkill(dizai)
+chendao:addSkill(dizai)]]
 
 
 sgs.LoadTranslationTable{
@@ -1514,11 +1514,10 @@ lifuCard = sgs.CreateSkillCard{
 		if source:isAlive() and target:isAlive() then
 			local ids = room:getNCards(1)
 			local card = sgs.Sanguosha:getCard(ids:first())
-			source:setFlags("lifu_viewSuit_" .. card:getSuitString())
+			target:setFlags("lifu_viewSuit_" .. card:getSuitString())
 			room:fillAG(ids, source)
 			room:askForSkillInvoke(source, "lifu_view", sgs.QVariant("prompt::" .. target:objectName() .. ":" .. card:objectName()), false)
 			room:clearAG(source)
-			source:setFlags("-lifu_viewSuit_" .. card:getSuitString())
 			source:setFlags("Global_GongxinOperator")
 			local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PREVIEWGIVE, source:objectName(), target:objectName(), "lifu", "")
 			room:moveCardTo(card, target, sgs.Player_PlaceHand, reason)
@@ -1561,6 +1560,7 @@ yanzhong = sgs.CreatePhaseChangeSkill{
 			end
 		end
 		if not targets:isEmpty() then
+			
 			local target = room:askForPlayerChosen(player, targets, self:objectName(), "@yanzhong", true, true)
 		    if target then
 				local d = sgs.QVariant()
@@ -1893,11 +1893,7 @@ qinzhong = sgs.CreateTriggerSkill{
 			local dePlayer = room:askForPlayerChosen(player, same_kingdom_players, self:objectName(), "@qinzhong-invoke", true ,true)
 			local playerName = player:getActualGeneral2Name()
 			if dePlayer then
-				exchangeDeputyGeneral(player, dePlayer)
-				room:changePlayerGeneral2(player, dePlayerName)
-				player:setActualGeneral2Name(dePlayerName)
-				room:changePlayerGeneral2(dePlayer, playerName)
-				dePlayer:setActualGeneral2Name(playerName)
+				
 			end
 		end
 		return false
@@ -2275,6 +2271,7 @@ haokuieffect = sgs.CreateTriggerSkill{
 				end
 			end
 			if #ids > 0 then
+				room:setPlayerFlag(player, "haokuiInvoked")
 				local all_players = room:getAlivePlayers()
 				local to_choose = sgs.SPlayerList()
 				for _, p in sgs.qlist(all_players) do
@@ -2304,7 +2301,6 @@ haokuieffect = sgs.CreateTriggerSkill{
 							dummy:addSubcard(id)
 						end
 						room:obtainCard(to, dummy, reason)
-						room:setPlayerFlag(player, "haokuiInvoked")
 					end
 				end
 			end
