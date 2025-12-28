@@ -31,7 +31,7 @@ sgs.ai_skill_use_func["#jiejianglveCard"] = function(card, use, self)
     use.card = card
 end
 
-sgs.ai_use_priority.jiejianglveCard = 8.2
+sgs.ai_use_priority.jiejianglveCard = 9.2
 
 sgs.ai_skill_choice["startcommand_jiejianglve"] = function(self, choices)
     Global_room:writeToConsole(choices)
@@ -39,16 +39,16 @@ sgs.ai_skill_choice["startcommand_jiejianglve"] = function(self, choices)
     if table.contains(choices, "command5") then
         local faceup, not_faceup = 0, 0
         for _, friend in ipairs(self.friends_noself) do
-        if self:isFriendWith(friend) then
-            if friend:faceUp() then
-            faceup = faceup + 1
-            else
-            not_faceup = not_faceup + 1
+            if self:isFriendWith(friend) then
+                if friend:faceUp() then
+                    faceup = faceup + 1
+                else
+                    not_faceup = not_faceup + 1
+                end
             end
-        end
-        if not_faceup > faceup and not_faceup > 1 then
-            return "command5"
-        end
+            if not_faceup > faceup and not_faceup > 1 then
+                return "command5"
+            end
         end
     end
     local commands = {"command1", "command2", "command4", "command3", "command6", "command5"}--索引大小代表优先级，注意不是原顺序
@@ -66,15 +66,15 @@ sgs.ai_skill_choice["docommand_jiejianglve"] = function(self, choices, data)
     end
     if index == 4 then
         if self.player:getMark("command4_effect") > 0 then
-        return "yes"
+            return "yes"
         end
         if self.player:hasSkill("xuanhuo") and not source:hasUsed("XuanhuoAttachCard") and source:getHandcardNum() > 5 then
-        return "no"
+            return "no"
         end
     end
     if index == 5 then
         if not self.player:faceUp() then
-        return "yes"
+            return "yes"
         end
         return "no"
     end
@@ -82,7 +82,7 @@ sgs.ai_skill_choice["docommand_jiejianglve"] = function(self, choices, data)
         if (self.player:getEquips():length() < 4
         and self.player:getHandcardNum() <= (self.player:hasSkills("xuanhuoattach|paoxiao") and 5 or 4))
         or (self:isWeak() and self:getCardsNum("Peach") + self:getCardsNum("Analeptic") == 0) then
-        return "yes"
+            return "yes"
         end
         return "no"
     end
@@ -102,21 +102,21 @@ sgs.ai_skill_choice["jiejianglve"] = function(self, choices, data)--ai势力召�
         local wuhu_show_head, wuhu_show_deputy = false,false
         local xuanhuo_priority = {"paoxiao", "tieqi", "kuanggu", "liegong", "wusheng", "longdan"}
         for _, skill in ipairs(xuanhuo_priority) do--有顺序优先度
-        if self.player:hasSkill(skill) then
-            if self.player:inHeadSkills(skill) then
-            wuhu_show_deputy = true
-            break
-            else
-            wuhu_show_head = true
-            break
+            if self.player:hasSkill(skill) then
+                if self.player:inHeadSkills(skill) then
+                    wuhu_show_deputy = true
+                    break
+                else
+                    wuhu_show_head = true
+                    break
+                end
             end
         end
-        end
         if wuhu_show_deputy then
-        return "show_deputy_general"
+            return "show_deputy_general"
         end
         if wuhu_show_head then
-        return "show_head_general"
+            return "show_head_general"
         end
         return "show_both_generals"
     end
@@ -2336,23 +2336,7 @@ end
 sgs.ai_skill_use_func["#luazhanjueCard"] = function(card, use, self)
     sgs.ai_use_priority.luazhanjueCard = 2.4
     local hcards = self.player:getCards("h")
-    local isBlack, isRed, isNoColor = false, false, false
-    for _, c in sgs.qlist(hcards) do
-        if c:isBlack() and not isRed then
-            isBlack = true
-        elseif c:isRed() and not isBlack then
-            isRed = true
-        else
-            isNoColor = true
-            break
-        end
-    end
-    local duel
-    if not isNoColor and isBlack then
-        duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuitBlack, -1)
-    elseif not isNoColor and isRed then
-        duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuitRed, -1)
-    end
+    local duel = sgs.Sanguosha:cloneCard("duel")
     duel:deleteLater()
 
     local enemies = self:exclude(self.enemies, duel)
@@ -2850,6 +2834,10 @@ sgs.ai_skill_invoke.luazuoding = function(self, data)
     end
     return false
 end
+sgs.ai_skill_playerchosen.luazuoding = function(self, targets)
+    if self.luazuodingTarget then return self.luazuodingTarget end
+    return ""
+end
 
 local luahuomo_skill = {}
 luahuomo_skill.name = "luahuomo"
@@ -2866,12 +2854,20 @@ luahuomo_skill.getTurnUseCard = function(self, inclusive)
     if #notBasic <= 0 then return false end
     self:sortByUseValue(notBasic)
     if self.player:getLostHp() > 0 then
-        return "peach:luahuomo[no_suit:0]=" .. notBasic[1]:getEffectiveId() .. "&luahuomo"
+        local card_str = ("peach:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
+        notBasic[1]:getEffectiveId(), "&luahuomo")
+        local skillcard = sgs.Card_Parse(card_str)
+        assert(skillcard)
+        return skillcard
     end
     if self:getCardsNum("Slash") > 0 then
         for _, enemy in pairs(self.enemies) do
             if sgs.isGoodTarget(enemy, self.enemies, self) and self:inMyAttackRange(enemy) then
-                return "analeptic:luahuomo[no_suit:0]=" .. notBasic[1]:getEffectiveId() .. "&luahuomo"
+                local card_str = ("analeptic:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
+                notBasic[1]:getEffectiveId(), "&luahuomo")
+                local skillcard = sgs.Card_Parse(card_str)
+                assert(skillcard)
+                return skillcard
             end
         end
     else
@@ -2880,9 +2876,17 @@ luahuomo_skill.getTurnUseCard = function(self, inclusive)
             for _, enemy in pairs(self.enemies) do
                 if self.player:canSlash(enemy, true) and sgs.isGoodTarget(enemy, self.enemies, self) and self:inMyAttackRange(enemy) then
                     if enemy:hasArmorEffect("Vine") then
-                        return "fire_slash:luahuomo[no_suit:0]=" .. notBasic[1]:getEffectiveId() .. "&luahuomo"
+                        local card_str = ("fire_slash:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
+                        notBasic[1]:getEffectiveId(), "&luahuomo")
+                        local skillcard = sgs.Card_Parse(card_str)
+                        assert(skillcard)
+                        return skillcard
                     else
-                        return "slash:luahuomo[no_suit:0]=" .. notBasic[1]:getEffectiveId() .. "&luahuomo"
+                        local card_str = ("slash:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
+                        notBasic[1]:getEffectiveId(), "&luahuomo")
+                        local skillcard = sgs.Card_Parse(card_str)
+                        assert(skillcard)
+                        return skillcard
                     end
                 end
             end
@@ -2901,16 +2905,32 @@ sgs.ai_cardsview.luahuomo = function(self, class_name, player)
     end
     if #notBasic <= 0 then return "" end
 	if class_name == "Analeptic" then
-		return ("analeptic:luahuomo[no_suit:0]=" .. notBasic[1]:getEffectiveId() .. "&luahuomo")
+		local card_str = ("analeptic:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
+        notBasic[1]:getEffectiveId(), "&luahuomo")
+        local skillcard = sgs.Card_Parse(card_str)
+        assert(skillcard)
+        return skillcard
 	end
     if class_name == "Peach" then
-        return "peach:luahuomo[no_suit:0]=" .. notBasic[1]:getEffectiveId() .. "&luahuomo"
+        local card_str = ("peach:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
+        notBasic[1]:getEffectiveId(), "&luahuomo")
+        local skillcard = sgs.Card_Parse(card_str)
+        assert(skillcard)
+        return skillcard
     end
     if class_name == "Jink" then
-        return "jink:luahuomo[no_suit:0]=" .. notBasic[1]:getEffectiveId() .. "&luahuomo"
+        local card_str = ("jink:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
+        notBasic[1]:getEffectiveId(), "&luahuomo")
+        local skillcard = sgs.Card_Parse(card_str)
+        assert(skillcard)
+        return skillcard
     end
     if class_name == "Slash" then
-        return "slash:luahuomo[no_suit:0]=" .. notBasic[1]:getEffectiveId() .. "&luahuomo"
+        local card_str = ("slash:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
+        notBasic[1]:getEffectiveId(), "&luahuomo")
+        local skillcard = sgs.Card_Parse(card_str)
+        assert(skillcard)
+        return skillcard
     end
 end
 sgs.ai_use_priority.luahuomo = 9.9
@@ -2921,12 +2941,13 @@ sgs.ai_skill_choice["provinceSeal_give"] = function(self, choices, data)
     local hcards = self:getCards("h")
     local ecards = self:getCards("e")
     local hecards = self:getCards("he")
+    hecards = sgs.QList2Table(hecards)
     local jiangwaifeiyi = sgs.findPlayerByShownSkillName("shoucheng")
-    if self.player:hasSkills("kanpo|jijiu|beige") and hcards:length() < 3 and (not jiangwaifeiyi or not self.player:isFriendWith(jiangwaifeiyi)) then return "no" end
+    if self.player:hasSkills("kanpo|jijiu|beige") and #hcards < 3 and (not jiangwaifeiyi or not self.player:isFriendWith(jiangwaifeiyi)) then return "no" end
     if target:getPhase() <= sgs.Player_Play and not self:willSkipPlayPhase(target) and self.player:isFriendWith(target) then
         if target:hasShownSkills("paoxiao|kuangcai") or (target:getWeapon() and target:getWeapon():objectName() == "Crossbow") then
             if self:getCardsNum("Slash") > 0 then
-                for _, c in sgs.qlist(hcards) do
+                for _, c in pairs(hcards) do
                     if c:isKindOf("Slash") then
                         self.provinceSealCard = c:getId()
                         return "yes"
@@ -2938,7 +2959,7 @@ sgs.ai_skill_choice["provinceSeal_give"] = function(self, choices, data)
             if self.player:getArmor() then
                 armorCard = self.player:getArmor():getId()
             else
-                for _, c in sgs.qlist(hcards) do
+                for _, c in pairs(hcards) do
                     if c:isKindOf("Armor") then
                         armorCard = c:getId()
                     end
@@ -2970,7 +2991,7 @@ sgs.ai_skill_choice["provinceSeal_give"] = function(self, choices, data)
                 self.provinceSealCard = self.player:getWeapon():getId()
                 return "yes"
             end
-            for _, c in sgs.qlist(hcards) do
+            for _, c in pairs(hcards) do
                 if c:isKindOf("Crossbow") then
                     self.provinceSealCard = c:getId()
                     return "yes"
@@ -2981,14 +3002,14 @@ sgs.ai_skill_choice["provinceSeal_give"] = function(self, choices, data)
                 self.provinceSealCard = self.player:getWeapon():getId()
                 return "yes"
             end
-            for _, c in sgs.qlist(hcards) do
+            for _, c in pairs(hcards) do
                 if c:isKindOf("Weapon") then
                     self.provinceSealCard = c:getId()
                     return "yes"
                 end
             end
         elseif target:hasShownSkill("guose") then
-            for _, c in sgs.qlist(hecards) do
+            for _, c in pairs(hecards) do
                 if c:getSuitString() == "diamond" then
                     self.provinceSealCard = c:getId()
                     return "yes"
@@ -2996,28 +3017,28 @@ sgs.ai_skill_choice["provinceSeal_give"] = function(self, choices, data)
             end
         elseif target:hasShownSkill("jieshuangxiong") and target:hasFlag("jieshuangxiongUsed") then
             if target:hasFlag("jieshuangxiong_Black") then
-                for _, c in sgs.qlist(hecards) do
+                for _, c in pairs(hecards) do
                     if c:isRed() then
                         self.provinceSealCard = c:getId()
                         return "yes"
                     end
                 end
             elseif target:hasFlag("jieshuangxiong_Red") then
-                for _, c in sgs.qlist(hecards) do
+                for _, c in pairs(hecards) do
                     if c:isBlack() then
                         self.provinceSealCard = c:getId()
                         return "yes"
                     end
                 end
             elseif target:hasShownSkill("shushen") and target:getLostHp() > 0 and self:getCardsNum("Peach") > 0 then
-                for _, c in sgs.qlist(hcards) do
+                for _, c in pairs(hcards) do
                     if c:isKindOf("Peach") then
                         self.provinceSealCard = c:getId()
                         return "yes"
                     end
                 end
             elseif target:hasShownSkill("huoji") then
-                for _, c in sgs.qlist(hecards) do
+                for _, c in pairs(hecards) do
                     if c:isRed() then
                         self.provinceSealCard = c:getId()
                         return "yes"
@@ -3026,14 +3047,14 @@ sgs.ai_skill_choice["provinceSeal_give"] = function(self, choices, data)
             end
         end
         if target:getLostHp() > 1 and self:getCardsNum("Peach") > 0 then
-            for _, c in sgs.qlist(hcards) do
+            for _, c in pairs(hcards) do
                 if c:isKindOf("Peach") then
                     self.provinceSealCard = c:getId()
                     return "yes"
                 end
             end
         end
-        for _, c in sgs.qlist(hecards) do
+        for _, c in pairs(hecards) do
             if c:getTypeId() == sgs.Card_TypeTrick then
                 self.provinceSealCard = c:getId()
                 return "yes"
@@ -3048,14 +3069,14 @@ sgs.ai_skill_choice["provinceSeal_give"] = function(self, choices, data)
         end
     elseif target:getPhase() > sgs.Player_Discard and self.player:isFriendWith(target) then
         if target:hasShownSkill("jijiu") then
-            for _, c in sgs.qlist(hecards) do
+            for _, c in pairs(hecards) do
                 if c:isRed() then
                     self.provinceSealCard = c:getId()
                     return "yes"
                 end
             end
         elseif target:hasShownSkill("kanpo") then
-            for _, c in sgs.qlist(hecards) do
+            for _, c in pairs(hecards) do
                 if c:isBlack() then
                     self.provinceSealCard = c:getId()
                     return "yes"
@@ -3138,7 +3159,7 @@ end
 --蔡邕
 sgs.ai_skill_invoke.luazhudian = function(self, data)
     local dis_card = self:askForDiscard("dummy_reason", 1, 1, false, true)
-    self.luazhudianRecast = dis_card[1]:getId()
+    self.luazhudianRecast = dis_card:getId()
     return true
 end
 sgs.ai_skill_exchange.luazhudian = function(self, pattern, max_num, min_num, expand_pile)
