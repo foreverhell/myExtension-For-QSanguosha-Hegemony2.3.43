@@ -1831,35 +1831,9 @@ sgs.LoadTranslationTable{
 
 luatuifeng = sgs.CreateTriggerSkill{
     name = "luatuifeng",
-    events = {sgs.Damaged, sgs.Damage, sgs.EventPhaseChanging, sgs.CardUsed, sgs.CardFinished},
+    events = {sgs.Damaged, sgs.Damage},
     on_record = function(self, event, room, player, data)
-        if event == sgs.EventPhaseChanging then
-            local change = data:toPhaseChange()
-            local skill_owners = room:findPlayersBySkillName(self:objectName())
-            if skill_owners:isEmpty() or change.to ~= sgs.Player_NotActive then return false end
-            for _, skill_owner in sgs.qlist(skill_owners) do
-                if skillTriggerable(skill_owner, self:objectName()) then
-                    room:setPlayerMark(skill_owner, "##luatuifeng", 0)
-                end
-            end
-        elseif event == sgs.Damage and skillTriggerable(player, self:objectName()) then
-            local damage = data:toDamage()
-            if damage.card and damage.card:isKindOf("Slash") and damage.card:hasFlag("luatuifengSlash") then
-                room:askForQiaobian(player, room:getAlivePlayers(), self:objectName(), "@luatuifeng-move", true, true)
-            end
-        elseif skillTriggerable(player, self:objectName()) and event == sgs.CardUsed then
-            local use = data:toCardUse()
-            if use.card and use.card:isKindOf("Slash") and player:hasFlag("luatuifengUseSlash") and not 
-            player:hasFlag("luatuifengNoSlash") then
-                room:setPlayerFlag(player, "-luatuifengUseSlash")
-                use.card:setFlags("luatuifengSlash")
-            end
-        elseif skillTriggerable(player, self:objectName()) and event == sgs.CardFinished then
-            local use = data:toCardUse()
-            if use.card and use.card:isKindOf("Slash") and player:hasFlag("luatuifengUseSlash") then
-                room:setPlayerFlag(player, "-luatuifengUseSlash")
-            end
-        end
+        
     end,
 
     can_trigger = function(self, event, room, player, data)
@@ -1889,11 +1863,41 @@ luatuifeng = sgs.CreateTriggerSkill{
 
 luatuifengEffect = sgs.CreateTriggerSkill{
     name = "#luatuifengEffect",
-    events = {sgs.EventPhaseStart},
+    events = {sgs.EventPhaseStart, sgs.EventPhaseChanging, sgs.CardUsed, sgs.CardFinished, sgs.Damage},
     frequency = sgs.Skill_Compulsory,
+    on_record = function(self, event, room, player, data)
+        if event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            if change.to ~= sgs.Player_NotActive then return false end
+            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                if p:getMark("##luatuifeng") > 0 then
+                    room:setPlayerMark(p, "##luatuifeng", 0)
+                end
+            end
+        elseif player:getMark("##luatuifeng") > 0 then
+            if event == sgs.CardUsed then
+                local use = data:toCardUse()
+                if use.card and use.card:isKindOf("Slash") and player:hasFlag("luatuifengUseSlash") and not 
+                player:hasFlag("luatuifengNoSlash") then
+                    room:setPlayerFlag(player, "-luatuifengUseSlash")
+                    use.card:setFlags("luatuifengSlash")
+                end
+            elseif event == sgs.CardFinished then
+                local use = data:toCardUse()
+                if use.card and use.card:isKindOf("Slash") and player:hasFlag("luatuifengUseSlash") then
+                    room:setPlayerFlag(player, "-luatuifengUseSlash")
+                end
+            elseif event == sgs.Damage then
+                local damage = data:toDamage()
+                if damage.card and damage.card:isKindOf("Slash") and damage.card:hasFlag("luatuifengSlash") then
+                    room:askForQiaobian(player, room:getAlivePlayers(), self:objectName(), "@luatuifeng-move", true, true)
+                end
+            end
+        end
+    end,
     
     can_trigger = function(self, event, room, player, data)
-		if player and player:getPhase() == sgs.Player_Finish then
+		if player and player:getPhase() == sgs.Player_Finish and event == sgs.EventPhaseStart then
             local skill_list = {}
             local name_list = {}
             for _, p in sgs.qlist(room:getAlivePlayers()) do
@@ -3008,7 +3012,6 @@ luaqiangzhi = sgs.CreateTriggerSkill{
 
     on_cost = function(self, event, room, player, data, skill_owner)
         local use = skill_owner:getTag("luaqiangzhiStCard"):toCardUse()
-        skill_owner:removeTag("luaqiangzhiStCard")
         if not use.card:isVirtualCard() then --视为技无法识别非蛊惑框的tag，暂时先这么写
             room:setPlayerMark(skill_owner, "luaqiangzhiStCardId", use.card:getId())
         else
@@ -3027,6 +3030,7 @@ luaqiangzhi = sgs.CreateTriggerSkill{
         local prompt = "强识：你可以选择一张牌当作【"
         local invoke = (room:askForUseCard(skill_owner, "@@luaqiangzhiUse", prompt .. use.card:getName() .. "】使用") ~= nil)
         room:setPlayerMark(skill_owner, "luaqiangzhiStCardId", 0)
+        skill_owner:removeTag("luaqiangzhiStCard")
         if invoke then
             if use.card:isKindOf("BasicCard") then
                 room:setPlayerMark(skill_owner, "luaqiangzhi_basic", 0)
