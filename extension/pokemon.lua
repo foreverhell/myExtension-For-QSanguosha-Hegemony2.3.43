@@ -360,15 +360,14 @@ shuijiao = sgs.CreateTriggerSkill{
         player:skip(sgs.Player_Discard)  
           
         -- 体力恢复至体力上限  
-        if player:isWounded() then  
+        if player:isWounded() and player:askForSkillInvoke("@shuijiao-recover") then  
             local recover = sgs.RecoverStruct()  
             recover.who = player  
             recover.recover = player:getMaxHp() - player:getHp()  
             room:recover(player, recover)  
+            -- 叠置（翻面）  
+            player:turnOver()  
         end  
-          
-        -- 叠置（翻面）  
-        player:turnOver()  
           
         -- 发送日志信息  
         local log = sgs.LogMessage()  
@@ -388,9 +387,10 @@ sgs.LoadTranslationTable{
     ["pokemon"] = "宝可梦",  
     ["kabiShou"] = "卡比兽",  
     ["shuijiao"] = "睡觉",  
-    [":shuijiao"] = "出牌阶段结束时，你可以跳过弃牌阶段，体力恢复至体力上限，然后叠置。",  
+    [":shuijiao"] = "出牌阶段结束时，你可以跳过弃牌阶段；若你已受伤，你可以令体力恢复至体力上限，然后叠置。",  
     ["#ShuijiaoEffect"] = "%from 的【%arg】被触发，跳过弃牌阶段，体力恢复并叠置",  
-    ["@shuijiao"] = "你可以发动'睡觉'，跳过弃牌阶段并恢复体力"  
+    ["@shuijiao"] = "你可以发动'睡觉'，跳过弃牌阶段",
+    ["@shuijiao-recover"] = "你可以发动'睡觉'，令体力恢复至体力上限，然后叠置",
 }
 
 miniq = sgs.General(extension, "miniq", "wei", 3)  -- 吴国，4血，男性 
