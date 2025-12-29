@@ -1455,7 +1455,7 @@ ShelunCard = sgs.CreateSkillCard{
     filter = function(self, targets, to_select)  
         if #targets > 0 then return false end  
         if to_select:objectName() == sgs.Self:objectName() then return false end  
-        if to_select:isAllNude() then return false end
+        --if to_select:isAllNude() then return false end
         -- 检查攻击范围  
         return sgs.Self:inMyAttackRange(to_select)  
     end,  
