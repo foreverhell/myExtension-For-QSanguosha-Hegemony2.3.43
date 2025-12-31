@@ -1346,6 +1346,13 @@ luachengxu = sgs.CreateTriggerSkill{
             room:doAnimate(1, skill_owner:objectName(), player:objectName())
             return true
         end
+        if skill_owner:hasFlag("luachengxu2slash") then
+            room:setPlayerFlag(skill_owner, "-luachengxu2slash")
+            skill_owner:removeTag("luachengxu2slash")
+        else
+            room:setPlayerFlag(skill_owner, "-luachengxu2discard")
+            skill_owner:removeTag("luachengxu2discard")
+        end
         return false
     end,
 
@@ -1368,6 +1375,7 @@ luachengxu = sgs.CreateTriggerSkill{
                     room:throwCard(id2, skill_owner, player)
                 end
             end
+            room:setPlayerFlag(skill_owner, "-luachengxu2discard")
         elseif (event == sgs.PostHpReduced or event == sgs.QuitDying) and skill_owner:getMark("luachengxu_slash") > 0 then
             local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
             slash:deleteLater()
@@ -1385,6 +1393,7 @@ luachengxu = sgs.CreateTriggerSkill{
                     room:useCard(sgs.CardUseStruct(slash, player, skill_owner), false)
                 end
             end
+            room:setPlayerFlag(skill_owner, "-luachengxu2slash")
         end
         return false
     end
@@ -1424,7 +1433,7 @@ luazhichi = sgs.CreateTriggerSkill{
                 local damageCard = {"Slash", "Duel", "ArcheryAttack", "SavageAssault", "BurningCamps", "Drowning", "FireAttack"}
                 for i = 1, #damageCard do
                     if use.card and use.card:isKindOf(damageCard[i]) and not use.card:hasFlag("luazhichiMark") and (not 
-                    use.card:isVirtualCard() or (use.card:isVirtualCard() and use.card:getSubcards():isEmpty())) then
+                    use.card:isVirtualCard() or (use.card:isVirtualCard() and not use.card:getSubcards():isEmpty())) then
                         room:addPlayerMark(player, "luazhichi_times", 1)
                         use.card:setFlags("luazhichiMark") --避免重复计算
                         if player:getMark("luazhichi_times") == 2 then
@@ -1506,7 +1515,7 @@ luabingzheng = sgs.CreateTriggerSkill{
         local target = room:askForPlayerChosen(player, targets, self:objectName(), "@luabingzheng-target", true, true)  
         if target then
             room:broadcastSkillInvoke(self:objectName(), player)
-            player:setTag("BingzhengTarget", sgs.QVariant(target:objectName()))  
+            player:setTag("BingzhengTarget", sgs.QVariant(target:objectName()))
             return true  
         end  
           
@@ -1572,8 +1581,8 @@ luasheyan = sgs.CreateTriggerSkill{
 
     on_cost = function(self, event, room, player, data)
 		if player:askForSkillInvoke(self:objectName(), data) then
-			room:broadcastSkillInvoke(self:objectName(), player)
-			return true
+            room:broadcastSkillInvoke(self:objectName(), player)
+            return true
 		end
 		return false
 	end,
@@ -1592,7 +1601,8 @@ luasheyan = sgs.CreateTriggerSkill{
             if use.to:length() == 1 then --即只有自己成为目标，只能增加目标
                 targets:removeOne(player)
             end
-            local target = room:askForPlayerChosen(player, targets, self:objectName(), prompt, true, true)
+            local target = room:askForPlayerChosen(player, targets, self:objectName(), prompt, false, true)
+            target = target or targets:at(math.random(targets:length()) - 1)
             if target then
                 room:doAnimate(1, player:objectName(), target:objectName())
                 if use.to:contains(target) then
@@ -1602,6 +1612,7 @@ luasheyan = sgs.CreateTriggerSkill{
                     room:sortByActionOrder(use.to)
                 end
                 data:setValue(use)
+                return true
             end
         end
         return false
@@ -1832,10 +1843,6 @@ sgs.LoadTranslationTable{
 luatuifeng = sgs.CreateTriggerSkill{
     name = "luatuifeng",
     events = {sgs.Damaged, sgs.Damage},
-    on_record = function(self, event, room, player, data)
-        
-    end,
-
     can_trigger = function(self, event, room, player, data)
 		if skillTriggerable(player, self:objectName()) and (event == sgs.Damaged or event == sgs.Damage) and 
         player:getMark("##luatuifeng") < 1 and not player:isNude() then
@@ -1846,8 +1853,7 @@ luatuifeng = sgs.CreateTriggerSkill{
 
 	on_cost = function(self, event, room, player, data)
 		if player:askForSkillInvoke(self:objectName(), data) then
-			room:broadcastSkillInvoke(self:objectName(), player)
-			return true
+            room:broadcastSkillInvoke(self:objectName(), player)
 		end
 		return false
 	end,
@@ -1856,6 +1862,7 @@ luatuifeng = sgs.CreateTriggerSkill{
         local card_id = room:askForDiscard(player, self:objectName(), 1, 1, false, true)
         if card_id then
             room:setPlayerMark(player, "##luatuifeng", 1)
+            return true
         end
         return false
     end
@@ -2264,7 +2271,6 @@ luazhuanxingCard = sgs.CreateSkillCard{
 		local supCard = sgs.Sanguosha:cloneCard("supply_shortage", card:getSuit(), card:getNumber())
         supCard:addSubcard(card_id)
         supCard:setSkillName("luazhuanxing")
-        supCard:setShowSkill("luazhuanxing")
         supCard:setFlags("Global_NoDistanceChecking")
         room:useCard(sgs.CardUseStruct(supCard, source, room:getCurrent()), true)
         supCard:deleteLater()
@@ -2282,7 +2288,6 @@ luazhuanxingShortage = sgs.CreateOneCardViewAsSkill{
         local supCard = luazhuanxingCard:clone()
         supCard:addSubcard(card:getId())
         supCard:setSkillName("luazhuanxing")
-		supCard:setShowSkill("luazhuanxing")
         return supCard
     end,
 }
