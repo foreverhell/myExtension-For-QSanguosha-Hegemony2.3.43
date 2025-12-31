@@ -2669,8 +2669,8 @@ function SmartAI:useCardSnatchOrDismantlement(card, use)
 						and canOperate(enemy, enemy:getDefensiveHorse():getEffectiveId()) then
 						cardchosen = enemy:getDefensiveHorse():getEffectiveId()
 					elseif enemy:getArmor() and not self:needToThrowArmor(enemy) and not self:doNotDiscard(enemy, "e")
-						and (not enemy:getArmor():isKindOf("PeaceSpell") or not sgs.findPlayerByShownSkillName("wendao"))
-						and canOperate(enemy, enemy:getArmor():getEffectiveId())then
+						and (not enemy:getArmor():isKindOf("PeaceSpell") or not sgs.findPlayerByShownSkillName("wendao") or (
+						enemy:getArmor():isKindOf("PeaceSpell") and enemy:getHp() > 1)) and canOperate(enemy, enemy:getArmor():getEffectiveId()) then
 						cardchosen = enemy:getArmor():getEffectiveId()
 					elseif canOperate(enemy, "h") then
 						cardchosen = self:getCardRandomly(enemy, "h")
@@ -2699,9 +2699,8 @@ function SmartAI:useCardSnatchOrDismantlement(card, use)
 			local cardchosen
 			if enemy:getDefensiveHorse() and canOperate(enemy, enemy:getDefensiveHorse():getEffectiveId()) then
 				cardchosen = enemy:getDefensiveHorse():getEffectiveId()
-			elseif enemy:getArmor() and not self:needToThrowArmor(enemy)
-				and (not enemy:getArmor():isKindOf("PeaceSpell") or not sgs.findPlayerByShownSkillName("wendao"))
-				and canOperate(enemy, enemy:getArmor():getEffectiveId()) then
+			elseif enemy:getArmor() and not self:needToThrowArmor(enemy) and not (enemy:getArmor():objectName() == 
+			"PeaceSpell" and enemy:getHp() > 1) and canOperate(enemy, enemy:getArmor():getEffectiveId()) then
 				cardchosen = enemy:getArmor():getEffectiveId()
 			elseif enemy:getOffensiveHorse() and canOperate(enemy, enemy:getOffensiveHorse():getEffectiveId()) then
 				cardchosen = enemy:getOffensiveHorse():getEffectiveId()
