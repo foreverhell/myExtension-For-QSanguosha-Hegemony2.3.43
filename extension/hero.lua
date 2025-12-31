@@ -614,18 +614,9 @@ jianxiongCopyUse = sgs.CreateOneCardViewAsSkill{
     end,
 
     view_as = function(self, cards)
-        local card_id = sgs.Self:getMark("jianxiongCopyStCardId")
-        local view_as_card
-        if card_id < 1001 then --1001开始是转化牌
-            local card = sgs.Sanguosha:getCard(card_id)
-            view_as_card = sgs.Sanguosha:cloneCard(card:getEffectName())
-        else
-            local card_names = {"slash", "thunder_slash", "fire_slash", "analeptic", "peach", "aozhan", "alliance_feast",
-            "amazing_grace", "archery_attack", "await_exhausted", "befriend_attacking", "burning_camps", "chaos", "collateral",
-            "conquering", "consoildate_country", "dismantlement", "drowning", "duel", "ex_nihilo", "fight_together", "fire_attack",
-            "god_salvation", "imperial_order", "iron_chain", "known_both", "rule_the_world", "savage_assault", "snatch"}
-            view_as_card = sgs.Sanguosha:cloneCard(card_names[card_id - 1000])
-        end
+        local card_name = sgs.Self:property("jianxiongCopyStCardId"):toString()
+        if card_name == "" then return nil end
+        local view_as_card = sgs.Sanguosha:cloneCard(card_name)
         view_as_card:setCanRecast(false)
         view_as_card:addSubcard(cards:getId())
         view_as_card:setSkillName("jianxiongCopy")
@@ -647,24 +638,14 @@ jianxiongCopy = sgs.CreateTriggerSkill{
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
         if event == sgs.CardUsed then
             local use = data:toCardUse()
-            room:setPlayerFlag(player, "turn_used")
-            if not use.card:isVirtualCard() then
-                room:setPlayerMark(player, "jianxiongCopyStCardId", use.card:getId())
+            room:setPlayerProperty(player, "jianxiongCopyStCardId", sgs.QVariant(use.card:getEffectName()))--不管是什么牌，都记录
+            if use.card and not use.card:isKindOf("EquipCard") then --只有非装备，才激活
+                room:setPlayerFlag(player,"turn_used")
             else
-                local card_names = {"slash", "thunder_slash", "fire_slash", "analeptic", "peach", "aozhan", "alliance_feast",
-                "amazing_grace", "archery_attack", "await_exhausted", "befriend_attacking", "burning_camps", "chaos", "collateral",
-                "conquering", "consoildate_country", "dismantlement", "drowning", "duel", "ex_nihilo", "fight_together", "fire_attack",
-                "god_salvation", "imperial_order", "iron_chain", "known_both", "rule_the_world", "savage_assault", "snatch"}
-                local card_name = use.card:getEffectName()
-                for i = 1, #card_names do
-                    if card_names[i] == card_name then
-                        room:setPlayerMark(player, "jianxiongCopyStCardId", i + 1000)
-                        break
-                    end
-                end
+                room:setPlayerFlag(player,"-turn_used")
             end
         elseif event == sgs.EventPhaseEnd and player:getPhase() == sgs.Player_Finish then
-            room:setPlayerMark(player, "jianxiongCopyStCardId", 0)
+            room:setPlayerProperty(player, "jianxiongCopyStCardId", sgs.QVariant())
         end
         return false
     end,
@@ -681,7 +662,7 @@ caocao_hero:addSkill(jianxiongCopy)
 sgs.LoadTranslationTable{  
     ["caocao_hero"] = "曹操",
     ["jianxiongCopy"] = "奸雄",
-    [":jianxiongCopy"] = "出牌阶段限一次。你可以将一张牌当作上一张牌使用",
+    [":jianxiongCopy"] = "出牌阶段限一次。若你使用的上一张牌是非装备牌，你可以将一张牌当作上一张牌使用",
 }
 
 chairong = sgs.General(extension, "chairong", "wu", 4)
