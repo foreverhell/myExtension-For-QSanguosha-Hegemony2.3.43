@@ -1187,6 +1187,7 @@ luajintaoCard = sgs.CreateSkillCard{
 		local slash = sgs.Sanguosha:cloneCard("slash")
         slash:addSubcard(self)
         slash:setSkillName("luajintao")
+        slash:setShowSkill("luajintao")
         slash:deleteLater()
         room:useCard(sgs.CardUseStruct(slash, source, targets[1]), false)
     end
@@ -1227,7 +1228,7 @@ luajintao = sgs.CreatePhaseChangeSkill{
         if player:askForSkillInvoke(self:objectName(), data) then
             room:broadcastSkillInvoke(self:objectName(), player)
             room:askForUseCard(player, "@@luajintaoVS", "@luajintao-toSlash")
-            return true
+            --return true
         end
         return false
     end,
@@ -2499,6 +2500,7 @@ luazifeng = sgs.CreateTriggerSkill{
         if hasIndulgence and JudgeAreaCard and ask_who:askForSkillInvoke(self:objectName(), data) then
             room:broadcastSkillInvoke(self:objectName(), ask_who)
             ask_who:obtainCard(JudgeAreaCard)
+            return true
         else
             local card = nil
             if event == sgs.CardUsed then
