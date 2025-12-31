@@ -1014,7 +1014,7 @@ sgs.ai_skill_askforag.jieshuangxiong = function(self, card_ids)
         elseif card2:isRed() then
             return card2:getId()
         else
-            if self:getUsePriority(card1) > self:getUsePriority(card2) then
+            if self:getUsePriority(card1) < self:getUsePriority(card2) then
                 return card1:getId()
             else
                 return card2:getId()
@@ -1026,7 +1026,7 @@ sgs.ai_skill_askforag.jieshuangxiong = function(self, card_ids)
         elseif card2:isBlack() then
             return card2:getId()
         else
-            if self:getUsePriority(card1) > self:getUsePriority(card2) then
+            if self:getUsePriority(card1) < self:getUsePriority(card2) then
                 return card1:getId()
             else
                 return card2:getId()
@@ -1703,9 +1703,14 @@ sgs.ai_skill_exchange["luabingzheng_give"] = function(self, pattern, max_num, mi
                 end
             end
         elseif target:hasShownSkill("mumeng") then
-            
+            for _, c in pairs(hcards) do
+                if c:getSuitString() == "heart" then
+                    return c:getEffectiveId()
+                end
+            end
         end
     end
+    return {}
 end
 sgs.ai_skill_invoke.luasheyan = function(self, data)
     local use = data:toCardUse()
@@ -3189,7 +3194,7 @@ sgs.ai_skill_invoke.luazhudian = function(self, data)
     local yuanshu = sgs.findPlayerByShownSkillName("weidi")
 	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not 
     yuanshu:hasUsed("#WeidiCardrd") then return false end
-    local use = data:toCardUse
+    local use = data:toCardUse()
     local card = use.card
     if self.player:getHandcardNum() == 1 and self.player:getEquips():isEmpty() then
         local hcard = self.player:getCards("h"):first()
@@ -3315,3 +3320,130 @@ sgs.ai_cardsview.luabotong = function(self, class_name, player)
 end
 sgs.ai_use_priority.luabotong = 4.2
 sgs.ai_skill_askforyiji.luabotong = sgs.ai_skill_askforyiji.lirang
+
+--张松
+sgs.ai_skill_invoke.luaxiantu = function(self, data)
+    local room = self.player:getRoom()
+    local players = room:getAlivePlayers()
+    local current = room:getCurrent()
+    local hasCross, hasfazheng, hasmin, hasjudge = false, false, false, false
+    if current:hasShownSkill("paoxiao") or (current:getWeapon() and current:getWeapon():objectName() == "Crossbow") then 
+        hasCross = true
+    end
+    if not hasCross and not self.player:isNude() then
+        for _, c in sgs.qlist(self.player:getCards("he")) do
+            if c:isKindOf("Crossbow") then
+                hasCross = true
+                break
+            end
+        end
+    end
+    local fazheng = sgs.findPlayerByShownSkillName("xuanhuo")
+    if fazheng and self.player:isFriendWith(fazheng) then hasfazheng = true end
+    for _, p in sgs.qlist(room:getOtherPlayers(self.player)) do
+        if p:isAlive() and not self.player:isFriendWith(p) and p:getHp() < 3 and current:inMyAttackRange(p) then
+            hasmin = true
+        end
+    end
+    if not current:getJudgingArea():isEmpty() then hasjudge = true end
+
+    if current:hasShownSkills("jizhi|paoxiao|jili") or ((hasfazheng or hasCross) and (current:getHandcardNum() > 5 or 
+    current:getMark("@firstshow") > 0)) and hasmin then
+        self.luaxiantuChoice = "luaxiantuDraw"
+    end
+    if self.luaxiantuChoice and hasjudge then
+        self.luaxiantuChoice = "luaxiantuGet"
+    end
+    if self.luaxiantuChoice then return true end
+    return false
+end
+sgs.ai_skill_choice.luaxiantu = function(self, choices)
+    if self.luaxiantuChoice then return self.luaxiantuChoice end
+end
+sgs.ai_skill_playerchosen.luaxiantu = function(self, targets)
+    return self.room:getCurrent()
+end
+sgs.ai_skill_cardchosen.luaxiantu = function(self, who, flags, method, disable_list)
+    local jcards = who:getCards("j")
+    local hasIndu, hasShort, hasLight = false, false, false
+    for _, c in sgs.qlist(jcards) do
+        if c:isKindOf("Indulgence") then
+            hasIndu = true
+            self.luaxiantuJcardIndu = c:getId()
+        elseif c:isKindOf("SupplyShortage") then
+            hasShort = true
+            self.luaxiantuJcardShort = c:getId()
+        else
+            hasLight = true
+            self.luaxiantuJcardLight = c:getId()
+        end
+    end
+    if hasIndu then
+        return self.luaxiantuJcardIndu
+    elseif hasShort then
+        return self.luaxiantuJcardShort
+    else
+        return self.luaxiantuJcardLight
+    end
+end
+sgs.ai_skill_exchange.luaxiantu = function(self, pattern, max_num, min_num, expand_pile)
+    local hecards = self.player:getCards("he")
+    local room = self.player:getRoom()
+    local current = room:getCurrent()
+    local hasCross = false
+    local cardsGive = {}
+    local hecards = self.player:getCards("he")
+    if current:hasShownSkill("paoxiao") or (current:getWeapon() and current:getWeapon():objectName() == "Crossbow") then 
+        hasCross = true
+    end
+    if not hasCross then
+        for _, c in sgs.qlist(hecards) do
+            if c:isKindOf("Crossbow") then
+                table.insert(cardsGive, c:getId())
+                break
+            end
+        end
+    end
+    if current:hasShownSkill("jili") then
+        for _, c in sgs.qlist(hecards) do
+            if c:getTypeId() == sgs.Card_TypeEquip then
+                table.insert(cardsGive, c:getId())
+            end
+            if #cardsGive == 2 then return cardsGive end
+        end
+    end
+    if current:hasShownSkill("jizhi") then
+        for _, c in sgs.qlist(hecards) do
+            if c:isNDTrick() and not c:isKindOf("ImperialOrder") then
+                table.insert(cardsGive, c:getId())
+            end
+            if #cardsGive == 2 then return cardsGive end
+        end
+    end
+    if self:getCardsNum("Slash") > 0 then
+        for _, c in sgs.qlist(hecards) do
+            if c:isKindOf("Slash") then
+                table.insert(cardsGive, c:getId())
+            end
+            if #cardsGive == 2 then return cardsGive end
+        end
+    end
+    hecards = sgs.QList2Table(hecards)
+    room:sortByUseValue(hecards)
+    for i = 1, 2 do
+        table.insert(cardsGive, hecards[i])
+        if #cardsGive == 2 then return cardsGive end
+    end
+end
+
+sgs.ai_view_as.luaqiangzhi = function(card, player, card_place)
+    local use = player:getTag("luaqiangzhiStCard"):toCardUse()
+    assert(use)
+    local viewcard = use.card
+    local suit = card:getSuitString()
+	local number = card:getNumberString()
+	local card_id = card:getEffectiveId()
+    if card_place == sgs.Player_PlaceHand or player:getHandPile():contains(card_id) then
+        return (use.card:getEffectName() .. ":luaqiangzhi[%s:%s]=%d&s"):format(suit, number, card_id, "&luaqiangzhi")
+    end
+end
