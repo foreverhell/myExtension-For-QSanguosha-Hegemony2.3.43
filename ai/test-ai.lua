@@ -2818,13 +2818,14 @@ end
 sgs.ai_skill_choice.luajuxian = function(self, choices)
     local notDiscard = 0
     local hecards = self.player:getCards("he")
-    for _, c in sgs.qlist(hecards) do
+    hecards = sgs.QList2Table(hecards)
+    for _, c in pairs(hecards) do
         if c:isKindOf("Armor") or c:isKindOf("DefensiveHorse") or c:isKindOf("SixDragons") then
             notDiscard = notDiscard + 1
         end
     end
-    if notDiscard > 2 or hecards:length() ~= notDiscard then
-        for _, enemy in sgs.qlist(self.enemies) do
+    if notDiscard > 2 or #hecards ~= notDiscard then
+        for _, enemy in pairs(self.enemies) do
             if sgs.isGoodTarget(enemy, self.enemies, self) then
                 return "luajuxianDamage"
             end
@@ -2936,29 +2937,25 @@ sgs.ai_cardsview.luahuomo = function(self, class_name, player)
     end
     if #notBasic <= 0 then return "" end
 	if class_name == "Analeptic" then
-		local card_str = ("analeptic:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
-        notBasic[1]:getEffectiveId(), "&luahuomo")
+		local card_str = ("analeptic:luahuomo[no_suit:0]=" .. notBasic[1] .. "&luahuomo")
         local skillcard = sgs.Card_Parse(card_str)
         assert(skillcard)
         return skillcard
 	end
     if class_name == "Peach" then
-        local card_str = ("peach:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
-        notBasic[1]:getEffectiveId(), "&luahuomo")
+        local card_str = ("peach:luahuomo[no_suit:0]=" .. notBasic[1] .. "&luahuomo")
         local skillcard = sgs.Card_Parse(card_str)
         assert(skillcard)
         return skillcard
     end
     if class_name == "Jink" then
-        local card_str = ("jink:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
-        notBasic[1]:getEffectiveId(), "&luahuomo")
+        local card_str = "jink:luahuomo[no_suit:0]=" .. notBasic[1] .. "&luahuomo"
         local skillcard = sgs.Card_Parse(card_str)
         assert(skillcard)
         return skillcard
     end
     if class_name == "Slash" then
-        local card_str = ("slash:luahuomo[%s:%s]=%d&s"):format(notBasic[1]:getSuitString(), notBasic[1]:getNumberString(),
-        notBasic[1]:getEffectiveId(), "&luahuomo")
+        local card_str = "slash:luahuomo[no_suit:0]=" .. notBasic[1] .. "&luahuomo"
         local skillcard = sgs.Card_Parse(card_str)
         assert(skillcard)
         return skillcard
@@ -3209,7 +3206,7 @@ sgs.ai_skill_invoke.luazhudian = function(self, data)
         end
     end
     local dis_card = self:askForDiscard("dummy_reason", 1, 1, false, true)
-    self.luazhudianRecast = dis_card:first():getId()
+    self.luazhudianRecast = dis_card[1]
     return true
 end
 sgs.ai_skill_exchange.luazhudian = function(self, pattern, max_num, min_num, expand_pile)
@@ -3222,7 +3219,7 @@ sgs.ai_skill_choice.luazhudian = function(self, choices)
     return "yes"
 end
 
-local luabotong_skill = {}
+--[[local luabotong_skill = {}
 luabotong_skill.name = "luabotong"
 table.insert(sgs.ai_skills, luabotong_skill)
 luabotong_skill.getTurnUseCard = function(self, inclusive)
@@ -3309,17 +3306,17 @@ sgs.ai_cardsview.luabotong = function(self, class_name, player)
 		return ("analeptic:luabotong[no_suit:0]=" .. table.concat(btCards, "+") .. "&luabotong")
 	end
     if class_name == "Peach" then
-        return "peach:luabotong[no_suit:0]=" .. table.concat(btCards, "+") .. "&luabotong"
+        return ("peach:luabotong[no_suit:0]=" .. table.concat(btCards, "+") .. "&luabotong")
     end
     if class_name == "Jink" then
-        return "jink:luabotong[no_suit:0]=" .. table.concat(btCards, "+") .. "&luabotong"
+        return ("jink:luabotong[no_suit:0]=" .. table.concat(btCards, "+") .. "&luabotong")
     end
     if class_name == "Slash" then
-        return "slash:luabotong[no_suit:0]=" .. table.concat(btCards, "+") .. "&luabotong"
+        return ("slash:luabotong[no_suit:0]=" .. table.concat(btCards, "+") .. "&luabotong")
     end
 end
 sgs.ai_use_priority.luabotong = 4.2
-sgs.ai_skill_askforyiji.luabotong = sgs.ai_skill_askforyiji.lirang
+sgs.ai_skill_askforyiji.luabotong = sgs.ai_skill_askforyiji.lirang]]
 
 --张松
 sgs.ai_skill_invoke.luaxiantu = function(self, data)
@@ -3436,14 +3433,47 @@ sgs.ai_skill_exchange.luaxiantu = function(self, pattern, max_num, min_num, expa
     end
 end
 
-sgs.ai_view_as.luaqiangzhi = function(card, player, card_place)
+--[[sgs.ai_view_as.luaqiangzhi = function(card, player, card_place)
     local use = player:getTag("luaqiangzhiStCard"):toCardUse()
     assert(use)
     local viewcard = use.card
     local suit = card:getSuitString()
 	local number = card:getNumberString()
 	local card_id = card:getEffectiveId()
-    if card_place == sgs.Player_PlaceHand or player:getHandPile():contains(card_id) then
-        return (use.card:getEffectName() .. ":luaqiangzhi[%s:%s]=%d&s"):format(suit, number, card_id, "&luaqiangzhi")
+    if player:getHandPile():contains(card_id) then
+        return (viewcard:getEffectName() .. ":luaqiangzhi[%s:%s]=%d&s"):format(suit, number, card_id, "&luaqiangzhi")
     end
+end]]
+sgs.ai_skill_use["@@luaqiangzhiUse"] = function(self, prompt)
+    local use = self.player:getTag("luaqiangzhiStCard"):toCardUse()
+    assert(use)
+    local viewcard = use.card
+    local hcards = self.player:getCards("h")
+    hcards = sgs.QList2Table(hcards)
+    self:sortByKeepValue(hcards)
+    local suit = hcards[1]:getSuitString()
+	local number = hcards[1]:getNumberString()
+	local card_id = hcards[1]:getEffectiveId()
+    if viewcard:isKindOf("AwaitExhausted") or viewcard:isKindOf("ExNihilo") or viewCards:isKindOf("BefriendAttacking") then
+        return (viewcard:getEffectName() .. ":luaqiangzhi[%s:%s]=%d&luaqiangzhi"):format(suit, number, card_id)
+    elseif viewcard:isKindOf("Peach") then
+        return (viewcard:getEffectName() .. ":luaqiangzhi[%s:%s]=%d&luaqiangzhi"):format(suit, number, card_id)
+    end
+    return ""
 end
+
+--吕岱
+sgs.ai_skill_invoke.luaqinguo = function(self, data)
+    if self.player:getEquips():length() == self.player:getHandcardNum() then
+        return true
+    else
+        for _, p in sgs.qlist(self.room:getOtherPlayers(self.player)) do
+            if self.player:canSlash(p, true) and not self.player:isFriendWith(p) then
+                return true
+            end
+        end
+    end
+    return false
+end
+sgs.ai_skill_playerchosen.luaqinguo = sgs.ai_skill_playerchosen.luaqinzheng
+
