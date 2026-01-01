@@ -600,7 +600,7 @@ jiediaoduDrawCard = sgs.CreateTriggerSkill{
 						table.insert(name_list, skill_owner:objectName())
 					end
 				end
-				return table.concat(skill_list,"|"), table.concat(name_list,"|")
+				return table.concat(skill_list, "|"), table.concat(name_list, "|")
 			end
 		end
 		return false
@@ -610,7 +610,7 @@ jiediaoduDrawCard = sgs.CreateTriggerSkill{
 		if player:askForSkillInvoke(self:objectName(), data) then
 			room:broadcastSkillInvoke("diaodu", skill_owner)
 			room:doAnimate(1, skill_owner:objectName(), player:objectName())
-			if player == skill_owner then
+			if player == skill_owner then --不知为何人机发动不会亮将，就写了这个了
 				if player:getActualGeneral1Name() == "lvfan" then
 					player:showGeneral(true, false, false)
 				elseif player:getActualGeneral2Name() == "lvfan" then
@@ -619,6 +619,7 @@ jiediaoduDrawCard = sgs.CreateTriggerSkill{
 			end
 			return true
 		end
+		room:setPlayerFlag(player, "First_use_equipCard")
 		return false
 	end,
 
@@ -660,6 +661,16 @@ jieduoshi = sgs.CreatePhaseChangeSkill{
 	on_cost = function(self, event, room, player, data)
 		if player:askForSkillInvoke(self:objectName(), data) then
 			room:broadcastSkillInvoke("duoshi", player)
+			local await = sgs.Sanguosha:cloneCard("await_exhausted", sgs.Card_NoSuit, -1)
+			await:setSkillName(self:objectName())
+			await:setShowSkill(self:objectName())
+			local targets = sgs.SPlayerList()
+			for _, p in sgs.qlist(room:getAlivePlayers()) do
+				if player:isFriendWith(p) then
+					targets:append(p)
+				end
+			end
+			room:useCard(sgs.CardUseStruct(await, player, targets), true)
 			return true
 		end
 		return false
@@ -667,21 +678,14 @@ jieduoshi = sgs.CreatePhaseChangeSkill{
 
 	on_phasechange = function(self, player)
 		local room = player:getRoom()
-		local await = sgs.Sanguosha:cloneCard("await_exhausted", sgs.Card_NoSuit, -1)
-		await:setSkillName(self:objectName())
-		local targets = sgs.SPlayerList()
-		for _, p in sgs.qlist(room:getAlivePlayers()) do
-			if player:isFriendWith(p) then
-				targets:append(p)
-			end
-		end
-		room:useCard(sgs.CardUseStruct(await, player, targets), true)
+		
 		return false
 	end
 }
 
-jieduoshi_flamemap = sgs.CreatePhaseChangeSkill{ --变相修改原君孙烽火图中的度势技能
+jieduoshi_flamemap = sgs.CreateTriggerSkill{ --变相修改原君孙烽火图中的度势技能
 	name = "jieduoshi_flamemap",
+	events = {sgs.EventPhaseStart},
 	frequency = sgs.Skill_Frequent,
 	can_trigger = function(self, event, room, player)
 		if skillTriggerable(player, "duoshi_flamemap") and player:getPhase() == sgs.Player_Play then
@@ -689,28 +693,6 @@ jieduoshi_flamemap = sgs.CreatePhaseChangeSkill{ --变相修改原君孙烽火�
 			room:detachSkillFromPlayer(player, "duoshi_flamemap", false, false, false)
 			return "jieduoshi"
 		end
-		return false
-	end,
-
-	on_cost = function(self, event, room, player, data)
-		if player:askForSkillInvoke(self:objectName(), data) then
-			room:broadcastSkillInvoke("duoshi", player)
-			return true
-		end
-		return false
-	end,
-
-	on_phasechange = function(self, player)
-		local room = player:getRoom()
-		local await = sgs.Sanguosha:cloneCard("await_exhausted", sgs.Card_NoSuit, -1)
-		await:setSkillName(self:objectName())
-		local targets = sgs.SPlayerList()
-		for _, p in sgs.qlist(room:getAlivePlayers()) do
-			if player:isFriendWith(p) then
-				targets:append(p)
-			end
-		end
-		room:useCard(sgs.CardUseStruct(await, player, targets), true)
 		return false
 	end
 }
@@ -1037,7 +1019,7 @@ jiezhiren = sgs.CreateTriggerSkill{
 
 jieyaner = sgs.CreateTriggerSkill{
 	name = "jieyaner",
-	events = {sgs.Player_Play, sgs.CardsMoveOneTime, sgs.EventPhaseStart},
+	events = {sgs.CardsMoveOneTime, sgs.EventPhaseStart},
 	frequency = sgs.Skill_Frequent,
 	can_trigger = function(self, event, room, player, data)
 		if player and player:isAlive() and player:getPhase() == sgs.Player_Play and event == sgs.EventPhaseStart then
@@ -2565,9 +2547,9 @@ sgs.LoadTranslationTable{
 
 jiechengshang = sgs.CreateTriggerSkill{
 	name = "jiechengshang",
-	events = {sgs.CardFinished, sgs.PreDamageDone, sgs.CardUsed},
+	events = {sgs.CardFinished, sgs.Damage, sgs.CardUsed},
 	on_record = function(self, event, room, player, data)
-		if player and event == sgs.PreDamageDone then
+		if player and event == sgs.Damage then
 			local skill_owners = room:findPlayersBySkillName(self:objectName())
             if skill_owners:isEmpty() then return false end
 			local damage = data:toDamage()
@@ -2595,9 +2577,13 @@ jiechengshang = sgs.CreateTriggerSkill{
 		player:hasFlag("luachengshangUsed") and event == sgs.CardFinished then
 			local use = data:toCardUse()
 			if use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill and not use.card:isKindOf("DelayedTrick") then
-				if use.card:hasFlag("jiechengshangDamaged") then return false end
+				if use.card:hasFlag("jiechengshangDamaged") then
+					use.card:setFlags("-jiechengshangDamaged")
+					return false 
+				end
 				for _, p in sgs.qlist(use.to) do
-					if not player:isFriendWith(p) then
+					if not player:isFriendWith(p) and p:isAlive() then
+						use.card:setFlags("-jiechengshangDamaged")
 						return self:objectName()
 					end
 				end
@@ -2608,6 +2594,7 @@ jiechengshang = sgs.CreateTriggerSkill{
 
 	on_cost = function(self, event, room, player, data)
 		if player:askForSkillInvoke(self:objectName(), data) then
+			room:broadcastSkillInvoke("chengshang", player)
 			return true
 		end
 		return false

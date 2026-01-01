@@ -1718,7 +1718,10 @@ sgs.ai_skill_use_func.QuhuCard = function(QHCard, use, self)
 						if enemy:hasShownSkill("kuanggu") and enemy:distanceTo(enemy2) <= 1 then continue end
 						self.quhu_card = max_card:getEffectiveId()
 						use.card = QHCard
-						if use.to then use.to:append(enemy) end
+						if use.to then 
+							use.to:append(enemy) 
+							self.quhuTarget = enemy2
+						end
 						return
 					end
 				end
@@ -1751,7 +1754,17 @@ sgs.ai_skill_use_func.QuhuCard = function(QHCard, use, self)
 end
 
 sgs.ai_cardneed.quhu = sgs.ai_cardneed.bignumber
-sgs.ai_skill_playerchosen.quhu = sgs.ai_skill_playerchosen.damage
+sgs.ai_skill_playerchosen.quhu = function(self, targets)
+	if self.quhuTarget then return self.quhuTarget end
+	targets = sgs.QList2Table(targets)
+	self:sort(targets, "hp")
+	for _, p in pairs(targets) do
+		if not self:isFriend(p) then
+			return p
+		end
+	end
+	return targets[math.random(#targets)]
+end
 sgs.ai_playerchosen_intention.quhu = 80
 
 sgs.ai_card_intention.QuhuCard = 0
