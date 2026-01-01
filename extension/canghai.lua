@@ -2624,7 +2624,7 @@ sgs.LoadTranslationTable{
     [":qingzhong"] = "出牌阶段开始时，你可以摸两张牌，则此阶段结束时，你与一名手牌最少的角色交换手牌",  
 
 } 
-
+--[[
 lvdai = sgs.General(extension, "lvdai", "wu", 4)
 qinguo = sgs.CreateTriggerSkill{  
     name = "qinguo",  
@@ -2697,7 +2697,7 @@ sgs.LoadTranslationTable{
     ["qinguo"] = "勤国",
     [":qinguo"] = "每回合每种副类别限一次。当你使用装备牌后，若你装备区的牌数与手牌数：相等，你可以恢复1点体力；不相等，你视为使用1张杀（有距离限制，无次数限制）",
 }
-
+]]
 manchong = sgs.General(extension, "manchong", "wei", 3) -- 吴苋，蜀势力，3血，女性
 
 junxing_card = sgs.CreateSkillCard{  
