@@ -3812,7 +3812,15 @@ function SmartAI:askForCardChosen(who, flags, reason, method, disable_list)
 end
 --ai->askForCardsChosen(who, flags, reason, min_num, max_num, method, disabled_ids)
 function SmartAI:askForCardsChosen(targets, flags, reason, min_num, max_num, disable_list)--method传参没了……
-	disable_list = disable_list or {}
+	if type(disable_list) ~= "table" then
+		if disable_list == "" or disable_list == nil then
+			disable_list = {}
+		else
+			local temtable = {}
+			table.insert(temtable, disable_list)
+			disable_list = temtable
+		end
+	end
 	local cardchosen = sgs.ai_skill_cardschosen[string.gsub(reason, "%-", "_")]
 	local card
 	if type(cardchosen) == "function" then
@@ -3865,11 +3873,11 @@ function SmartAI:askForCardsChosen(targets, flags, reason, min_num, max_num, dis
 			Global_room:writeToConsole("askForCardsChosen无AI,调用askForCardChosen循环:"..reason)--危盟3,
 			card = {}
 			while #card < max_num do
-				local card_id = self:askForCardChosen(targets:first(), flags, reason.."_None", method, disable_list)
+				local card_id = self:askForCardChosen(targets, flags, reason.."_None", method, disable_list)
 				if card_id == -1 then break end
 				if not table.contains(card, card_id) then table.insert(card, card_id) end
 				if not table.contains(disable_list, card_id) then table.insert(disable_list, card_id) end
-				if targets:first():getCards(flags):length() == #disable_list then break end--选完为止
+				if targets:getCards(flags):length() == #disable_list then break end--选完为止
 			end
 			if type(card) == "table" then return card end
 		end
@@ -6831,8 +6839,7 @@ function SmartAI:useEquipCard(card, use)
 		local lord_caopi = sgs.findPlayerByShownSkillName("luahuandou") --有君曹丕在（其他势力/已出现州郡领）不装备州郡领兵印/其他宝物
 		if lord_caopi and lord_caopi:isAlive() then
 			local id = 165
-			if not self.player:isFriendWith(lord_caopi) and (self.room:getCardPlace(id) == sgs.Player_DiscardPile or self.room:getCardPlace(id) 
-			== sgs.Player_PlaceEquip) then
+			if not self.player:isFriendWith(lord_caopi) then
 				return
 			end
 		end

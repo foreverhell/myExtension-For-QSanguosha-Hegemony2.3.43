@@ -1704,7 +1704,7 @@ sgs.ai_skill_exchange["luabingzheng_give"] = function(self, pattern, max_num, mi
             end
         elseif target:hasShownSkill("mumeng") then
             for _, c in pairs(hcards) do
-                if c:getSuitString() == "heart" then
+                if c:getSuit() == sgs.suit_heart then
                     return c:getEffectiveId()
                 end
             end
@@ -1912,7 +1912,7 @@ sgs.ai_skill_invoke.luasheyan = function(self, data)
                 for _, p in sgs.qlist(playersByAction) do
                     if not table.contains(tos, p) and p:isFriendWith(from) and self:trickIsEffective(card, p, from) and
                     p:getEquips() and not p:hasArmorEffect("PeaceSpell") and from:objectName() ~= p:objectName() then
-                        if p:hasShownSkills(sgs.lose_equip_skill) and p:getEquips() == 1 then continue end
+                        if p:hasShownSkills(sgs.lose_equip_skill) and p:getEquips():length() == 1 then continue end
                         self.luasheyanchooseplayer = p
                         return true
                     end
@@ -1921,7 +1921,7 @@ sgs.ai_skill_invoke.luasheyan = function(self, data)
             for _, p in sgs.qlist(playersByAction) do
                 if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) and
                 p:getEquips() and not p:hasArmorEffect("PeaceSpell") and from:objectName() ~= p:objectName() then
-                    if p:hasShownSkills(sgs.lose_equip_skill) and p:getEquips() == 1 then continue end
+                    if p:hasShownSkills(sgs.lose_equip_skill) and p:getEquips():length() == 1 then continue end
                     self.luasheyanchooseplayer = p
                     return true
                 end
@@ -2871,7 +2871,7 @@ sgs.ai_skill_playerchosen.luazuoding = function(self, targets)
     return ""
 end
 
-local luahuomo_skill = {}
+--[[local luahuomo_skill = {}
 luahuomo_skill.name = "luahuomo"
 table.insert(sgs.ai_skills, luahuomo_skill)
 luahuomo_skill.getTurnUseCard = function(self, inclusive)
@@ -2932,7 +2932,7 @@ sgs.ai_cardsview.luahuomo = function(self, class_name, player)
     local notBasic = {}
     for _, c in sgs.qlist(hecards) do
         if c:isBlack() and not c:getTypeId() ~= sgs.Card_TypeBasic then
-            table.insert(notBasic, c)
+            table.insert(notBasic, c:getId())
         end
     end
     if #notBasic <= 0 then return "" end
@@ -2961,7 +2961,7 @@ sgs.ai_cardsview.luahuomo = function(self, class_name, player)
         return skillcard
     end
 end
-sgs.ai_use_priority.luahuomo = 9.9
+sgs.ai_use_priority.luahuomo = 9.9]]
 
 --州郡领兵印
 sgs.ai_skill_choice["provinceSeal_give"] = function(self, choices, data)

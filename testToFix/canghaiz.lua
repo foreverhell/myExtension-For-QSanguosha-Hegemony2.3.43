@@ -1226,11 +1226,10 @@ luajintao = sgs.CreatePhaseChangeSkill{
 	end,
 
     on_cost = function(self, event, room, player, data)
-        if player:askForSkillInvoke(self:objectName(), data) then
-            room:broadcastSkillInvoke(self:objectName(), player)
-            room:askForUseCard(player, "@@luajintaoVS", "@luajintao-toSlash")
-            --return true
-        end
+        --if player:askForSkillInvoke(self:objectName(), data) then
+            --room:broadcastSkillInvoke(self:objectName(), player)
+        room:askForUseCard(player, "@@luajintaoVS", "@luajintao-toSlash") --亮将交给技能卡实现
+        --end
         return false
     end,
 
@@ -1403,10 +1402,12 @@ luachengxu = sgs.CreateTriggerSkill{
 
 luazhichi = sgs.CreateTriggerSkill{
     name = "luazhichi",
-    events = {sgs.CardsMoveOneTime, sgs.TargetConfirming, sgs.EventPhaseStart},
+    events = {sgs.CardsMoveOneTime, sgs.TargetConfirming, sgs.EventPhaseChanging},
     frequency = sgs.Skill_Compulsory,
     on_record = function(self, event, room, player, data)
-        if player and player:isAlive() and player:getPhase() == sgs.TurnStart then
+        if event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            if change.to ~= sgs.Player_NotActive then return false end
             local skill_owners = room:findPlayersBySkillName("luazhichi")
             if skill_owners:isEmpty() then return false end
             for _, skill_owner in sgs.qlist(skill_owners) do
@@ -2579,7 +2580,7 @@ luajuxian = sgs.CreateTriggerSkill{
             local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"))  
             
             if choice == "luajuxianDamage" then
-                if room:askForDiscard(player, self:objectName(), 1, 1, true, true) then     
+                if room:askForDiscard(player, self:objectName(), 1, 1, false, true) then     
                     local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())  
                     if target then
                         local damage = sgs.DamageStruct()  

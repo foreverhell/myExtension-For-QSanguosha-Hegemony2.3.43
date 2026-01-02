@@ -2275,7 +2275,7 @@ jiepolu = sgs.CreateTriggerSkill{
 					return table.concat(skill_list,"|"), table.concat(name_list,"|")
 				end
 			end 
-			if death.who:getGeneralName() == "sunjian" or death.who:getGeneral2Name() == "sunjian" then 
+			if death.who:getGeneralName() == "sunjian" or death.who:getGeneral2Name() == "sunjian" then
 				--死亡后就没有该技能，故要后判断自己死亡的条件，但暂不知怎么判断有没被断肠
 				return self:objectName(), player:objectName() 
 			end
