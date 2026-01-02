@@ -3204,13 +3204,11 @@ zishu = sgs.CreateTriggerSkill{
         end  
           
         if other_player and ask_who:getHandcardNum() == other_player:getHandcardNum() then  
-            room:setPlayerFlag(ask_who, "zishu_used" .. other_player:objectName())  
-            local choice = room:askForChoice(ask_who, self:objectName(), "draw+discard",   
-                data, "@zishu-choose:" .. other_player:objectName()) 
-            if choice == "draw" then
+            room:setPlayerFlag(ask_who, "zishu_used" .. other_player:objectName())
+            if ask_who:isFriendWith(other_player) then
                 other_player:drawCards(1,self:objectName())
-            elseif choice == "discard" then
-                local card_id = room:askForCardChosen(ask_who, other_player, "hej", self:objectName())
+            else
+                local card_id = room:askForCardChosen(ask_who, other_player, "he", self:objectName())
                 if card_id then  
                     room:throwCard(card_id, other_player, ask_who) 
                 end
@@ -3286,7 +3284,7 @@ hongfunv:addSkill(hongfu)
 sgs.LoadTranslationTable{
     ["hongfunv"] = "红拂女",
     ["zishu"] = "自殊",
-    [":zishu"] = "你使用牌指定其他角色为唯一目标或成为其他角色使用牌的唯一目标时，若你与其手牌数相等，你可以令其摸一张牌或者弃置其区域内1张牌。每回合每名角色限一次。",
+    [":zishu"] = "你使用牌指定其他角色为唯一目标或成为其他角色使用牌的唯一目标时，若你与其手牌数相等：若你与其势力相同，你令其摸一张牌；若你与其势力不同，你弃置其1张牌。每回合每名角色限一次。",
     ["hongfu"] = "红拂",
     [":hongfu"] = "每回合限一次。你的回合外，其他角色因弃置而失去红色牌时，你摸1张牌"
 }
@@ -4955,6 +4953,7 @@ lianque = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end  
+        if player:hasFlag("lianque_used") then return "" end
         local effect = data:toSlashEffect() 
         --削弱方向：该技能视为使用的杀不能再次触发
         if effect.slash:getSkillName() == self:objectName() then return "" end
@@ -4964,14 +4963,15 @@ lianque = sgs.CreateTriggerSkill{
         end  
         return ""  
     end,  
-    on_cost = function(self, event, room, player, data, ask_who)  
+    on_cost = function(self, event, room, player, data)  
         if player:askForSkillInvoke(self:objectName(), data) then  
             room:broadcastSkillInvoke(self:objectName())  
             return true  
         end  
         return false  
     end,  
-    on_effect = function(self, event, room, player, data, ask_who)  
+    on_effect = function(self, event, room, player, data)  
+        room:setPlayerFlag(player, "lianque_used")
         local effect = data:toSlashEffect()  
         local target = effect.to  
           
@@ -5036,7 +5036,7 @@ limu:addSkill(poluDamage)
 sgs.LoadTranslationTable{
     ["limu"] = "李牧",
     ["lianque"] = "连却",
-    [":lianque"] = "你不因此技能使用的杀命中后，你可以进行一次判定，若判定牌不为基本牌，可视为对该目标继续出杀，否则你获得该判定牌",--削弱方向：出实体杀；不能反复触发
+    [":lianque"] = "每回合限一次。你不因此技能使用的杀命中后，你可以进行一次判定，若判定牌不为基本牌，可视为对该目标继续出杀，否则你获得该判定牌",--削弱方向：不能反复触发；每回合限一次；出实体杀；
     ["poluDamage"] = "破虏",
     [":poluDamage"] = "回合结束时，若你本回合未造成伤害，你摸一张牌",
 }
@@ -7287,8 +7287,8 @@ yaoji = sgs.CreateTriggerSkill{
         return player:askForSkillInvoke(self:objectName(),data)
     end,  
     on_effect = function(self, event, room, player, data)  
-        local source = room:askForPlayerChosen(player,  room:getAlivePlayers(), self:objectName())
-        local target = room:askForPlayerChosen(player,  room:getOtherPlayers(source), self:objectName())  
+        local source = room:askForPlayerChosen(player,  room:getAlivePlayers(), self:objectName(), "@yaoji-target")
+        local target = room:askForPlayerChosen(player,  room:getOtherPlayers(source), self:objectName(), "@yaoji-victim")  
           
         if source and target then  
             -- 创建【杀】并使用  
@@ -9319,7 +9319,8 @@ hezong = sgs.CreateTriggerSkill{
             local use = data:toCardUse()  
             if use.card==sgs.Card_TypeSkill then return "" end
             for _, p in sgs.qlist(use.to) do
-                if p:getMark("@zong") > 0 and use.from ~= p then
+                if p:getMark("@zong") > 0 and use.from ~= p and not use.card:hasFlag("hezong_used") then
+                    use.card:setFlags("hezong_used")
                     local source = room:findPlayerBySkillName(self:objectName())  
                     if source and source:isAlive() then  
                         return self:objectName(), source:objectName()  
