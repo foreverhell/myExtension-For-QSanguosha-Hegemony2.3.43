@@ -2544,7 +2544,12 @@ Budao = sgs.CreateTriggerSkill{
         local damage = data:toDamage()  
         if damage.to and damage.to:isAlive() and damage.card and damage.card:isKindOf("Slash") then  
             -- 找出拥有此技能的角色  
-            owner = room:findPlayerBySkillName(self:objectName())
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+            -- 检查是否在自己回合外  
+            if owner:getPhase() ~= sgs.Player_NotActive then
+                return ""
+            end
             return self:objectName(), owner:objectName()
         end  
         return ""  
@@ -2598,7 +2603,6 @@ wushengSlash = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data, ask_who)  
-        --local source = room:findPlayerBySkillName(self:objectName())  
         if ask_who:hasShownSkill(self:objectName()) or ask_who:askForSkillInvoke(self:objectName(), data) then  
             room:notifySkillInvoked(ask_who, self:objectName())  
             room:broadcastSkillInvoke(self:objectName())  
@@ -2608,7 +2612,6 @@ wushengSlash = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data, ask_who)  
-        --local source = room:findPlayerBySkillName(self:objectName())  
         local card = nil  
         if event == sgs.CardUsed then  
             local use = data:toCardUse()  
@@ -2628,7 +2631,7 @@ guanyu_hero:addSkill(wushengSlash)
 sgs.LoadTranslationTable{  
     ["guanyu_hero"] = "关羽",
     ["budao"] = "补刀",  
-    [":budao"] = "当一名角色受到【杀】的伤害时，你可以对其使用【杀】，直到其死亡或者打出【闪】或者你不想再出【杀】。",  
+    [":budao"] = "你的回合外，当一名角色受到【杀】造成的伤害时，你可以对其使用【杀】，直到其死亡或者打出【闪】或者你不想再出【杀】。",  
     ["@budao"] = "你可以对 %src 使用一张【杀】（补刀）",  
     ["@budao-continue"] = "你可以继续对 %src 使用一张【杀】（补刀）",  
     ["wushengSlash"] = "武圣",
@@ -3740,7 +3743,7 @@ jiufa = sgs.CreateTriggerSkill{
             local use = data:toCardUse()  
             local card = use.card  
             if not card then return "" end  
-            if card:isKindOf("TrickCard") then
+            if card:isKindOf("TrickCard") and not player:hasFlag("jiufa_used") then
                 for _, p in sgs.qlist(use.to) do
                     if player:inMyAttackRange(p) and not player:isFriendWith(p) then
                         return self:objectName()  
@@ -3760,6 +3763,7 @@ jiufa = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data)  
         if event == sgs.CardFinished then  
+            room:setPlayerFlag(player, "jiufa_used")
             local use = data:toCardUse() 
             local targets = sgs.SPlayerList()  
             for _, p in sgs.qlist(use.to) do  
@@ -3821,7 +3825,7 @@ jiangwei_hero:addSkill(weifu)
 sgs.LoadTranslationTable{  
     ["jiangwei_hero"] = "姜维",
     ["jiufa"] = "九伐",
-    [":jiufa"] = "你使用锦囊结算完成后，若目标为其他势力且在你的攻击范围内，你可以视为对其使用1张杀，若该杀未命中，你失去1点体力",--削弱方向：锁定技；每回合限一次
+    [":jiufa"] = "每回合限一次。你使用锦囊结算完成后，若目标为其他势力且在你的攻击范围内，你可以视为对其使用1张杀，若该杀未命中，你失去1点体力",--削弱方向：锁定技；每回合限一次
     ["weifu"] = "危复",
     [":weifu"] = "你的体力减少时，你可以弃置1张牌，从牌堆随机获得1张锦囊"
 }
@@ -7277,7 +7281,7 @@ yaoji = sgs.CreateTriggerSkill{
         end
         if player:getPhase() == sgs.Player_Play and  player:getMark("@liebo") > 0  then  
             room:setPlayerMark(player,"@liebo",0)
-        elseif player:getPhase() == sgs.Player_Finish and player:getHandcardNum() < 2 then  
+        elseif player:getPhase() == sgs.Player_Finish and player:getHandcardNum() <= 2 then  
             return self:objectName()  
         end  
         return ""  
@@ -7522,7 +7526,7 @@ sgs.LoadTranslationTable{
     [":liebo"] = "出牌阶段，你可以令本回合手牌上限-1，然后你摸一张牌。",  
       
     ["yaoji"] = "妖姬",   
-    [":yaoji"] = "结束阶段，若你的手牌数小于2，你可令一名角色视为对另一名角色使用杀。",
+    [":yaoji"] = "结束阶段，若你的手牌数小于等于2，你可令一名角色视为对另一名角色使用杀。",
 
     ["lieboEndPlayPhase"] = "裂帛",
     [":lieboEndPlayPhase"] = "当你受到伤害后，若当前回合角色与你势力不同，你可以令当前回合角色结束出牌阶段",
@@ -13395,6 +13399,15 @@ mengdie = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then return "" end  
+        local card = nil  
+        if event == sgs.CardUsed then  
+            local use = data:toCardUse()  
+            card = use.card  
+        elseif event == sgs.CardResponded then  
+            local response = data:toCardResponse()  
+            card = response.m_card  
+        end  
+        if card:getTypeId() == sgs.Card_TypeSkill then return "" end
         return self:objectName()
     end,  
     on_cost = function(self, event, room, player, data)  
