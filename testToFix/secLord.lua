@@ -1098,7 +1098,14 @@ luajpzzg = sgs.CreateTriggerSkill{
                     break
                 end
             end
-            if not hasAnjiang and player:getPlayerNumWithSameKingdom("AI", "wei", 1) <= 1 and skill_owners1:isAlive() then 
+            if not hasAnjiang and player:getPlayerNumWithSameKingdom("AI", "wei", 1) <= 1 then 
+                for _, p in sgs.qlist(room:getAlivePlayers()) do
+                    if p:getSeemingKingdom() == "wei" then
+                        room:setPlayerMark(p, "##luajpzzg_peach", 0)
+                        room:setPlayerMark(p, "##luajpzzg_killer", 0)
+                        room:setPlayerMark(p, "##luajpzzg_handcards", 0)
+                    end
+                end
                 return false --若没有暗将且魏势力角色数不足两人，则无大旗效果，无需再往下执行
             end
               
@@ -1143,7 +1150,7 @@ luajpzzg = sgs.CreateTriggerSkill{
                     table.sort(weiMax, function(a, b) return a > b end)
                     table.sort(allMax, function(a, b) return a > b end)
                     if weiMax[1] == weiMax[2] or player:getPlayerNumWithSameKingdom("AI", "wei", 1) <= 1 or 
-                    skill_owners1:isEmpty() then return false end
+                    skill_owners1 == nil then return false end
                     for _, p in sgs.qlist(room:getAlivePlayers()) do
                         if p:getSeemingKingdom() == "wei" and p:getMark("luajpzzg_killCount") == weiMax[1] then
                             if weiMax[1] >= allMax[1] then
