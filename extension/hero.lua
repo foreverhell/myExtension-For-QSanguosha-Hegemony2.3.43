@@ -3733,8 +3733,8 @@ sgs.LoadTranslationTable{
 jiangwei_hero = sgs.General(extension, "jiangwei_hero", "shu", 4)
 jiufa = sgs.CreateTriggerSkill{  
     name = "jiufa",  
-    events = {sgs.CardFinished, sgs.SlashMissed},  
-    frequency = sgs.Skill_Frequent, 
+    events = {sgs.CardFinished, sgs.SlashMissed, sgs.SlashHit},  
+    frequency = sgs.Skill_Compulsory, 
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
             return ""   
@@ -3750,20 +3750,23 @@ jiufa = sgs.CreateTriggerSkill{
                     end
                 end
             end  
-        elseif event == sgs.SlashMissed then
+        else
             local effect = data:toSlashEffect() 
             if effect.card and effect.card:isKindOf("Slash") and effect.card:getSkillName() == self:objectName() then
-                room:loseHp(player,1)
+                if event == sgs.SlashMissed then
+                    room:loseHp(player,1)
+                elseif event == sgs.SlashHit then
+                    room:setPlayerFlag(player, "jiufa_used")
+                end
             end
         end
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(), data)  
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data)  
     end,  
     on_effect = function(self, event, room, player, data)  
         if event == sgs.CardFinished then  
-            room:setPlayerFlag(player, "jiufa_used")
             local use = data:toCardUse() 
             local targets = sgs.SPlayerList()  
             for _, p in sgs.qlist(use.to) do  
@@ -3825,7 +3828,7 @@ jiangwei_hero:addSkill(weifu)
 sgs.LoadTranslationTable{  
     ["jiangwei_hero"] = "姜维",
     ["jiufa"] = "九伐",
-    [":jiufa"] = "每回合限一次。你使用锦囊结算完成后，若目标为其他势力且在你的攻击范围内，你可以视为对其使用1张杀，若该杀未命中，你失去1点体力",--削弱方向：锁定技；每回合限一次
+    [":jiufa"] = "锁定技。你使用锦囊结算完成后，若目标为其他势力且在你的攻击范围内，你视为对其使用1张杀：若该杀未命中，你失去1点体力；若该杀命中，此回合本技能失效",--削弱方向：锁定技；每回合限一次
     ["weifu"] = "危复",
     [":weifu"] = "你的体力减少时，你可以弃置1张牌，从牌堆随机获得1张锦囊"
 }
@@ -4621,7 +4624,7 @@ lianpo4 = sgs.CreateTriggerSkill{
         use.card = slash  
         use.from = player  
         use.to:append(damage.to)  
-        room:useCard(use) 
+        room:useCard(use, false) 
         slash:deleteLater()
         return false  
     end  
@@ -4633,7 +4636,7 @@ sgs.LoadTranslationTable{
     ["fujing"] = "负荆",
     [":fujing"] = "出牌阶段限一次。你可以失去1点体力，令一名角色从摸牌堆获得1张锦囊",
     ["lianpo4"] = "连破",
-    [":lianpo4"] = "每回合限一次。你造成伤害后，你可以弃置1张牌，视为对伤害目标使用一张杀"
+    [":lianpo4"] = "每回合限一次。你造成伤害后，你可以弃置1张牌，视为对伤害目标使用一张不计入次数的杀"
 }
 
 -- 创建武将：李白  
@@ -8177,7 +8180,7 @@ langqiang = sgs.CreateTriggerSkill{
                 use.card = card  
                 use.from = player  
                 use.to:append(player)  
-                room:useCard(use, false)  
+                room:useCard(use)  
             else  
                 -- 否则弃置  
                 room:throwCard(card_id, ask_who)  
@@ -9539,9 +9542,15 @@ rangquan = sgs.CreateTriggerSkill{
         if judge.card:isRed() then
             player:drawCards(1, self:objectName())
         elseif judge.card:isBlack() then
-            local target = room:askForPlayerChosen(player, room:getAlivePlayers(), self:objectName(), "@rangquan-choose", true)  
-            if not target:isAllNude() then
-                local card_id = room:askForCardChosen(player, target, "hej", self:objectName(), false, sgs.Card_MethodDiscard)  
+            local targets = sgs.SPlayerList()  
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
+                if not player:isFriendWith(p) and not p:isNude() then
+                    targets:append(p)  
+                end
+            end  
+            local target = room:askForPlayerChosen(player, targets, self:objectName(), "@rangquan-choose")  
+            if not target:isNude() then
+                local card_id = room:askForCardChosen(player, target, "he", self:objectName(), false, sgs.Card_MethodDiscard)  
                 room:throwCard(card_id, target, player)  
             end
         end
@@ -9556,7 +9565,7 @@ sgs.LoadTranslationTable{
     ["yuzhu"] = "预诛",
     [":yuzhu"] = "其他角色出牌阶段开始时，你可以与该角色拼点：若你赢，你可以选择任意一名不为该角色的角色，视为其对该角色使用一张杀；若你没赢，视为该角色对你使用一张计入次数的杀",
     ["rangquan"] = "攘权",
-    [":rangquan"] = "当你受到伤害后，你可以进行一次判定：若为红，你摸一张牌；若为黑，你弃置一名角色一张牌",--若摸或弃置的牌点数小于等于5，你回复1点体力
+    [":rangquan"] = "当你受到伤害后，你可以进行一次判定：若为红，你摸一张牌；若为黑，你弃置一名不同势力角色一张牌",--若摸或弃置的牌点数小于等于5，你回复1点体力
 }
 
 -- 创建武将：唐伯虎  
