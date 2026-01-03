@@ -515,6 +515,7 @@ yinleijian = sgs.CreateWeapon{
 }  
   
 -- 引雷剑技能实现  
+--[[
 yinleijianSkill = sgs.CreateOneCardViewAsSkill{  
     name = "YinLeiJian",  
     filter_pattern = "%slash",  
@@ -534,6 +535,36 @@ yinleijianSkill = sgs.CreateOneCardViewAsSkill{
         thunder_slash:addSubcard(originalCard:getId())  
         thunder_slash:setSkillName("YinLeiJian")  
         return thunder_slash  
+    end  
+}  
+]]
+
+yinleijianSkill = sgs.CreateTriggerSkill{  
+    name = "YinLeiJian",  
+    events = {sgs.CardUsed},  
+    --frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then  
+            local weapon = player:getWeapon()
+            if not (weapon and weapon:isKindOf("YinLeiJian")) then return "" end
+            local use = data:toCardUse()  
+            if use.card and use.card:isKindOf("Slash") then  
+                return self:objectName()  
+            end  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(),data)  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        local use = data:toCardUse()  
+        local originalCard = use.card
+        local new_card = sgs.Sanguosha:cloneCard("thunder_slash", originalCard:getSuit(), originalCard:getNumber())
+        new_card:addSubcard(originalCard:getId()) 
+        use.card = new_card
+        data:setValue(use)
+        return false  
     end  
 }  
 
