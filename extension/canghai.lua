@@ -2208,7 +2208,7 @@ jueyanCard = sgs.CreateSkillCard{
     target_fixed = true,
     will_throw = true,
     on_use = function(self, room, source)
-        local num = 0 --势力相同的角色数
+        local num = 1 --势力相同的角色数
         for _,p in sgs.qlist(room:getOtherPlayers(source)) do
             if source:isFriendWith(p) then
                 num = num + 1
@@ -4589,7 +4589,7 @@ jingde = sgs.CreateTriggerSkill{
     end,  
     on_cost = function(self, event, room, player, data)  
         local damage = data:toDamage()  
-        local choices = {"cancel"}  
+        local choices = {}  
           
         -- 检查自己是否有未明置的武将牌  
         if not player:hasShownGeneral1() and player:canShowGeneral("h") then  
@@ -4609,7 +4609,7 @@ jingde = sgs.CreateTriggerSkill{
         if #choices == 0 then return false end  
           
         local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"), data)  
-        if choice ~= "cancel" then  
+        if choice then  
             player:setTag("JingdeChoice", sgs.QVariant(choice))  
             return true  
         end  
