@@ -2264,6 +2264,7 @@ qimei = sgs.CreateTriggerSkill{
         return false  
     end,  
 }
+
 zhuiji1 = sgs.CreateTriggerSkill{  
     name = "zhuiji1",  
     events = {sgs.EventPhaseStart, sgs.EventPhaseEnd},
@@ -2333,17 +2334,128 @@ zhuiji1 = sgs.CreateTriggerSkill{
     end  
 }
 
+--[[
+qimei = sgs.CreateTriggerSkill{  
+    name = "qimei",  
+    events = {sgs.EventPhaseStart},  
+    frequency = sgs.Skill_Limited,
+    limit_mark = "@qimei",
+    can_trigger = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart then  
+            if not (player and player:isAlive()) then
+                return ""
+            end
+            if player:hasSkill(self:objectName()) then
+                if player:getPhase() == sgs.Player_Start then --自己准备阶段清除标记
+                    room:setPlayerMark(player,"@qimei",1)
+                    --把标记清除掉
+                    for _,p in sgs.qlist(room:getAlivePlayers()) do
+                        if p:getMark("@qimei_target") > 0 then
+                            room:setPlayerMark(p,"@qimei_target",0)
+                        end
+                    end
+                end
+            end
+            if player:getPhase() == sgs.Player_Play then
+                local source = room:findPlayerBySkillName(self:objectName())
+                if not (source and source:isAlive() and source:getMark("@qimei")>0) then 
+                    return ""
+                end
+                return self:objectName(), source:objectName()
+            end
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseStart then  
+            return ask_who:askForSkillInvoke(self:objectName(),data)
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseStart then  
+            local targets = sgs.SPlayerList()  
+            for _, p in sgs.qlist(room:getOtherPlayers(ask_who)) do  
+                if p:isAlive() then  
+                    targets:append(p)  
+                end  
+            end  
+            if targets:isEmpty() then return false end  
+              
+            local target = room:askForPlayerChosen(ask_who, targets, self:objectName(),   
+                                                 "qimei-invoke", true, true)  
+            if target and target:isAlive() then  
+                -- 设置新标记  
+                room:setPlayerMark(target, "@qimei_target", 1)  
+                room:setPlayerMark(ask_who, "@qimei_target", 1)  
+                room:setPlayerMark(ask_who,"@qimei",0)
+            end  
+        end  
+        return false  
+    end  
+}  
+
+qimeiEffect = sgs.CreateTriggerSkill{  
+    name = "#qimei-effect",  
+    events = {sgs.HpChanged, sgs.CardsMoveOneTime},  
+    can_trigger = function(self, event, room, player, data)
+        --player是触发事件的角色
+        if event == sgs.CardsMoveOneTime then
+            if skillTriggerable(player, self:objectName()) then
+                local current = room:getCurrent()
+                if current and current:isAlive() and current:getPhase() == sgs.Player_Play then
+                    local move_datas = data:toList()
+                    for _, move_data in sgs.qlist(move_datas) do
+                        local move = move_data:toMoveOneTime()
+                        if move.from and move.from:isAlive() and move.from:contains(sgs.Player_PlaceHand) and move.from:getMark("@qimei_target")>0 then
+                            for _, p in sgs.qlist(room:getOtherPlayers(move.from)) do
+                                if p:getMark("@qimei_target") > 0 and p:getHandcardNum() == move.from:getHandcardNum() then
+                                    return self:objectName(), p:objectName()
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        elseif event == sgs.HpChanged then  
+            -- 体力值变化事件
+            if player:getMark("@qimei_target")>0 then
+                for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+                    if p:getMark("@qimei_target") > 0 and p:getHp()==player:getHp() then
+                        return self:objectName(), p:objectName()
+                    end
+                end
+            end
+		end
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)    
+        return true  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        room:drawCards(ask_who, 1, self:objectName())
+        return false  
+    end,  
+}
+]]
 xuangongzhu:addSkill(qimei)
+--xuangongzhu:addSkill(qimeiEffect)
+--extension:insertRelatedSkills("qimei", "#qimei-effect")
 xuangongzhu:addSkill(zhuiji1)
 
 sgs.LoadTranslationTable{
-["#xuangongzhu"] = "举案齐眉",  
-["xuangongzhu"] = "宣公主",  
-["illustrator:xuangongzhu"] = "画师名",  
-["qimei"] = "齐眉",  
-[":qimei"] = "当其他角色手牌数变化后，若你的手牌数与其相同，你可以摸一张牌；当你的体力值变化后，你可以令一名体力值和你相同的角色摸一张牌；当其他角色体力值变化后，若你的体力值与其相同，你可以摸一张牌。",  
-["zhuiji1"] = "追姬",  
-[":zhuiji1"] = "出牌阶段开始时，你可以选择：1.恢复1点体力，出牌阶段结束时弃置2张牌；2.摸2张牌，出牌阶段结束时失去1点体力。",
+    ["#xuangongzhu"] = "举案齐眉",  
+    ["xuangongzhu"] = "宣公主",  
+    ["illustrator:xuangongzhu"] = "画师名",  
+    ["qimei"] = "齐眉",  
+    [":qimei"] = "当其他角色手牌数变化后，若你的手牌数与其相同，你可以摸一张牌；当你的体力值变化后，你可以令一名体力值和你相同的角色摸一张牌；当其他角色体力值变化后，若你的体力值与其相同，你可以摸一张牌。",  
+    --[":qimei"] = "每轮限一次，任意角色出牌阶段开始时，你可以选择一名角色齐眉。直到你的下回合开始前，你与其一方手牌数/体力值变化时，若与另一方手牌数/体力值相等，另一方摸一张牌",  
+    ["zhuiji1"] = "追姬",  
+    [":zhuiji1"] = "出牌阶段开始时，你可以选择：1.恢复1点体力，出牌阶段结束时弃置2张牌；2.摸2张牌，出牌阶段结束时失去1点体力。",
 }
 
 yanghu_yingbian = sgs.General(extension, "yanghu_yingbian", "jin", 3) -- 蜀势力，4血，男性（默认）  
