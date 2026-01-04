@@ -5471,7 +5471,281 @@ sgs.LoadTranslationTable{
     ["~liqingzhao"] = "生当作人杰，死亦为鬼雄。"  
 }  
 
-liubei_hero = sgs.General(extension, "liubei_hero", "shu", 3)  --shu,jin  
+
+liubei_hero = sgs.General(extension, "liubei_hero", "shu", 3)  
+liubei_hero_duan = sgs.General(extension, "liubei_hero_duan", "shu", 3)  
+
+
+jieyi = sgs.CreateTriggerSkill{  
+    name = "jieyi",  
+    events = {sgs.EventPhaseStart},  
+    frequency = sgs.Skill_Limited,
+    limit_mark = "@jieyi",
+    can_trigger = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart then  
+            if not (player and player:isAlive()) then
+                return ""
+            end
+            if player:hasSkill(self:objectName()) then
+                if player:getPhase() == sgs.Player_Start then --自己准备阶段清除标记
+                    room:setPlayerMark(player,"@jieyi",1)
+                    --把标记清除掉
+                    for _,p in sgs.qlist(room:getAlivePlayers()) do
+                        if p:getMark("@jieyi_target") > 0 then
+                            room:setPlayerMark(p,"@jieyi_target",0)
+                        end
+                    end
+                end
+            end
+            if player:getPhase() == sgs.Player_Play then
+                local source = room:findPlayerBySkillName(self:objectName())
+                if not (source and source:isAlive() and source:getMark("@jieyi")>0) then 
+                    return ""
+                end
+                return self:objectName(), source:objectName()
+            end
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseStart then  
+            return ask_who:askForSkillInvoke(self:objectName(),data)
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseStart then  
+            local targets = sgs.SPlayerList()  
+            for _, p in sgs.qlist(room:getOtherPlayers(ask_who)) do  
+                if p:isAlive() then  
+                    targets:append(p)  
+                end  
+            end  
+            if targets:isEmpty() then return false end  
+              
+            local target = room:askForPlayerChosen(ask_who, targets, self:objectName(),   
+                                                 "jieyi-invoke", true, true)  
+            if target and target:isAlive() then  
+                -- 设置新标记  
+                room:setPlayerMark(target, "@jieyi_target", 1)  
+                room:setPlayerMark(ask_who, "@jieyi_target", 1)  
+                room:setPlayerMark(ask_who,"@jieyi",0)
+            end  
+        end  
+        return false  
+    end  
+}  
+
+jieyiDamage = sgs.CreateTriggerSkill{  
+    name = "#jieyi-damage",  
+    events = {sgs.DamageInflicted},
+    can_trigger = function(self, event, room, player, data)  
+        local damage = data:toDamage()  
+        if damage.to:getMark("@jieyi_target") > 0 and damage.reason ~= self:objectName() then
+            for _, p in sgs.qlist(room:getOtherPlayers(damage.to)) do
+                if p:getMark("@jieyi_target") > 0 then
+                    return self:objectName(), p:objectName()
+                end
+            end
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        return ask_who:askForSkillInvoke(self:objectName(), data)
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local damage = data:toDamage()  
+
+        local new_damage = sgs.DamageStruct()  
+        new_damage.from = damage.from 
+        new_damage.to = ask_who  
+        new_damage.damage = damage.damage  
+        new_damage.nature = sgs.DamageStruct_Normal  
+        new_damage.reason = self:objectName()  
+        room:damage(new_damage)  
+        return true  
+    end  
+}
+
+jieyiRecover = sgs.CreateTriggerSkill{  
+    name = "#jieyi-recover",  
+    events = {sgs.HpRecover},
+    can_trigger = function(self, event, room, player, data)  
+        local recover = data:toRecover()  
+        if player:getMark("@jieyi_target") > 0 and not player:hasFlag("jieyiRecover_used") then
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+                if p:getMark("@jieyi_target") > 0 and not p:hasFlag("jieyiRecover_used") then
+                    return self:objectName(), p:objectName()
+                end
+            end
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        return true
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local recover = data:toRecover()
+        --先加标记，否则会重复触发
+        room:setPlayerFlag(player,"jieyiRecover_used")
+        room:setPlayerFlag(ask_who,"jieyiRecover_used")
+
+        local new_recover = sgs.RecoverStruct()  
+        new_recover.recover = recover.recover  
+        new_recover.who = player  
+        room:recover(ask_who, new_recover)
+
+        --恢复结束，把标记清掉
+        room:setPlayerFlag(player,"-jieyiRecover_used")
+        room:setPlayerFlag(ask_who,"-jieyiRecover_used")
+        return false  
+    end  
+}
+
+rendeDamaged = sgs.CreateTriggerSkill{  
+    name = "rendeDamaged",  
+    events = {sgs.Damaged},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
+            return ""   
+        end  
+        return self:objectName()  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        local damage = data:toDamage()  
+        -- 询问是否弃置手牌反击  
+        if player:askForSkillInvoke(self:objectName(), data)  then  
+            return true  
+        end            
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        player:drawCards(1,self:objectName())
+
+        local select_card_ids = room:askForExchange(player, self:objectName(), 2, 0, "", "", ".|.|.|.")  
+        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())
+        for _,card in sgs.qlist(select_card_ids) do
+            room:obtainCard(target, card, false)  
+        end
+        return false  
+    end  
+}
+
+jieyiDamaged = sgs.CreateTriggerSkill{  
+    name = "jieyiDamaged",  
+    events = {sgs.Damaged},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
+            return ""   
+        end  
+          
+        local damage = data:toDamage()  
+        -- 当你受到伤害后，你可以弃置一张牌，令伤害来源受到等量伤害。
+        if damage.from and damage.from:isAlive() and damage.from:objectName() ~= player:objectName() and damage.to:objectName()==player:objectName() and not player:isNude() then  
+            return self:objectName()  
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        local damage = data:toDamage()  
+        -- 询问是否弃置手牌反击  
+        if player:askForSkillInvoke(self:objectName(), data) and room:askForCard(player, ".", "@jieyiDamaged-discard", data, sgs.Card_MethodDiscard)  then  
+            return true  
+        end            
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local damage = data:toDamage()  
+
+        -- 对伤害来源造成等量伤害  
+        local new_damage = sgs.DamageStruct()  
+        new_damage.from = nil  
+        new_damage.to = damage.from  
+        new_damage.damage = damage.damage  
+        new_damage.nature = sgs.DamageStruct_Normal  
+        new_damage.reason = self:objectName()  
+            
+        room:damage(new_damage)            
+        return false  
+    end  
+}
+
+rendeTrick = sgs.CreateTriggerSkill{
+	name = "rendeTrick",
+	events = {sgs.CardUsed},
+    frequency = sgs.Skill_Frequent,
+	can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) and event == sgs.CardUsed then
+			local use = data:toCardUse()
+			if use.card:isKindOf("TrickCard") and use.from == player then
+				for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+                    if player:isFriendWith(p) then
+                        return self:objectName()
+                    end
+                end
+			end
+		end
+		return false
+	end,
+
+	on_cost = function(self, event, room, player, data)
+		if player:askForSkillInvoke(self:objectName(), data) then
+			room:broadcastSkillInvoke(self:objectName(), player)
+			return true
+		end
+		return false
+	end,
+
+	on_effect = function(self, event, room, player, data)
+		local use = data:toCardUse()
+		local targets = sgs.SPlayerList()
+		for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+			if player:isFriendWith(p) then
+				targets:append(p)
+			end
+		end
+        local target = room:askForPlayerChosen(player, targets, self:objectName(), "@rendeTrick-choose", false)
+        target:drawCards(1,self:objectName())
+		return false
+	end
+}
+
+liubei_hero:addSkill(jieyi)
+liubei_hero:addSkill(jieyiDamage)
+liubei_hero:addSkill(jieyiRecover)
+liubei_hero:addSkill(rendeDamaged)
+extension:insertRelatedSkills("jieyi", "#jieyi-damage")
+extension:insertRelatedSkills("jieyi", "#jieyi-recover")
+
+
+liubei_hero_duan:addSkill(jieyiDamaged)
+liubei_hero_duan:addSkill(rendeTrick)
+sgs.LoadTranslationTable{  
+    ["liubei_hero"] = "刘备",
+    ["liubei_hero_duan"] = "刘备",
+    ["jieyi"] = "结义",
+    [":jieyi"] = "每轮限一次，任意角色出牌阶段开始时，你可以选择一名角色结义。直到你的下回合开始前，你与其一方不因此技能受到伤害时，另一方可以选择替其承受此伤害；你与其一方不因此技能恢复体力时，另一方恢复等量体力",
+    ["rendeDamaged"] = "仁德",
+    [":rendeDamaged"] = "你受到伤害后，你可以摸1张牌，然后交给一名其他角色至多2张牌",
+    ["jieyiDamaged"] = "结义",
+    [":jieyiDamaged"] = "你受到伤害后，你可以弃置1张牌，令伤害来源受到无伤害来源的等量伤害",
+    ["rendeTrick"] = "仁德",
+    [":rendeTrick"] = "你使用锦囊时，你可以令一名势力相同的其他角色摸一张牌",
+}
+
+liubei_jieyi = sgs.General(extension, "liubei_jieyi", "shu", 3)  --shu,jin  
 
 jieyi1 = sgs.CreateTriggerSkill{  
     name = "jieyi1",  
@@ -5498,7 +5772,7 @@ jieyi1 = sgs.CreateTriggerSkill{
             end  
         elseif event == sgs.Damaged then  
             -- 当你受到伤害时，你可以弃置一张手牌，令伤害来源受到等量伤害。伤害来源是自己，也会扣到死
-            if damage.from and damage.from:isAlive() and damage.from:objectName() ~= liubei:objectName() and damage.to:objectName()==liubei:objectName() and not liubei:isKongcheng() then  
+            if damage.from and damage.from:isAlive() and damage.from:objectName() ~= liubei:objectName() and damage.to:objectName()==liubei:objectName() and not liubei:isNude() then  
                 return self:objectName()  
             end  
         end  
@@ -5575,7 +5849,7 @@ jieyi2 = sgs.CreateTriggerSkill{
           
         -- 寻找拥有此技能的角色  
         local owner = room:findPlayerBySkillName(self:objectName())
-        if owner:isAlive() and not owner:isKongcheng() and owner:getMark("@jieyi2-Clear")==0 then  --recover.who:objectName() ~= owner:objectName() then
+        if owner:isAlive() and not owner:isNude() and owner:getMark("@jieyi2-Clear")==0 then  --recover.who:objectName() ~= owner:objectName() then
             return self:objectName(), owner:objectName()
         end  
         return ""
@@ -5596,14 +5870,15 @@ jieyi2 = sgs.CreateTriggerSkill{
             end  
         else  
             -- 自己回复体力时，询问是否弃牌让其他角色回复  
-            local others = {}  
+            local targets = sgs.SPlayerList()  
+            -- 收集可选目标  
             for _, p in sgs.qlist(room:getOtherPlayers(ask_who)) do  
-                if p:isAlive() and p:isWounded() then  
-                    table.insert(others, p)  
+                if  p:isWounded() then  
+                    targets:append(p)            
                 end  
             end  
               
-            if #others > 0 then  
+            if not targets:isEmpty() then  
                 local prompt = string.format("@jieyi2-other::%d", recover.recover)  
                 if ask_who:askForSkillInvoke(self:objectName(), data) then  
                     local card = room:askForCard(ask_who, ".", prompt, data, sgs.Card_MethodDiscard)  
@@ -5632,15 +5907,14 @@ jieyi2 = sgs.CreateTriggerSkill{
             room:recover(ask_who, new_recover)  
         else  
             -- 自己回复体力时，让选择的其他角色回复等量体力 
-            --[[ 
-            local others = {}  
+            local targets = sgs.SPlayerList()  
+            -- 收集可选目标  
             for _, p in sgs.qlist(room:getOtherPlayers(ask_who)) do  
-                if p:isAlive() and p:isWounded() then  
-                    table.insert(others, p)  
+                if  p:isWounded() then  
+                    targets:append(p)            
                 end  
-            end 
-            ]] 
-            local target = room:askForPlayerChosen(ask_who, room:getOtherPlayers(ask_who), self:objectName(),   
+            end  
+            local target = room:askForPlayerChosen(ask_who, targets, self:objectName(),   
                 string.format("jieyi2-choose::%d", recover.recover), false, true)                
             if target and target:isAlive() then  
                 local new_recover = sgs.RecoverStruct()  
@@ -5649,18 +5923,19 @@ jieyi2 = sgs.CreateTriggerSkill{
                 room:recover(target, new_recover)  
             end  
         end  
+        room:setPlayerMark(ask_who,"@jieyi2-Clear",0)
         return false  
     end  
 }
 
-liubei_hero:addSkill(jieyi1)
-liubei_hero:addSkill(jieyi2)
+liubei_jieyi:addSkill(jieyi1)
+liubei_jieyi:addSkill(jieyi2)
 sgs.LoadTranslationTable{  
-    ["liubei_hero"] = "义刘备",
+    ["liubei_jieyi"] = "义刘备",
     ["jieyi1"] = "结义-共死",
     [":jieyi1"] = "当其他角色受到来源不为你的伤害时，你可以选择替他受到伤害；当你受到伤害时，你可以弃置一张牌，令伤害来源受到无伤害来源的等量伤害。以上效果不可相互触发",
     ["jieyi2"] = "结义-同生",
-    [":jieyi2"] = "每回合限一次。当其他角色回复体力时，你可以弃置一张手牌，回复等量体力；当你回复体力时，你可以弃置一张牌，选择一名其他角色回复等量体力。",
+    [":jieyi2"] = "当其他角色回复体力时，你可以弃置一张牌，回复等量体力；当你回复体力时，你可以弃置一张牌，选择一名其他角色回复等量体力。",
 }  
 
 liuche = sgs.General(extension, "liuche", "wu", 4)
@@ -10895,7 +11170,7 @@ shenli = sgs.CreateTriggerSkill{
         end  
           
         local damage = data:toDamage()  
-        if damage.card and damage.card:isKindOf("Slash") and damage.from and damage.from:objectName() == player:objectName() then  
+        if damage.card and damage.card:isKindOf("Slash") and damage.from and damage.from:objectName() == player:objectName() and player:isWounded() then  
             return self:objectName()  
         end  
           
@@ -11983,7 +12258,7 @@ miaosuan = sgs.CreateTriggerSkill{
                 if player:getPhase() == sgs.Player_Play and owner:getMark("@miaosuan") > 0 then --其他角色出牌阶段开始时
                     return self:objectName(), owner:objectName()
                 elseif player:getPhase() == sgs.Player_Finish and player:hasFlag("miaosuan_target") then --目标结束阶段
-                    room:setPlayerFlag("-miaosuan_target")
+                    room:setPlayerFlag(player,"-miaosuan_target")
                     room:setPlayerMark(owner,"@miaosuan-type",0)
                     room:setPlayerMark(owner,"@miaosuan-suit",0)
                     room:setPlayerMark(owner,"@miaosuan-number",0)
