@@ -1537,7 +1537,7 @@ sgs.LoadTranslationTable{
     ["#ZhenKongZhaoNatureDamage"] = "%from 对 %to 造成的 %arg 点%arg2被【真空罩】转换为无属性伤害",  
 
     ["YinLeiJian"] = "引雷剑",  
-    [":YinLeiJian"] = "装备牌·武器\n\n攻击范围：4\n技能：你可以将一张普通【杀】当雷【杀】使用",  
+    [":YinLeiJian"] = "装备牌·武器\n\n攻击范围：4\n技能：你使用杀时，可以将其转化为雷杀",  
     ["yinleijian"] = "引雷剑",
 
     ["baiBaoXiang"] = "百宝箱",
