@@ -4548,6 +4548,67 @@ sgs.LoadTranslationTable{
     [":huizi"] = "摸牌阶段结束时，你可以弃置任意张手牌，然后将手牌摸至X，X为场上手牌数最多角色的手牌数。"
 }  
 
+
+zhangsong = sgs.General(extension, "zhangsong", "shu", 3)
+
+qiangshi = sgs.CreateTriggerSkill{  
+    name = "qiangshi",  
+    events = {sgs.EventPhaseStart, sgs.CardUsed},  
+    frequency = sgs.Skill_Frequent,  
+    limit_mark = "@qiangshi",
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then
+            return ""
+        end
+
+        if event == sgs.EventPhaseStart then
+            if player:getPhase() == sgs.Player_Play then --出牌阶段开始时
+                return self:objectName()
+            elseif player:getPhase() == sgs.Player_Finish then --结束阶段
+                room:setPlayerMark(player,"@qiangshi-type",0)
+            end
+        elseif event == sgs.CardUsed then
+            local use = data:toCardUse()
+            if use.from == player and use.card and use.card:getTypeId() == player:getMark("@qiangshi-type") then
+                player:drawCards(1,self:objectName())
+            end
+        end
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        -- 询问是否发动技能  
+        if room:askForSkillInvoke(player, self:objectName(), data) then
+            return true
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local targets = sgs.SPlayerList()  
+        for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
+            if not p:isKongcheng() then  
+                targets:append(p)  
+            end  
+        end  
+        if targets:isEmpty() then return false end
+        local target = room:askForPlayerChosen(player, targets, self:objectName())
+        local card_id = room:askForCardChosen(player, target, "h", self:objectName())
+        room:showCard(target, card_id)
+        local card = sgs.Sanguosha:getCard(card_id)
+        if card then
+            room:setPlayerMark(player,"@qiangshi-type",card:getTypeId())
+        end
+        return false
+    end  
+}
+zhangsong:addSkill(qiangshi)
+zhangsong:addSkill("luaxiantu")
+sgs.LoadTranslationTable{
+    ["zhangsong"] = "张松",
+    ["qiangshi"] = "强识",
+    [":qiangshi"] = "出牌阶段开始时，你可以展示其他角色一张手牌，本回合你使用与此相同类型的牌时，你摸1张牌",
+}
+
 zhangxingcai = sgs.General(extension, "zhangxingcai", "shu", 3, false)  
 qiangwu = sgs.CreateTriggerSkill{  
     name = "qiangwu",  
