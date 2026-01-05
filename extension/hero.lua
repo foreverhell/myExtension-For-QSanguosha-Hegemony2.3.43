@@ -573,6 +573,8 @@ guiguViewAsSkill = sgs.CreateViewAsSkill{
             for _, c in ipairs(cards) do  
                 card:addSubcard(c)  
             end  
+            card:setShowSkill(self:objectName())
+            card:setSkillName(self:objectName())
             return card  
         end  
         return nil  
@@ -10033,8 +10035,15 @@ saima = sgs.CreateTriggerSkill{
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then
             return ""
         end
-        if event == sgs.EventPhaseStart then
-            if player:getPhase()==sgs.Player_Finish then --结束阶段，找到赢次数多的人
+        if event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_Finish then
+            local target = nil --拼点目标。没有发动过技能就不亮将
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+                if p:hasFlag("saima_target") then
+                    target = p
+                    break
+                end
+            end
+            if target then
                 return self:objectName()
             end
         elseif event == sgs.Pindian then
@@ -10052,7 +10061,7 @@ saima = sgs.CreateTriggerSkill{
       
     on_effect = function(self, event, room, player, data)
         if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Finish then
-            local target = nil --准备阶段选择的目标
+            local target = nil --拼点的目标
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
                 if p:hasFlag("saima_target") then
                     target = p
@@ -12983,7 +12992,7 @@ FeiqingCard = sgs.CreateSkillCard{
       
     filter = function(self, targets, to_select)  
         -- 只能选择一名男性角色  
-        return #targets == 0 and to_select:hasShownOneGeneral() and to_select:isMale() and to_select:isWounded() and to_select ~= sgs.Self  
+        return #targets == 0 and to_select:hasShownOneGeneral() and to_select:isMale() and to_select:isWounded() and to_select:objectName() ~= sgs.Self:objectName()  
     end,  
       
     on_effect = function(self, effect)  
@@ -14455,12 +14464,5 @@ moxi:addCompanion("xiajie")
 qinqiong:addCompanion("yuchigong")
 shangguanwaner:addCompanion("wuzetian")
 simaxiangru:addCompanion("zhuowenjun")
---[[
-menghuo_hero:addCompanion("menghuo")
-menghuo_hero:addCompanion("zhurong")
-menghuo_hero:addCompanion("zhurong_hero")
-zhurong_hero:addCompanion("menghuo")
-zhurong_hero:addCompanion("zhurong")
-]]
 sgs.Sanguosha:addSkills(skills)
 return {extension}
