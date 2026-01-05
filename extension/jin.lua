@@ -2949,7 +2949,7 @@ sgs.LoadTranslationTable{
 caofang_junba = sgs.General(extension, "caofang_junba", "jin", 3)  -- 吴国，4血，男性  
 caomao_junba = sgs.General(extension, "caomao_junba", "jin", 3)  -- 吴国，4血，男性  
 haozhao_junba = sgs.General(extension, "haozhao_junba", "jin", 4)  -- 吴国，4血，男性  
-jianshi_junba = sgs.General(extension, "jianshi_junba", "jin", 3, false)  -- 吴国，4血，男性  
+liujinliupei_junba = sgs.General(extension, "liujinliupei_junba", "jin", 3, false)  -- 吴国，4血，男性  
 jikang_junba = sgs.General(extension, "jikang_junba", "jin", 3)  
 simahui_junba = sgs.General(extension, "simahui_junba", "jin", 3)  
 simafu_junba = sgs.General(extension, "simafu_junba", "jin", 3)  -- 吴国，4血，男性  
@@ -2965,7 +2965,7 @@ caomao_junba:addSkill("fensi")
 
 haozhao_junba:addSkill("zhengu")
 
-jianshi_junba:addSkill("jiusi")
+liujinliupei_junba:addSkill("jiusi")
 
 jikang_junba:addSkill("qingxian")  
 jikang_junba:addSkill("juexiang")
@@ -2994,7 +2994,7 @@ sgs.LoadTranslationTable{
     ["caomao_junba"] = "曹髦",
     ["caoren_junba"] = "星曹仁",
     ["haozhao_junba"] = "郝昭",
-    ["jianshi_junba"] = "剑侍",
+    ["liujinliupei_junba"] = "刘衿刘佩",
     ["jikang_junba"] = "嵇康",  
     ["simahui_junba"] = "司马徽",  
     ["simafu_junba"] = "司马孚",  
