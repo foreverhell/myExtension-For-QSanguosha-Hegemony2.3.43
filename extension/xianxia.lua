@@ -1206,13 +1206,11 @@ pianchong = sgs.CreateTriggerSkill{  --如果成了，好几个技能都需要�
                     chosen_cards:append(black_card_id)
                 end
             end  
-              
             if not chosen_cards:isEmpty() then
-                for _,card in sgs.qlist(chosen_cards) do
-                    room:obtainCard(player, card) 
-                end 
-            end  
-              
+                local dummy = sgs.DummyCard(chosen_cards)  
+                room:obtainCard(player, dummy)  
+                dummy:deleteLater()  
+            end                             
             -- 其余牌置入弃牌堆  
             for _, id in sgs.qlist(cards) do  
                 if not chosen_cards:contains(id) then  
@@ -2339,7 +2337,7 @@ zhoucang:addSkill(zhoucangSkill)
 sgs.LoadTranslationTable{
     ["zhoucang"] = "周仓",
     ["zhoucangSkill"] = "技能1",
-    [":zhoucangSkill"] = "出牌阶段限一次。你可以和一名其他角色同时展示一张手牌：若你展示的是杀，其展示的不是闪，你可以弃置展示的牌，对其造成1点伤害；若你展示的不是杀，其展示的是闪，你可以弃置展示的牌，获得其1张牌",
+    [":zhoucangSkill"] = "出牌阶段限一次。你可以和一名其他角色同时展示一张手牌：若你展示的是杀，其展示的不是闪，你弃置展示的牌，对其造成1点伤害；若你展示的不是杀，其展示的是闪，你弃置展示的牌，获得其1张牌",
 }
 
 sgs.Sanguosha:addSkills(skills)
