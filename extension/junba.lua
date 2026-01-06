@@ -668,6 +668,81 @@ sgs.LoadTranslationTable{
 }
 
 
+feiyi = sgs.General(extension, "feiyi", "shu", 3)  -- 吴国，4血，男性  
+yanruCard = sgs.CreateSkillCard{  
+    name = "yanruCard",  
+    target_fixed = true,  
+    will_throw = false,  
+    on_use = function(self, room, source, targets)  
+        if source:getHandcardNum()%2==1 and not source:hasFlag("yanru_ji") then
+            source:drawCards(3, self:objectName())
+            local num = source:getHandcardNum()
+            room:askForDiscard(source, self:objectName(), num, num/2, false, false)--至少一半
+            room:setPlayerFlag(source, "yanru_ji")
+        elseif source:getHandcardNum()%2==0 and not source:hasFlag("yanru_ou") then
+            local num = source:getHandcardNum()
+            room:askForDiscard(source, self:objectName(), num, num/2, false, false)--至少一半
+            source:drawCards(3, self:objectName())
+            room:setPlayerFlag(source, "yanru_ou")
+        end
+    end  
+}  
+  
+yanru = sgs.CreateZeroCardViewAsSkill{  
+    name = "yanru",  
+    view_as = function(self)  
+        card = yanruCard:clone()  
+        card:setShowSkill(self:objectName())
+        return card
+    end,  
+    enabled_at_play = function(self, player)  
+        return (player:getHandcardNum()%2==1 and not player:hasFlag("yanru_ji")) 
+        or (player:getHandcardNum()%2==0 and not player:hasFlag("yanru_ou"))
+    end  
+}  
+
+
+hezhong = sgs.CreateTriggerSkill{
+    name = "hezhong",
+    events = {sgs.CardsMoveOneTime},
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then
+            if event == sgs.CardsMoveOneTime then
+                local move_datas = data:toList()
+                for _, move_data in sgs.qlist(move_datas) do
+                    local move = move_data:toMoveOneTime()
+                    if (move.from and move.from:objectName() == player:objectName() and move.from_places:contains(sgs.Player_PlaceHand)) 
+                    or (move.to and move.to:objectName() == player:objectName() and move.to_place == sgs.Player_PlaceHand) then
+                        if player:getHandcardNum() == 1 and not player:hasFlag("hezhong_used") then 
+                            return self:objectName()
+                        end
+                    end
+                end
+            end
+        end
+    end,
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then  
+            room:setPlayerFlag(player,"hezhong_used")
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        player:drawCards(1, self:objectName())
+    end
+}
+feiyi:addSkill(yanru)
+feiyi:addSkill(hezhong)
+sgs.LoadTranslationTable{
+    ["feiyi"] = "费祎",
+    ["yanru"] = "晏如",
+    [":yanru"] = "出牌阶段各限1次。若你的手牌数是：奇数，你可以摸3张牌并弃置至少一半手牌；偶数，你可以弃置至少一半手牌并摸3张牌",
+    ["hezhong"] = "和忠",
+    [":hezhong"] = "每回合限一次。当你的手牌数变为1后，你可以摸一张牌"
+}
+
 fengyu = sgs.General(extension, "fengyu", "jin", 3, false)  
 
 tiqi = sgs.CreateTriggerSkill{  
@@ -4426,14 +4501,85 @@ yuanxian = sgs.CreateTriggerSkill{
         return false  
     end  
 }
+
+dianzhan = sgs.CreateTriggerSkill{  
+    name = "dianzhan",  
+    events = {sgs.EventPhaseStart, sgs.CardFinished},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then
+            return ""
+        end
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
+            for suit = sgs.Card_Spade, sgs.Card_Diamond do  
+                local mark = "@dianzhan" .. suit
+                room:setPlayerMark(player, mark, 0)--清除标记
+            end  
+        elseif event == sgs.CardFinished then
+            local use = data:toCardUse()
+            if use.from ~= player then return "" end --必须是自己用
+            local card = use.card
+            local suit = card:getSuit()
+            local mark = "@dianzhan" .. suit
+            if player:getMark(mark) == 0 then
+                room:setPlayerMark(player, mark, 1) --首张。不管能不能发动，不管是否发动，都需要加上标记
+                if use.to:length() == 1 then
+                    return self:objectName()
+                end
+            end
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        -- 询问是否发动技能  
+        if room:askForSkillInvoke(player, self:objectName(), data) then
+            return true
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local invoke = 0
+        local use = data:toCardUse()
+        if use.to:length() ~= 1 then return false end
+
+        local target = use.to:first()
+        if not target:isChained() then
+            target:setChained(not target:isChained())
+            invoke = invoke + 1
+        end
+
+        local target_cards = sgs.IntList()
+        for _, card in sgs.qlist(player:getHandcards()) do
+            if card:getSuit()==use.card:getSuit() then
+                target_cards:append(card:getId())
+            end
+        end
+        if not target_cards:isEmpty() then
+            local dummy = sgs.DummyCard(target_cards)  
+            room:throwCard(dummy, player, player)  
+            dummy:deleteLater()  
+            player:drawCards(target_cards:length(),self:objectName())
+        end
+
+        if invoke == 2 then
+            player:drawCards(1,self:objectName())
+        end
+        return false
+    end  
+}
 xuncai:addSkill(lieshi)
 xuncai:addSkill(yuanxian)
+xuncai:addSkill(dianzhan)
 sgs.LoadTranslationTable{
     ["xuncai"] = "荀采",
     ["lieshi"] = "烈誓",
     [":lieshi"] = "出牌阶段限一次。你可以弃置手牌中所有杀/闪，令一名其他角色弃置手牌中所有闪/杀",
     ["yuanxian"] = "远险",
-    [":yuanxian"] = "锁定技。你进入濒死状态时，你将手牌数调整到4"
+    [":yuanxian"] = "锁定技。你进入濒死状态时，你将手牌数调整到4",
+    ["dianzhan"] = "点盏",
+    [":dianzhan"] = "每轮你使用每种花色第一张牌结算完成后，若此牌目标唯一：若目标角色未横置，你令其横置；若你手牌中有该花色的牌，你重铸该花色所有手牌。若两项均执行，你摸一张牌",
 }
 
 xusheng_jiang1 = sgs.General(extension, "xusheng_jiang1", "wu", 4) -- 蜀势力，4血，男性（默认）  
