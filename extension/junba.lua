@@ -90,48 +90,17 @@ jiechuYang_skill = sgs.CreateTriggerSkill{
         local slash = use.card  
           
         -- 改变杀的花色和属性  
-        local suits = {"spade", "heart", "club", "diamond"}  
-        local suit = room:askForChoice(ask_who, self:objectName(), table.concat(suits, "+"), data)  
+        local suit = room:askForSuit(ask_who, "jiechu_suit")  
 
-        local natures = {"normal", "fire", "thunder"}  
-        local nature = room:askForChoice(ask_who, self:objectName(), table.concat(natures, "+"), data)  
+        local slash_types = {"slash", "fire_slash", "thunder_slash"}  
+        local slash_type = room:askForChoice(ask_who, self:objectName(), table.concat(slash_types, "+"), data)  
 
-        local new_slash
-        if nature=="normal" then
-            if suit == "heart" then  
-                new_slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_Heart, slash:getNumber())  
-            elseif suit == "diamond" then  
-                new_slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_Diamond, slash:getNumber())  
-            elseif suit == "spade" then  
-                new_slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_Spade, slash:getNumber())  
-            elseif suit == "club" then  
-                new_slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_Club, slash:getNumber())  
-            end
-        elseif nature=="fire" then
-            if suit == "heart" then  
-                new_slash = sgs.Sanguosha:cloneCard("fire_slash", sgs.Card_Heart, slash:getNumber())  
-            elseif suit == "diamond" then  
-                new_slash = sgs.Sanguosha:cloneCard("fire_slash", sgs.Card_Diamond, slash:getNumber())  
-            elseif suit == "spade" then  
-                new_slash = sgs.Sanguosha:cloneCard("fire_slash", sgs.Card_Spade, slash:getNumber())  
-            elseif suit == "club" then  
-                new_slash = sgs.Sanguosha:cloneCard("fire_slash", sgs.Card_Club, slash:getNumber())  
-            end
-        elseif nature=="thunder" then
-            if suit == "heart" then  
-                new_slash = sgs.Sanguosha:cloneCard("thunder_slash", sgs.Card_Heart, slash:getNumber())  
-            elseif suit == "diamond" then  
-                new_slash = sgs.Sanguosha:cloneCard("thunder_slash", sgs.Card_Diamond, slash:getNumber())  
-            elseif suit == "spade" then  
-                new_slash = sgs.Sanguosha:cloneCard("thunder_slash", sgs.Card_Spade, slash:getNumber())  
-            elseif suit == "club" then  
-                new_slash = sgs.Sanguosha:cloneCard("thunder_slash", sgs.Card_Club, slash:getNumber())  
-            end
-        end
-          
+        local new_slash = sgs.Sanguosha:cloneCard(slash_type, suit, slash:getNumber()) 
+        new_slash:addSubcard(slash:getId())
         new_slash:setSkillName(slash:getSkillName())  
+        new_slash:deleteLater()
+
         use.card = new_slash  
-        data = sgs.QVariant()  
         data:setValue(use)  
         return false  
     end  
@@ -204,7 +173,6 @@ daojue_skill = sgs.CreateTriggerSkill{
         end  
         -- 防止伤害  
         --damage.damage = 0  
-        --data = sgs.QVariant()  
         --data:setValue(damage)  
         return false --不防止伤害  
     end  
@@ -348,7 +316,9 @@ renxin = sgs.CreateTriggerSkill{
         return ""  
     end,  
     on_cost = function(self, event, room, player, data, ask_who)  
-        if room:askForCard(ask_who,"EquipCard","@renxin-discard",sgs.QVariant(),sgs.Card_MethodDiscard) then
+        --if room:askForCard(ask_who,"EquipCard","@renxin-discard",sgs.QVariant(),sgs.Card_MethodDiscard) then
+        if ask_who:askForSkillInvoke(self:objectName(),data) then
+            room:loseHp(ask_who,1)
             ask_who:turnOver()  
             return true  
         end  
@@ -358,10 +328,7 @@ renxin = sgs.CreateTriggerSkill{
         local damage = data:toDamage()  
         -- 伤害为0
         damage.damage = 0
-        data:setValue(damage)  
-        if damage.damage <= 0 then
-            return true
-        end
+        data:setValue(damage)
         return true  
     end  
 }
@@ -373,7 +340,7 @@ sgs.LoadTranslationTable{
     ["chengxiang"] = "称象",
     [":chengxiang"] = "当你受到伤害时，你可以查看牌堆顶的4张牌，并以任意顺序排列，然后依次展示，你获得点数和不大于13的所有牌，其余牌置入弃牌堆。若你获得牌的点数和等于13，你复原。",
     ["renxin"] = "仁心",
-    [":renxin"] = "势力相同的角色受到伤害时，若其体力值为1，你可以弃置一张装备牌并叠置，令其免疫此次伤害",
+    [":renxin"] = "势力相同的角色受到伤害时，若其体力值为1，你可以失去一点体力并叠置，令其免疫此次伤害",--可以加强至受到致命伤害时
 }
 
 caofang = sgs.General(extension, "caofang", "wei", 3)  -- 吴国，4血，男性  
