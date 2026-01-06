@@ -2731,7 +2731,9 @@ wenwu = sgs.CreateTriggerSkill{
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
             return ""   
         end  
-          
+        local current = room:getCurrent()
+        if current ~= player then return "" end
+
         local use = data:toCardUse()  
         local card = use.card  
           
@@ -2843,7 +2845,7 @@ sgs.LoadTranslationTable{
 ["guoziyi"] = "郭子仪",  
 ["illustrator:guoziyi"] = "待定",  
 ["wenwu"] = "文武",  
-[":wenwu"] = "每回合每项限一次。①当你使用基本牌结算后，若你使用的上一张牌是锦囊牌，此基本牌额外结算一次。②当你使用锦囊牌结算后，若你使用或打出的上一张牌是基本牌，此锦囊牌额外结算一次。",  
+[":wenwu"] = "出牌阶段每项限一次。①当你使用基本牌结算后，若你使用的上一张牌是锦囊牌，此基本牌额外结算一次。②当你使用锦囊牌结算后，若你使用或打出的上一张牌是基本牌，此锦囊牌额外结算一次。",  
 ["qing2guo"] = "擎国",   
 [":qing2guo"] = "结束阶段开始时，若你于此回合内未使用过基本牌或未使用过锦囊牌，你摸一张牌。",
 }  
@@ -5132,31 +5134,26 @@ wanbiCard = sgs.CreateSkillCard{
 
         -- 让目标角色选择展示的牌  
         local to_show = room:askForExchange(target, "exchange_show", target:getHandcardNum(), 1, "@exchange-show","", ".|.|.|hand")  
-        local shown_ids = {}  
-        local hidden_ids = {}  
+        local to_hide = sgs.IntList() 
           
         for _, card in sgs.qlist(target:getHandcards()) do  
             local id = card:getEffectiveId()  
             if to_show:contains(id) then  
                 room:showCard(target, id)
-                table.insert(shown_ids, id)  
             else  
-                table.insert(hidden_ids, id)  
+                to_hide:append(id)
             end  
         end  
           
-
-          
         -- 让源角色选择获得展示的牌还是未展示的牌  
         local choice = room:askForChoice(source, "exchange_choice", "shown+hidden")  
-        local to_get = (choice == "shown") and shown_ids or hidden_ids  
+        local to_get = (choice == "shown") and to_show or to_hide  
         
-
-        if #to_get > 0 then  
-            for _,id in ipairs(to_get) do
-                room:obtainCard(source, id)
-            end
-        end  
+        if not to_get:isEmpty() then
+            local dummy = sgs.DummyCard(to_get)  
+            room:obtainCard(source, dummy)  
+            dummy:deleteLater()  
+        end
     end  
 }  
   
@@ -5635,8 +5632,10 @@ rendeDamaged = sgs.CreateTriggerSkill{
 
         local select_card_ids = room:askForExchange(player, self:objectName(), 2, 0, "", "", ".|.|.|.")  
         local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())
-        for _,card in sgs.qlist(select_card_ids) do
-            room:obtainCard(target, card, false)  
+        if not select_card_ids:isEmpty() then
+            local dummy = sgs.DummyCard(select_card_ids)  
+            room:obtainCard(target, dummy)  
+            dummy:deleteLater()  
         end
         return false  
     end  
@@ -6583,37 +6582,35 @@ juqiCard = sgs.CreateSkillCard{
     end,  
     on_use = function(self, room, source, targets)  
         local target = targets[1]  
-        --source
-        local card_id1 = room:askForExchange(source, self:objectName(), source:getHandcardNum(), 1, "", "", ".|.|.|hand")
-        --target
-        local card_id2 = room:askForExchange(target, self:objectName(), target:getHandcardNum(), 1, "", "", ".|.|.|hand")
+        local source_handcards = room:askForExchange(source, self:objectName(), source:getHandcardNum(), 1, "", "", ".|.|.|hand")
+        local target_handcards = room:askForExchange(target, self:objectName(), target:getHandcardNum(), 1, "", "", ".|.|.|hand")
 
-        local source_card_id = {}  
-        local target_card_id = {}  
-        for _, card in sgs.qlist(source:getHandcards()) do  
-            local id = card:getEffectiveId()  
-            if card_id1:contains(id) then  
-                table.insert(source_card_id, id)  
-            end  
+        if not source_handcards:isEmpty() or not target_handcards:isEmpty() then  
+            local move1 = sgs.CardsMoveStruct()  
+            move1.card_ids = source_handcards  
+            move1.from = source
+            move1.to = target  
+            move1.to_place = sgs.Player_PlaceHand  
+            move1.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXCHANGE_FROM_PILE,
+                                                source:objectName(), target:objectName(), "juqi", "")
+
+            local move2 = sgs.CardsMoveStruct()  
+            move2.card_ids = target_handcards  
+            move2.from = target
+            move2.to = source  
+            move2.to_place = sgs.Player_PlaceHand  
+            move2.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXCHANGE_FROM_PILE,
+                                                target:objectName(), source:objectName(), "juqi", "")
+
+            local moves = sgs.CardsMoveList()
+            moves:append(move1)
+            moves:append(move2)
+            
+            room:moveCardsAtomic(moves, true)
         end  
-        for _, card in sgs.qlist(target:getHandcards()) do  
-            local id = card:getEffectiveId()  
-            if card_id2:contains(id) then  
-                table.insert(target_card_id, id)  
-            end  
-        end 
-        -- 执行交换  
-        for _,id in ipairs(source_card_id) do
-            room:obtainCard(target, id)
-        end
-          
-        for _,id in ipairs(target_card_id) do
-            room:obtainCard(source, id)
-        end
-
-        if #source_card_id > #target_card_id then
-            room:loseHp(target, #source_card_id - #target_card_id)
-        elseif #source_card_id == #target_card_id then
+        if source_handcards:length() > target_handcards:length() then
+            room:loseHp(target, source_handcards:length() - target_handcards:length())
+        elseif source_handcards:length() == target_handcards:length() then
             source:drawCards(1)
         end
     end  
@@ -6838,10 +6835,12 @@ zijian = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data, ask_who)  
         if event == sgs.EventPhaseEnd then  
-            local cards = room:askForExchange(ask_who, self:objectName(), ask_who:getCardCount(true), 0)   
-            for _,card in sgs.qlist(cards) do
-                room:obtainCard(player, card, false)  
-            end
+            local cards = room:askForExchange(ask_who, self:objectName(), ask_who:getCardCount(true), 0)  
+            if not cards:isEmpty() then
+                local dummy = sgs.DummyCard(cards)  
+                room:obtainCard(player, dummy)  
+                dummy:deleteLater()  
+            end 
             room:addPlayerMark(ask_who, "@zijian_draw", cards:length())    
         end
         return false  
@@ -6850,7 +6849,7 @@ zijian = sgs.CreateTriggerSkill{
 
 -- 自荐摸牌效果  
 zijian_draw = sgs.CreateDrawCardsSkill{  
-    name = "zijian_draw",  
+    name = "#zijian-draw",  
     frequency = sgs.Skill_Compulsory,  
       
     draw_num_func = function(self, player, n) 
@@ -6893,7 +6892,7 @@ tuoying = sgs.CreateTriggerSkill{
 maosui:addSkill(zijian) 
 maosui:addSkill(zijian_draw)  
 maosui:addSkill(tuoying)  
-  
+extension:insertRelatedSkills("zijian","#zijian-draw")
 -- 翻译表  
 sgs.LoadTranslationTable{  
     ["hero"] = "英雄",  
@@ -7332,17 +7331,17 @@ YuumieCard = sgs.CreateSkillCard{
         local subcard = sgs.Sanguosha:getCard(self:getSubcards():first())  
         local suit = subcard:getSuit() 
         
-        local to_get = {}
+        local to_get = sgs.IntList()
         for _, card in sgs.qlist(target:getHandcards()) do  
             local id = card:getEffectiveId()  
             if card:getSuit() == suit then  
-                table.insert(to_get, id)  
+                to_get:append(id)  
             end  
         end  
-        if #to_get > 0 then  
-            for _,id in ipairs(to_get) do
-                room:obtainCard(source, id)
-            end
+        if not to_get:isEmpty() then  
+            local dummy = sgs.DummyCard(to_get)  
+            room:obtainCard(source, dummy)  
+            dummy:deleteLater()  
         else  
             -- 若获得数为0，目标失去1点体力  
             room:loseHp(target, 1)  
@@ -8943,19 +8942,8 @@ qiuhuang = sgs.CreatePhaseChangeSkill{
     end,
     -- 在阶段变化时触发的函数  
     on_phasechange = function(self, player)  
-        -- 检查是否是准备阶段  
-        if player:getPhase() ~= sgs.Player_Start then  
-            return false  
-        end  
-          
         -- 获取房间对象  
-        local room = player:getRoom()  
-          
-        -- 询问玩家是否发动技能  
-        --if player:askForSkillInvoke(self:objectName()) then  
-        -- 播放技能音效  
-        room:broadcastSkillInvoke(self:objectName(), player)  
-            
+        local room = player:getRoom()              
         -- 创建判定结构  
         local judge = sgs.JudgeStruct()  
         judge.pattern = ".|.|1~6"  -- 判定牌点数小于7。第一个点表示任意类型，第二个点表示任意花色
@@ -8977,12 +8965,12 @@ qiuhuang = sgs.CreatePhaseChangeSkill{
             local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())
             target:drawCards(1)
             local select_card_ids = room:askForExchange(target, self:objectName(), 2, 1, "", "", ".|.|.|hand")  
-            for _,card in sgs.qlist(select_card_ids) do
-                room:obtainCard(player, card, false)  
-            end
-        end  
-        --end  
-          
+            if not select_card_ids:isEmpty() then  
+                local dummy = sgs.DummyCard(select_card_ids)  
+                room:obtainCard(player, dummy)  
+                dummy:deleteLater()  
+            end  
+        end            
         return false  
     end,  
 }
@@ -10925,12 +10913,6 @@ Shensuan = sgs.CreateTriggerSkill{
         until sum >= point
         if not judge_cards:isEmpty() then  
             -- 获得所有红色判定牌  
-            --[[
-            local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
-            for _, id in sgs.qlist(judge_cards) do  
-                dummy:addSubcard(id)  
-            end  
-            ]]
             local dummy = sgs.DummyCard(judge_cards)  
             room:obtainCard(player, dummy)  
             dummy:deleteLater()  
@@ -13692,6 +13674,8 @@ mengdie = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then return "" end  
+        local current = room:getCurrent()
+        if current ~= player then return "" end
         local card = nil  
         if event == sgs.CardUsed then  
             local use = data:toCardUse()  
@@ -13721,12 +13705,18 @@ mengdie = sgs.CreateTriggerSkill{
           
         if is_butterfly then  
             -- 使用'蝶'牌时，弃置所有'蝶'牌  
+            local to_throw = sgs.IntList()
             for _, card_id in sgs.qlist(player:handCards()) do  
                 local hand_card = sgs.Sanguosha:getCard(card_id)  
                 if hand_card:hasFlag("butterfly_card") then  
-                    room:throwCard(hand_card,player,player)  
+                    to_throw:append(card_id) 
                 end  
             end  
+            if not to_throw:isEmpty() then  
+                local dummy = sgs.DummyCard(to_throw)  
+                room:throwCard(dummy, player, player)  
+                dummy:deleteLater()  
+            end
         else  
             -- 使用非'蝶'牌时，摸一张牌并标记为'蝶'牌  
             player:drawCards(1, self:objectName())  
@@ -13850,7 +13840,7 @@ sgs.LoadTranslationTable{
 ["zhuangzhou"] = "庄周",  
 ["illustrator:zhuangzhou"] = "画师名",  
 ["mengdie"] = "梦蝶",  
-[":mengdie"] = "锁定技。当你使用或打出1张非'蝶'牌时，你摸一张牌并标记为'蝶'牌；当你使用或打出'蝶'牌时，你弃置所有'蝶'牌。",
+[":mengdie"] = "锁定技。你的回合内，当你使用或打出1张非'蝶'牌时，你摸一张牌并标记为'蝶'牌；当你使用或打出'蝶'牌时，你弃置所有'蝶'牌。",
 ["xiaoyao"] = "逍遥-蝶",  
 [":xiaoyao"] = "锁定技，你的'蝶'牌不计入手牌上限；若你的'蝶'牌数大于等于3，你使用牌无距离和次数限制；",
 ["xiaoyaoTurned"] = "逍遥",  
