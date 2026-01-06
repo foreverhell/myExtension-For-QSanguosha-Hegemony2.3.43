@@ -1533,13 +1533,18 @@ zhuhuan4 = sgs.CreateTriggerSkill{
           
         -- 统计并弃置所有杀  
         local slash_count = 0  
+        local to_discard = sgs.IntList()
         for _, card in sgs.qlist(player:getHandcards()) do  
             if card:isKindOf("Slash") then  
                 slash_count = slash_count + 1
-                room:throwCard(card, player)
+                to_discard:append(card:getId())
             end  
         end  
-          
+        if not to_discard:isEmpty() then  
+            local dummy = sgs.DummyCard(to_discard)  
+            room:throwCard(dummy, player, player)  
+            dummy:deleteLater()
+        end            
         if slash_count > 0 then                
             -- 让目标角色选择  
             local choice = room:askForChoice(target, "zhuhuan4", "damage_discard+recover_draw", sgs.QVariant(slash_count))  
@@ -2952,10 +2957,10 @@ congweiSkill = sgs.CreateTriggerSkill{
                 if target then  
                     local handcards = player:getHandcards()  
                     if not handcards:isEmpty() then
-                        for _,card in sgs.qlist(handcards) do
-                            room:obtainCard(target, card, false)  
-                        end
-                    end  
+                        local dummy = sgs.DummyCard(handcards)  
+                        room:obtainCard(target, dummy)  
+                        dummy:deleteLater()  
+                    end
                     room:drawCards(player, 2, self:objectName())  
                 end  
             end  
@@ -3408,11 +3413,12 @@ chenjie = sgs.CreateTriggerSkill{
         for _, card in sgs.qlist(ask_who:getJudgingArea()) do  
             all_cards:append(card:getId())  
         end  
-          
-        for _, card in sgs.qlist(all_cards) do  
-            room:throwCard(card, ask_who, ask_who)  
-        end  
-          
+
+        if not all_cards:isEmpty() then  
+            local dummy = sgs.DummyCard(all_cards)  
+            room:throwCard(dummy, ask_who, ask_who)  
+            dummy:deleteLater()
+        end            
         -- 摸4张牌  
         ask_who:drawCards(4, self:objectName())  
         return false  
@@ -4426,11 +4432,19 @@ lieshiCard = sgs.CreateSkillCard{
             to_discard_type = "Slash"
         end
         if not to_discard_type then return false end
+
+        local to_discard = sgs.IntList()
         for _, c in sgs.qlist(target:getHandcards()) do
             if c:isKindOf(to_discard_type) then
-                room:throwCard(c:getId(), target, source)
+                to_discard:append(c:getId())
             end
         end
+
+        if not to_discard:isEmpty() then  
+            local dummy = sgs.DummyCard(to_discard)  
+            room:throwCard(dummy, target, target)  
+            dummy:deleteLater()
+        end   
     end  
 }  
   
@@ -4519,6 +4533,7 @@ dianzhan = sgs.CreateTriggerSkill{
             local use = data:toCardUse()
             if use.from ~= player then return "" end --必须是自己用
             local card = use.card
+            if card:getTypeId()==sgs.Card_TypeSkill then return "" end
             local suit = card:getSuit()
             local mark = "@dianzhan" .. suit
             if player:getMark(mark) == 0 then
@@ -4546,7 +4561,7 @@ dianzhan = sgs.CreateTriggerSkill{
 
         local target = use.to:first()
         if not target:isChained() then
-            target:setChained(not target:isChained())
+            room:setPlayerProperty(getServerPlayer(room, target:objectName()), "chained", sgs.QVariant(true))
             invoke = invoke + 1
         end
 
@@ -4561,6 +4576,7 @@ dianzhan = sgs.CreateTriggerSkill{
             room:throwCard(dummy, player, player)  
             dummy:deleteLater()  
             player:drawCards(target_cards:length(),self:objectName())
+            invoke = invoke + 1
         end
 
         if invoke == 2 then
@@ -5049,7 +5065,8 @@ huizi = sgs.CreateTriggerSkill{
             if to_discard:length() > 0 then  
                 local dummy = sgs.DummyCard(to_discard)  
                 room:throwCard(dummy, player, player)  
-            end  
+                dummy:deleteLater()
+            end
         end  
         -- 找到场上手牌数最多的角色  
         local max_handcard_num = 0  
