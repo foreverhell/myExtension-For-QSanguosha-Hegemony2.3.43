@@ -75,10 +75,16 @@ yishi = sgs.CreateTriggerSkill{
 
         room:obtainCard(current,card_id)
 
+        local to_get = sgs.IntList()
         for _,id in sgs.qlist(card_ids) do
             if id~=card_id then
-                room:obtainCard(player,id)
+                to_get:append(id)
             end
+        end
+        if not to_get:isEmpty() then  
+            local dummy = sgs.DummyCard(to_get)  
+            room:obtainCard(player, dummy)
+            dummy:deleteLater()
         end
         return false  
     end  
@@ -99,28 +105,23 @@ ShiduCard = sgs.CreateSkillCard{
         if success then  
             -- 拼点成功，获得其所有手牌  
             local target_cards = target:handCards()  
-            if not target_cards:isEmpty() then  
-                local card_ids = {}  
-                for _, id in sgs.qlist(target_cards) do  
-                    table.insert(card_ids, id)  
-                end  
-                  
-                -- 获得目标所有手牌  
-                for _, id in ipairs(card_ids) do  
-                    source:obtainCard(sgs.Sanguosha:getCard(id))  
-                end  
-                  
+            if not target_cards:isEmpty() then
+                -- 获得目标所有手牌
+                local dummy = sgs.DummyCard(target_cards)  
+                room:obtainCard(source, dummy)
+                dummy:deleteLater()
+
                 -- 交给其一半手牌（向下取整）  
                 local source_handcards = source:getHandcardNum()  
                 local give_num = math.floor(source_handcards / 2)  
                   
-                if give_num > 0 then  
+                if give_num > 0 then
                     local cards_to_give = room:askForExchange(source, "shidu", give_num, give_num, "@shidu-give", "", ".|.|.|hand")  
-                    if cards_to_give:length() > 0 then  
-                        for _, id in sgs.qlist(cards_to_give) do  
-                            target:obtainCard(sgs.Sanguosha:getCard(id))  
-                        end  
-                    end  
+                    if cards_to_give:length() > 0 then
+                        local dummy = sgs.DummyCard(cards_to_give)  
+                        room:obtainCard(target, dummy)
+                        dummy:deleteLater()
+                    end
                 end  
             end  
         end  
@@ -2156,9 +2157,11 @@ Jiantong = sgs.CreateTriggerSkill{
         if not equip then return false end
         equip_id = equip:getId()
         if not equip_id then return false end
-        for _,id in sgs.qlist(chosen_cards) do  
-            room:obtainCard(ask_who, id) 
-        end          
+        if chosen_cards:length() > 0 then
+            local dummy = sgs.DummyCard(chosen_cards)  
+            room:obtainCard(ask_who, dummy)
+            dummy:deleteLater()
+        end
         room:obtainCard(target, equip_id)  
         return false  
     end  
@@ -2506,13 +2509,15 @@ chongde = sgs.CreateTriggerSkill{
                 -- 弃置选择的牌  
                 if not player_cards:isEmpty() then  
                     local dummy = sgs.DummyCard(player_cards)  
-                    room:throwCard(dummy, player, player)  
-                end  
+                    room:throwCard(dummy, player, player)
+                    dummy:deleteLater()
+                end
                   
                 if not target_cards:isEmpty() then  
                     local dummy = sgs.DummyCard(target_cards)  
-                    room:throwCard(dummy, target, target)  
-                end  
+                    room:throwCard(dummy, target, target)
+                    dummy:deleteLater()
+                end
                   
                 -- 根据实际弃置数量摸牌  
                 if not player_cards:isEmpty() then  
@@ -2639,28 +2644,37 @@ neiji = sgs.CreateTriggerSkill{
         local player_slash_count = 0  
         local target_slash_count = 0  
         local player_slash_cards = sgs.IntList()  
-        local target_slash_cards = sgs.IntList()  
-          
+        local target_slash_cards = sgs.IntList()
+
         for _, id in sgs.qlist(player_cards) do  
-            local card = sgs.Sanguosha:getCard(id)  
             room:showCard(player,id)
+            local card = sgs.Sanguosha:getCard(id)
             if card:isKindOf("Slash") then  
-                player_slash_count = player_slash_count + 1  
-                room:throwCard(card, player, player) 
+                player_slash_count = player_slash_count + 1 
+                player_slash_cards:append(id) 
             end  
-        end  
-          
+        end
+        if not player_slash_cards:isEmpty() then  
+            local dummy = sgs.DummyCard(player_slash_cards)  
+            room:throwCard(dummy, player, player)
+            dummy:deleteLater()
+        end
+
         for _, id in sgs.qlist(target_cards) do  
-            local card = sgs.Sanguosha:getCard(id)  
             room:showCard(target,id)
+            local card = sgs.Sanguosha:getCard(id)
             if card:isKindOf("Slash") then  
                 target_slash_count = target_slash_count + 1  
-                room:throwCard(card, target, target)  
+                target_slash_cards:append(id)
             end  
         end  
-          
-        local total_slash = player_slash_count + target_slash_count  
-          
+        if not target_slash_cards:isEmpty() then  
+            local dummy = sgs.DummyCard(target_slash_cards)  
+            room:throwCard(dummy, target, target)
+            dummy:deleteLater()
+        end
+
+        local total_slash = player_slash_count + target_slash_count
         if total_slash > 1 then  
             -- 各摸3张牌  
             room:drawCards(player, 3, self:objectName())  
