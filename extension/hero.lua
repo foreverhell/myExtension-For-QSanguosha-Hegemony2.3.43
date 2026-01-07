@@ -3530,8 +3530,8 @@ renzuMaxCard = sgs.CreateMaxCardsSkill{
     end  
 }  
 
-zu = sgs.CreateTriggerSkill{  
-    name = "zu",  
+renzuMaxCard = sgs.CreateTriggerSkill{  
+    name = "#renzu-maxCard",  
     events = {sgs.EventPhaseStart},  
     frequency = sgs.Skill_Compulsory,  
     can_trigger = function(self, event, room, player, data)  
@@ -3648,7 +3648,11 @@ longzheng = sgs.CreateTriggerSkill{
         if not player or not player:hasSkill(self:objectName()) or not player:isAlive() then
             return ""
         end
-        return self:objectName()
+        local zu_pile = player:getPile("zu") 
+        if zu_pile:length() > 0 then 
+            return self:objectName()
+        end
+        return ""
     end,
     
     on_cost = function(self, event, room, player, data)
@@ -3672,17 +3676,15 @@ longzheng = sgs.CreateTriggerSkill{
 }
 -- 添加技能给武将  
 huangdi:addSkill(renzu)  
---huangdi:addSkill(renzuMaxCard)  
-huangdi:addSkill(zu)  
+huangdi:addSkill(renzuMaxCard)  
 huangdi:addSkill(neijing)  
 huangdi:addSkill(longzheng)
+extension:insertRelatedSkills("renzu","#renzu-maxCard")
 sgs.LoadTranslationTable{  
     ["huangdi"] = "黄帝",  
       
     ["renzu"] = "人祖",  
-    [":renzu"] = "你摸牌阶段摸牌数+X，X为存活玩家数-1，且至多为3；你的手牌上限恒定为0",  
-    ["zu"] = "祖",  
-    [":zu"] = "锁定技。弃牌阶段开始时，你将所有手牌置于'祖'牌堆。任意角色的准备阶段，若'祖'牌堆有牌，其获得'祖'牌堆的第一张牌。",
+    [":renzu"] = "锁定技。你摸牌阶段摸牌数+X，X为存活玩家数-1，且至多为3。你的手牌上限恒定为0，你的弃牌阶段开始时，你将所有手牌置于'祖'牌堆；任意角色的准备阶段，若'祖'牌堆有牌，其获得'祖'牌堆的第一张牌。",  
     ["neijing"] = "内经",  
     [":neijing"] = "出牌阶段限一次，你可以展示所有手牌。若花色数为0或1，你摸2张牌；花色数为2或3，你回复1点体力；花色数为4，你回复2点体力。",   
     ["longzheng"] = "龙征",
