@@ -366,23 +366,12 @@ juelie = sgs.CreateTriggerSkill{
             
             local max_num = math.min(target:getCardCount(true), player:getCardCount(true))
             local cards = room:askForExchange(player, self:objectName(), max_num, 0)   
-            for _,card in sgs.qlist(cards) do
-                room:throwCard(card, player, player)  
-            end
+            if cards:length() > 0 then  
+                local dummy = sgs.DummyCard(cards)  
+                room:throwCard(dummy, player, player)  
+                dummy:deleteLater()
+            end 
             local discard_num = cards:length()  
-            --[[
-            local cards_to_discard = {}  
-            for i=1,max_num do  
-                local card = room:askForCard(player, ".|.|.|hand,equipped", "@juelie-discard", sgs.QVariant(), sgs.Card_MethodNone)  
-                if card then  
-                    table.insert(cards_to_discard, card)  
-                    room:throwCard(card, player, player)  
-                else  
-                    break  
-                end  
-            end  
-            local discard_num = #cards_to_discard  
-            ]]
             if discard_num > 0 and target and target:isAlive() then    
                 local actual_discard = math.min(discard_num, target:getCardCount(true))  
                 if actual_discard > 0 then
@@ -830,7 +819,7 @@ ChiyingCard = sgs.CreateSkillCard{
     end,  
     on_use = function(self, room, source, targets)  
         local target = targets[1]  
-        local basic_cards = {}  
+        local basic_cards = sgs.IntList()  
           
         -- 找到目标攻击范围内的所有其他角色  
         local in_range_players = {}  
@@ -846,17 +835,17 @@ ChiyingCard = sgs.CreateSkillCard{
                 local card_id = room:askForCardChosen(p, p, "he", self:objectName())  
                 room:throwCard(card_id, p, p)  
                 local card = sgs.Sanguosha:getCard(card_id)  
-                if card:isKindOf("BasicCard") then  
-                    table.insert(basic_cards, card_id)  
+                if card:isKindOf("BasicCard") then
+                    basic_cards:append(card_id)
                 end  
             end  
         end  
           
         -- 判断是否获得基本牌  
-        if #basic_cards <= target:getHp() then  
-            for _, card_id in ipairs(basic_cards) do  
-                room:obtainCard(target, card_id, false)  
-            end  
+        if basic_cards:length() > 0 and basic_cards:length() <= target:getHp() then
+            local dummy = sgs.DummyCard(basic_cards)  
+            room:obtainCard(target, dummy)  
+            dummy:deleteLater()
         end  
     end  
 }  
