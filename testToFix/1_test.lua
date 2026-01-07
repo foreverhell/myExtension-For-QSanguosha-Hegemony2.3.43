@@ -1669,13 +1669,16 @@ jieguanxing = sgs.CreatePhaseChangeSkill{
 		local room = player:getRoom()
 		local playerNum = room:getAlivePlayers():length()
 		local gxPile = sgs.IntList()
-		if playerNum > 3 then
+		local hasjw = false
+		if player:hasShownSkill("jieyizhi") and player:hasShownGeneral1() and player:inHeadSkills("jieguanxing") then
+			hasjw = true
+		end
+		if playerNum > 3 or hasjw then
 			gxPile = room:getNCards(5)
-			room:askForGuanxing(player, gxPile, sgs.Room_GuanxingBothSides)
 		else
 			gxPile = room:getNCards(3)
-			room:askForGuanxing(player, gxPile, sgs.Room_GuanxingBothSides)
 		end
+		room:askForGuanxing(player, gxPile, sgs.Room_GuanxingBothSides)
 		if not gxPile:contains(room:getDrawPile():at(0)) then
 			room:setPlayerFlag(player, "jieguanxing_allBottom")
 		end
@@ -2324,46 +2327,15 @@ sgs.LoadTranslationTable{
 
 jieyizhi = sgs.CreateTriggerSkill{
 	name = "jieyizhi",
-	events = {sgs.EventLoseSkill, sgs.GeneralShown, sgs.EventPhaseChanging},
-	frequency = sgs.Skill_Frequent,
+	events = {sgs.EventLoseSkill, sgs.GeneralShown, sgs.GeneralHidden},
+	frequency = sgs.Skill_Compulsory,
 	relate_to_place = "deputy",
-	on_record = function(self, event, room, player, data)
-		if not player and not player:hasSkill("jieyizhi") and player:getMark("jieyizhiUsed2") > 0 then return false end
-		local has_head_guanxing = false;
-		for _, skill in sgs.qlist(player:getHeadSkillList()) do
-			if skill:objectName() == "jieguanxing" then --or skill:objectName() == "jieguanxing_jiangwei" then
-				has_head_guanxing = true
-			end
-		end
-		if event == sgs.GeneralShown then
-			if not player:hasSkill(self:objectName()) then return false end
-		elseif event == sgs.EventLoseSkill then
-			if data:toString() ~= "jieguanxing" or data:toString() ~= self:objectName() then return false end
-		end
-		if player:hasShownSkill(self:objectName()) and not (has_head_guanxing and player:hasShownGeneral1()) then
-			if player:getMark("jieyizhiUsed1") > 0 then return false end
-			room:acquireSkill(player, "jieguanxing_jiangwei", true, false)
-			room:setPlayerMark(player, "jieyizhiUsed1", 1)
-		elseif player:hasShownSkill(self:objectName()) and has_head_guanxing and player:hasShownGeneral1() then
-			room:detachSkillFromPlayer(player, "jieguanxing")
-			room:detachSkillFromPlayer(player, "jieguanxing_jiangwei")
-			room:detachSkillFromPlayer(player, "jieguanxing_jiangwei", false, false, false)
-			room:setPlayerMark(player, "jieyizhiUsed2", 1)
-		end
-	end,
-
 	can_trigger = function(self, event, room, player, data)
-		if event == sgs.EventLoseSkill and player and player:isAlive() then
-			if player:getMark("jieyizhiUsed2") > 0 then
-				room:detachSkillFromPlayer(player, "jieguanxing_jiangweiYizhi")
-				room:acquireSkill(player, "jieguanxing", true, true)
-			end
-		elseif skillTriggerable(player, self:objectName()) and event == sgs.EventPhaseChanging then
-			local change = data:toPhaseChange()
-			if change.to == sgs.Player_Start and player:getMark("jieyizhiUsed2") == 1 and not 
-			player:hasSkill("jieguanxing_jiangweiYizhi") then
-				room:acquireSkill(player, "jieguanxing_jiangweiYizhi", true, true)
-				room:detachSkillFromPlayer(player, "jieguanxing_jiangwei", false, false, false)
+		if player then
+			if player:hasShownSkill("jieyizhi") and not (player:inHeadSkills("jieguanxing") and player:hasShownGeneral1()) then
+				room:handleAcquireDetachSkills(player, "jieguanxing_jiangwei!")
+			elseif player:hasSkill("jieguanxing_jiangwei") then
+				room:handleAcquireDetachSkills(player, "-jieguanxing_jiangwei!")
 			end
 		end
 		return false
@@ -2377,7 +2349,7 @@ jieguanxing_jiangwei = sgs.CreatePhaseChangeSkill{
 		if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Start then
 			return self:objectName()
 		elseif skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Finish then
-			if player:hasFlag("jieguanxing_allBottom") then
+			if player:hasFlag("jieguanxingjw_allBottom") then
 				return self:objectName()
 			end
 		end
@@ -2398,48 +2370,12 @@ jieguanxing_jiangwei = sgs.CreatePhaseChangeSkill{
 		local gxPile = sgs.IntList()
 		if playerNum > 3 then
 			gxPile = room:getNCards(5)
-			room:askForGuanxing(player, gxPile, sgs.Room_GuanxingBothSides)
 		else
 			gxPile = room:getNCards(3)
-			room:askForGuanxing(player, gxPile, sgs.Room_GuanxingBothSides)
 		end
-		if not gxPile:contains(room:getDrawPile():at(0)) then
-			room:setPlayerFlag(player, "jieguanxing_allBottom")
-		end
-		return false
-	end
-}
-
-jieguanxing_jiangweiYizhi = sgs.CreatePhaseChangeSkill{
-	name = "jieguanxing_jiangweiYizhi",
-	events = {sgs.EventPhaseStart},
-	frequency = sgs.Skill_Frequent,
-	can_trigger = function(self, event, room, player, data)
-		if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Start then
-			return self:objectName()
-		elseif skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Finish then
-			if player:hasFlag("jieguanxing_allBottom") then
-				return self:objectName()
-			end
-		end
-		return false
-	end,
-
-	on_cost = function(self, event, room, player, data)
-		if player:askForSkillInvoke(self:objectName(), data) then
-			room:broadcastSkillInvoke("guanxing", player)
-			return true
-		end
-		return false
-	end,
-
-	on_phasechange = function(self, player)
-		local room = player:getRoom()
-		local gxPile = sgs.IntList()
-		gxPile = room:getNCards(5)
 		room:askForGuanxing(player, gxPile, sgs.Room_GuanxingBothSides)
 		if not gxPile:contains(room:getDrawPile():at(0)) then
-			room:setPlayerFlag(player, "jieguanxing_allBottom")
+			room:setPlayerFlag(player, "jieguanxingjw_allBottom")
 		end
 		return false
 	end
@@ -2449,16 +2385,12 @@ jiejiangwei:addSkill("tiaoxin")
 jiejiangwei:addSkill("tianfu")
 jiejiangwei:addSkill(jieyizhi)
 if not sgs.Sanguosha:getSkill("jieguanxing_jiangwei") then skills:append(jieguanxing_jiangwei) end
-if not sgs.Sanguosha:getSkill("jieguanxing_jiangweiYizhi") then skills:append(jieguanxing_jiangweiYizhi) end
 
 -- 加载翻译表
 sgs.LoadTranslationTable{
     ["jiejiangwei"] = "姜维",
     ["jieyizhi"] = "遗志",
 	[":jieyizhi"] = "副将技，若你的主将没有技能“观星”，则你视为拥有“观星”，否则将其描述中的“（角色数小于等于3时改为三张）”删去。",
-	["jieguanxing_jiangweiYizhi"] = "观星",
-	[":jieguanxing_jiangweiYizhi"] = "准备阶段，你可以观看牌堆顶五张牌，将这些牌以任意顺序置于牌堆顶或牌堆底。若均置于牌堆底，则你可以" ..
-	"于结束阶段再次发动此技能。",
 	["jieguanxing_jiangwei"] = "观星",
 	[":jieguanxing_jiangwei"] = "准备阶段，你可以观看牌堆顶五张牌（角色数小于等于3时改为三张），将这些牌以任意顺序置于牌堆顶" ..
 	"或牌堆底。若均置于牌堆底，则你可以于结束阶段再次发动此技能。",
