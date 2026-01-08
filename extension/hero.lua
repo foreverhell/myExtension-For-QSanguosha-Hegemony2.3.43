@@ -3759,7 +3759,7 @@ jiufa = sgs.CreateTriggerSkill{
         else
             local effect = data:toSlashEffect() 
             if effect.card and effect.card:isKindOf("Slash") and effect.card:getSkillName() == self:objectName() then
-                if event == sgs.SlashMissed then
+                if event == sgs.SlashMissed and player:getHp() > 1 then
                     room:loseHp(player,1)
                 elseif event == sgs.SlashHit then
                     room:setPlayerFlag(player, "jiufa_used")
@@ -3834,7 +3834,7 @@ jiangwei_hero:addSkill(weifu)
 sgs.LoadTranslationTable{  
     ["jiangwei_hero"] = "姜维",
     ["jiufa"] = "九伐",
-    [":jiufa"] = "锁定技。你使用锦囊结算完成后，若目标为其他势力且在你的攻击范围内，你视为对其使用1张杀：若该杀未命中，你失去1点体力；若该杀命中，此回合本技能失效",--削弱方向：锁定技；每回合限一次
+    [":jiufa"] = "锁定技。你使用锦囊结算完成后，若目标为其他势力且在你的攻击范围内，你视为对其中一个目标使用1张杀：若该杀未命中，且你的体力值大于1，你失去1点体力；若该杀命中，此回合本技能失效",--削弱方向：锁定技；每回合限一次
     ["weifu"] = "危复",
     [":weifu"] = "你的体力减少时，你可以弃置1张牌，从牌堆随机获得1张锦囊"
 }
