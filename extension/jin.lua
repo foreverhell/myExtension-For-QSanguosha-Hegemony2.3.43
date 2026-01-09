@@ -1462,20 +1462,19 @@ shunfu_card = sgs.CreateSkillCard{
         for i=1, #targets do  
             room:drawCards(targets[i], 2, "shunfu")  
         end  
-          
+
+        local slash = sgs.Sanguosha:cloneCard("slash")  
+        slash:setSkillName("shunfu")  
+        slash:deleteLater()
+
+        local use = sgs.CardUseStruct()  
+        use.card = slash  
+        use.from = source           
         -- 视为依次对它们使用无距离限制且不可响应的杀  
-       for i=1, #targets do  
-            local slash = sgs.Sanguosha:cloneCard("slash")  
-            slash:setSkillName("shunfu")  
-              
-            local use = sgs.CardUseStruct()  
-            use.card = slash  
-            use.from = source  
+        for i=1, #targets do  
             use.to:append(targets[i])  
-                          
-            room:useCard(use)  
-            slash:deleteLater()
-        end  
+        end 
+        room:useCard(use, false) 
     end  
 }  
   
@@ -1483,7 +1482,9 @@ shunfu = sgs.CreateZeroCardViewAsSkill{
     name = "shunfu",  
     limit_mark = "@shunfu",
     view_as = function(self, cards)  
-        return shunfu_card:clone()  
+        local card = shunfu_card:clone()
+        card:setShowSkill(self:objectName())
+        return card
     end,  
     enabled_at_play = function(self, player)  
         return player:getMark("@shunfu") > 0  
