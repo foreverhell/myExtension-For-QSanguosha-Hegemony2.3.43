@@ -2340,5 +2340,163 @@ sgs.LoadTranslationTable{
     [":zhoucangSkill"] = "出牌阶段限一次。你可以和一名其他角色同时展示一张手牌：若你展示的是杀，其展示的不是闪，你弃置展示的牌，对其造成1点伤害；若你展示的不是杀，其展示的是闪，你弃置展示的牌，获得其1张牌",
 }
 
+
+huaman = sgs.General(extension, "huaman", "shu", 3, false) 
+
+huaman1 = sgs.CreateTriggerSkill{  
+    name = "huaman1",  
+    events = {sgs.DamageInflicted, sgs.Damaged, sgs.CardFinished},
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)        
+        if event == sgs.DamageInflicted then
+            if player and player:isAlive() and player:hasSkill(self:objectName()) then  
+                local damage = data:toDamage()  
+                if damage.card:isKindOf("SavageAssault") then  
+                    return self:objectName()  
+                end  
+            end
+        elseif event == sgs.Damaged then
+            local damage = data:toDamage()  
+            if damage.card:isKindOf("SavageAssault") then 
+                room:addPlayerMark(damage.to, "@huaman1")
+            end
+        elseif event == sgs.CardFinished then
+            local use = data:toCardUse()
+            if use.card:isKindOf("SavageAssault")  then
+                local count = 0
+                for _,p in sgs.qlist(room:getAlivePlayers()) do
+                    if p:getMark("@human1") > 0 then
+                        count = count + 1
+                        room:setPlayerMark(p,"@human1",0)
+                    end
+                end
+                if count > 0 then
+                    local owner = room:findPlayerBySkillName(self:objectName())
+                    if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+                    owner:drawCards(count,self:objectName())
+                end
+            end
+        end
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        return true  
+    end  
+}  
+
+huaman2Card = sgs.CreateSkillCard{  
+    name = "huaman2Card",  
+    target_fixed = false,
+    will_throw = false,
+    filter = function(self, targets, to_select)  
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()  
+    end,  
+      
+    feasible = function(self, targets)  
+        return #targets == 1
+    end,  
+      
+    on_use = function(self, room, source, targets)  
+        room:setPlayerMark(source, "@huaman2", 0)
+        local target = targets[1]
+        room:acquireSkill(source,"xili", true, true)
+        room:acquireSkill(target,"xili", true, true)
+    end  
+}  
+-- 创建相马视为技  
+huaman2 = sgs.CreateZeroCardViewAsSkill{  
+    name = "huaman2",
+    frequency = sgs.Skill_Limit,
+    limit_mark = "@huaman2",
+    view_as = function(self)  
+        local xc = huaman2Card:clone()  
+        xc:setShowSkill(self:objectName())  
+        return xc  
+    end,  
+      
+    enabled_at_play = function(self, player)  
+        return player:getMark("@huaman2") > 0
+    end  
+}  
+
+
+xili = sgs.CreateTriggerSkill{  
+    name = "xili",  
+    events = {sgs.TargetConfirming, sgs.DamageCaused},
+    frequency = sgs.Skill_Frequent,  
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.TargetConfirming then
+            --这种实现的思路是：有xili的其他角色使用杀，自己弃牌
+            --另一种思路是：自己使用杀，在room:getOtherPlayers(player)中找到其他有xili的角色，他弃牌
+            local use = data:toCardUse()  
+            if use.card:isKindOf("Slash") and use.from:hasSkill(self:objectName()) and use.from ~= player then 
+                if player:hasSkill(self:objectName()) then
+                    return self:objectName()
+                end
+            end
+        elseif event == sgs.DamageCaused then
+            local damage = data:toDamage()
+            if damage.card:hasFlag("xili_add") then
+                damage.damage = damage.damage + 1
+                data:setValue(damage)
+            end
+        end
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        return room:askForDiscard(player, self:objectName(), 1, 1, true, true, "@xili-discard")
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)
+        local use = data:toCardUse()
+        use.card:setFlags("xili_add")
+        data:setValue(use)
+        return false  
+    end  
+}
+
+huaman3 = sgs.CreateViewAsSkill{  
+    name = "huaman3",  
+      
+    view_filter = function(self, selected, to_select)  
+        return #selected < sgs.Self:getHandcardNum()
+    end,  
+      
+    view_as = function(self, cards)  
+        if #cards ~= sgs.Self:getHandcardNum() then return nil end  
+                    
+        local card =  sgs.Sanguosha:cloneCard("savage_assault")
+        for _, c in ipairs(cards) do  
+            card:addSubcard(c)  
+        end  
+        card:setShowSkill(self:objectName())
+        return card  
+    end,  
+      
+    enabled_at_play = function(self, player)  
+        return not player:isKongcheng() and player:usedTimes("ViewAsSkill_huaman3Card") < 1
+    end  
+}  
+
+--huaman:addSkill(huaman1)--这个技能暂时有问题
+huaman:addSkill(huaman2)
+huaman:addSkill(huaman3)--这个技能每回合1次有问题
+if not sgs.Sanguosha:getSkill("xili") then skills:append(xili) end
+sgs.LoadTranslationTable{
+    ["huaman"] = "花鬘",  
+    ["huaman1"] = "技能1",  
+    [":huaman1"] = "锁定技。你不会受到【南蛮入侵】的伤害。【南蛮入侵】结算完成后，你摸X张牌，X为受到该【南蛮入侵】伤害的角色数",  
+    ["huaman2"] = "技能2",  
+    [":huaman2"] = "限定技。出牌阶段，你可以选择一名其他角色，令你与其获得【系力】",  
+    ["xili"] = "系力",  
+    [":xili"] = "你使用杀指定目标时，其他拥有【系力】的角色可以弃置一张牌，令此杀伤害+1",
+    ["@xili-discard"] = "你可以弃置1张牌，令此杀伤害+1",
+    ["huaman3"] = "技能3",  
+    [":huaman3"] = "出牌阶段限一次。你可以将所有手牌当作【南蛮入侵】使用",      
+}
 sgs.Sanguosha:addSkills(skills)
 return {extension}
