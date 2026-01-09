@@ -910,6 +910,111 @@ sgs.LoadTranslationTable{
     ["let_draw"] = "令其摸一张牌"  
 }  
   
+hansui = sgs.General(extension, "hansui", "qun", 4) 
+
+xiaoniCard = sgs.CreateSkillCard{  
+    name = "xiaoniCard",  
+    target_fixed = false,  
+    will_throw = true,  
+    filter = function(self, targets, to_select)  
+        return to_select:objectName() ~= sgs.Self:objectName()  
+    end,
+    feasible = function(self, targets)  
+        return #targets ~= 0 
+    end,  
+    on_use = function(self, room, source, targets)  
+        room:setPlayerMark(source,"@xiaoni",0)
+
+        local slash = sgs.Sanguosha:cloneCard("slash")
+        slash:setSkillName("xiaoni")  
+        slash:deleteLater()
+
+        local use = sgs.CardUseStruct()  
+        use.card = slash  
+        use.from = source  
+       for i=1, #targets do  
+            use.to:append(targets[i])           
+        end  
+        room:useCard(use, false)
+    end  
+}  
+xiaoniVS = sgs.CreateZeroCardViewAsSkill{  
+    name = "xiaoni",  
+    view_as = function(self, cards)  
+        local card = xiaoniCard:clone()  
+        card:setShowSkill(self:objectName())
+        return card
+    end,  
+    enabled_at_play = function(self, player)  
+        return player:getMark("@xiaoni") > 0  
+    end  
+}  
+
+xiaoni = sgs.CreateTriggerSkill{  
+    name = "xiaoni",  
+    events = {sgs.SlashMissed, sgs.CardFinished},
+    view_as_skill = xiaoniVS,
+    frequency = sgs.Skill_Limited,
+    limit_mark = "@xiaoni",
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.SlashMissed then
+            local effect = data:toSlashEffect() 
+            if effect.slash and effect.slash:isKindOf("Slash") and effect.slash:getSkillName() == self:objectName() then
+                room:setPlayerFlag(effect.to, "xiaoni_missed")
+            end
+        elseif event == sgs.CardFinished then
+            local use = data:toCardUse()
+            if use.card:isKindOf("Slash") and use.card:getSkillName() == self:objectName() then
+                return self:objectName()
+            end
+        end
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return true
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        local use = data:toCardUse() 
+        local targets = sgs.SPlayerList()  
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if p:hasFlag("xiaoni_missed") and not p:isNude() then
+                targets:append(p)  
+            end
+        end  
+        
+        local target = room:askForPlayerChosen(player, targets, self:objectName(), "@xiaoni-discard-target", true)
+        if target then
+            for i=1,3 do
+                if not target:isNude() then
+                    local card_id = room:askForCardChosen(player, target, "he", self:objectName())  
+                    room:throwCard(card_id, target, player)  
+                end
+            end
+        end
+        return false  
+    end  
+}  
+function sgs.CreatemashuSkill(name)
+	local mashu_skill = {}
+	mashu_skill.name = name
+	mashu_skill.correct_func = function(self, from, to)
+		if from:hasShownSkill(self) then
+			return -1
+		end
+		return 0
+	end
+	return sgs.CreateDistanceSkill(mashu_skill)
+end
+mashuHansui = sgs.CreatemashuSkill("mashuHansui") 
+hansui:addSkill(xiaoni)
+hansui:addSkill(mashuHansui)
+sgs.LoadTranslationTable{
+    ["hansui"] = "韩遂",
+    ["xiaoni"] = "骁逆",
+    [":xiaoni"] = "限定技。出牌阶段，你可以对任意名其他角色使用杀，此杀结算完成后，你可以选择其中一名出闪的目标，弃置其至多3张牌",
+    ["mashuHansui"] = "马术",
+    [":mashuHansui"] = "你计算到其他角色的距离-1"
+}
 
 haopu = sgs.General(extension, "haopu", "shu", 4) -- 吴苋，蜀势力，3血，女性
 
