@@ -1093,7 +1093,7 @@ shixin = sgs.CreateTriggerSkill{
             end  
               
             local target = room:askForPlayerChosen(player, targets, self:objectName(), "@shixin-draw")  
-            if target then  
+            if target then 
                 local cards = sgs.IntList()  
                 for _, id in sgs.qlist(room:getDrawPile()) do  
                     local card = sgs.Sanguosha:getCard(id)  
@@ -3758,7 +3758,7 @@ jiufa = sgs.CreateTriggerSkill{
             end  
         else
             local effect = data:toSlashEffect() 
-            if effect.card and effect.card:isKindOf("Slash") and effect.card:getSkillName() == self:objectName() then
+            if effect.slash and effect.slash:isKindOf("Slash") and effect.slash:getSkillName() == self:objectName() then
                 if event == sgs.SlashMissed and player:getHp() > 1 then
                     room:loseHp(player,1)
                 elseif event == sgs.SlashHit then
@@ -6675,7 +6675,7 @@ yangbing = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data, lvzhi)  
         room:notifySkillInvoked(lvzhi, self:objectName())  
         room:broadcastSkillInvoke(self:objectName(), lvzhi)  
-          
+
         -- 从弃牌堆随机获取一张杀  
         local slash_ids = sgs.IntList()  
         for _, id in sgs.qlist(room:getDrawPile()) do  
@@ -9170,7 +9170,7 @@ sgs.LoadTranslationTable{
     ["hero"] = "英雄",  
     ["simayi_hero"] = "司马懿",  
     ["zhuolue"] = "卓略",  
-    [":zhuolue"] = "出牌阶段：你可以弃置所有黑色牌，视为使用一张【南蛮入侵】；你可以弃置所有红色牌，视为使用一张【桃】。",  
+    [":zhuolue"] = "出牌阶段：你可以将所有黑色手牌当作一张【南蛮入侵】使用；你可以将所有红色手牌当作一张【桃】使用。",  
     ["langgu"] = "狼顾",  
     [":langgu"] = "你受到伤害后，你可以摸一张牌，然后展示所有手牌，若手牌颜色都相同，你回复一点体力。"  
 }  
