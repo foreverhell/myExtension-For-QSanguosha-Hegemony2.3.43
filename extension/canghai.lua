@@ -4922,9 +4922,10 @@ congjianGive = sgs.CreateTriggerSkill{
     end,
 
     on_cost = function(self, event, room, player, data)
-		if player:askForSkillInvoke(self:objectName(), data) then
-			room:broadcastSkillInvoke(self:objectName(), player)
-			return true
+        if event == sgs.TargetConfirming then
+            return player:askForSkillInvoke("@congjian-targetConfirm", data)
+        elseif event == sgs.Damaged then
+            return player:askForSkillInvoke("@congjian-damaged", data)
 		end
 		return false
 	end,
@@ -5005,6 +5006,8 @@ sgs.LoadTranslationTable{
     ["zhangxiu_canghai"] = "张绣",
     ["congjianGive"] = "从谏",
     [":congjianGive"] = "当你成为牌的目标时，你可以交给另一个目标1张牌，然后摸1张牌；当你受到伤害后，你可以交给伤害源1张牌，然后摸1张牌",
+    ["@congjian-targetConfirm"] = "是否交给其他目标一张牌并摸一张牌",
+    ["@congjian-damaged"] = "是否交给伤害源一张牌并摸一张牌",
     ["xiongluan"] = "雄乱",
     [":xiongluan"] = "任意一名角色回合结束时，若你本回合受到过伤害，你可以将一张装备牌当作杀对所有本回合对你造成过伤害的角色使用"
 }
