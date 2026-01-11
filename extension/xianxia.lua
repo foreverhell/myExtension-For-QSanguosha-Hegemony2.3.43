@@ -1723,11 +1723,11 @@ qingshi2 = sgs.CreateTriggerSkill{
             player:drawCards(1,self:objectName())
             target:drawCards(1,self:objectName())
         else
-            if not player:isNude() then
-                room:throwCard(room:askForCardChosen(player, player, "he", self:objectName(), false, sgs.Card_MethodDiscard), player, player)
-            end
             if not target:isNude() then
                 room:throwCard(room:askForCardChosen(player, target, "he", self:objectName(), false, sgs.Card_MethodDiscard), target, player)
+                if not player:isNude() then
+                    room:throwCard(room:askForCardChosen(player, player, "he", self:objectName(), false, sgs.Card_MethodDiscard), player, player)
+                end
             end
         end
         return false
