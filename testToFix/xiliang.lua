@@ -2326,10 +2326,10 @@ haokuieffect = sgs.CreateTriggerSkill{
 			    end
 				if not to_choose:isEmpty() then
 					local to = room:askForPlayerChosen(player, to_choose, "haokui_transform", "@haokui-transform", true)
-                    if to and room:askForChoice(to, "transform_haokui", "yes+no", data, "@transform-ask:::haokui") == "yes" then
-                        room:addPlayerMark(player, "haokuitransformUsed")
-                        room:transformDeputyGeneral(to)
-					end
+                    --if to and room:askForChoice(to, "transform_haokui", "yes+no", data, "@transform-ask:::haokui") == "yes" then
+                    room:addPlayerMark(player, "haokuitransformUsed")
+                    room:transformDeputyGeneral(to)
+					--end
 				end
 			end
 		end
