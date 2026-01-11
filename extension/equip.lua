@@ -541,16 +541,24 @@ yinleijianSkill = sgs.CreateOneCardViewAsSkill{
 
 yinleijianSkill = sgs.CreateTriggerSkill{  
     name = "YinLeiJian",  
-    events = {sgs.CardUsed},  
+    events = {sgs.CardUsed, sgs.DamageCaused},  
     --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) then  
             local weapon = player:getWeapon()
             if not (weapon and weapon:isKindOf("YinLeiJian")) then return "" end
-            local use = data:toCardUse()  
-            if use.card and use.card:isKindOf("Slash") then  
-                return self:objectName()  
-            end  
+            if event == sgs.CardUsed then
+                local use = data:toCardUse()  
+                if use.card and use.card:isKindOf("Slash") then  
+                    return self:objectName()  
+                end
+            elseif event == sgs.DamageCaused then
+                local damage = data:toDamage()
+                if damage.card and damage.card:isKindOf("Slash") and damage.card:hasFlag("thunder") then
+                    damage.nature = sgs.DamageStruct_Thunder
+                    data:setValue(damage)
+                end
+            end
         end  
         return ""  
     end,  
@@ -559,10 +567,14 @@ yinleijianSkill = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data)  
         local use = data:toCardUse()  
+        --[[
         local originalCard = use.card
         local new_card = sgs.Sanguosha:cloneCard("thunder_slash", originalCard:getSuit(), originalCard:getNumber())
-        new_card:addSubcard(originalCard:getId()) 
+        new_card:addSubcard(originalCard:getId())
+        new_card:setFlags("thunder")
         use.card = new_card
+        ]]
+        use.card:setFlags("thunder")
         data:setValue(use)
         return false  
     end  
