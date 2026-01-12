@@ -4614,7 +4614,8 @@ lianpo4 = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) then  
             local damage = data:toDamage()  
-            if damage.from and damage.from:objectName() == player:objectName() and not player:isFriendWith(damage.to) 
+            if damage.from and damage.from:objectName() == player:objectName() 
+            and damage.to and damage.to:isAlive() and not player:isFriendWith(damage.to) 
             and not player:hasFlag("lianpo_used") and not player:isNude() then  
                 return self:objectName()  
             end  
