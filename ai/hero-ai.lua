@@ -39,6 +39,7 @@ sgs.ai_skill_invoke.taiji = function(self, data)
     return false
 end
 sgs.ai_skill_playerchosen.taiji = sgs.ai_skill_playerchosen.luaqinzheng
+sgs.ai_skill_playerchosen.beide = sgs.ai_skill_playerchosen.luaqinzheng
 
 --遗计类：举荐，射日，落笔
 sgs.ai_skill_askforyiji.jujianAsk = sgs.ai_skill_askforyiji.yiji
