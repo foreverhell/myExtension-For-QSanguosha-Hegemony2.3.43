@@ -9,18 +9,18 @@ qiankundai = sgs.CreateArmor{
     on_install = function(self, player)  
         -- 装备时的效果已通过手牌上限技能实现  
         local room = player:getRoom()
-        room:acquireSkill(player,"qiankundai_maxcards", true, true)
+        room:acquireSkill(player,"qiankundai", true, true)
     end,  
     on_uninstall = function(self, player)  
         local room = player:getRoom()
         room:drawCards(player, 1, "qiankundai")  
-        room:detachSkillFromPlayer(player,"qiankundai_maxcards", true, false, true)
+        room:detachSkillFromPlayer(player,"qiankundai", true, false, true)
         -- 失去时摸一张牌  
     end  
 }
 
-qiankundai_maxcards = sgs.CreateMaxCardsSkill{  
-    name = "qiankundai_maxcards",  
+qiankundai_skill = sgs.CreateMaxCardsSkill{  
+    name = "qiankundai",  
     extra_func = function(self, player)  
         local armor = player:getArmor()
         if armor and armor:isKindOf("QianKunDai") then
@@ -39,17 +39,17 @@ shixuejian = sgs.CreateWeapon{
     on_install = function(self, player)  
         -- 装备时无特殊效果  
         local room = player:getRoom()
-        room:acquireSkill(player,"shixuejian_recover", true, true)
+        room:acquireSkill(player,"shixuejian", true, true)
     end,  
     on_uninstall = function(self, player)  
         -- 失去时无特殊效果  
         local room = player:getRoom()
-        room:detachSkillFromPlayer(player,"shixuejian_recover", true, false, true)
+        room:detachSkillFromPlayer(player,"shixuejian", true, false, true)
     end  
 }
 
 shixuejian_skill = sgs.CreateTriggerSkill{  
-    name = "shixuejian_recover",  
+    name = "shixuejian",  
     events = {sgs.Damage},  
     frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)
@@ -86,17 +86,17 @@ anshajian = sgs.CreateWeapon{
     on_install = function(self, player)  
         -- 装备时无特殊效果  
         local room = player:getRoom()
-        room:acquireSkill(player,"anshajian_loseHp", true, true)
+        room:acquireSkill(player,"anshajian", true, true)
     end,  
     on_uninstall = function(self, player)  
         -- 失去时无特殊效果  
         local room = player:getRoom()
-        room:detachSkillFromPlayer(player,"anshajian_loseHp", true, false, true)
+        room:detachSkillFromPlayer(player,"anshajian", true, false, true)
     end  
 }
 
 anshajian_skill = sgs.CreateTriggerSkill{  
-    name = "anshajian_loseHp",  
+    name = "anshajian",  
     events = {sgs.DamageCaused},  
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
@@ -1396,6 +1396,63 @@ ZhiyuZhijianSkill = sgs.CreateTriggerSkill{
         return true  
     end  
 }  
+
+
+sanchaji = sgs.CreateWeapon{  
+    name = "sanchaji",  
+    class_name = "sanchaji",   
+    suit = sgs.Card_Spade,  
+    number = 5,  
+    range = 2,  
+    on_install = function(self, player)  
+        -- 装备时无特殊效果  
+        local room = player:getRoom()
+        room:acquireSkill(player,"sanchaji", true, true)
+    end,  
+    on_uninstall = function(self, player)  
+        -- 失去时无特殊效果  
+        local room = player:getRoom()
+        room:detachSkillFromPlayer(player,"sanchaji", true, false, true)
+    end  
+}
+
+sanchajiSkill = sgs.CreateTriggerSkill{  
+    name = "sanchaji",  
+    events = {sgs.CardUsed},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then  
+            local weapon = player:getWeapon()
+            if not (weapon and weapon:isKindOf("sanchaji")) then return "" end
+            if event == sgs.CardUsed then
+                local use = data:toCardUse()  
+                if use.card and use.card:isKindOf("Slash") and use.to:length()==1 then
+                    local target = use.to:first()
+                    for _, p in sgs.qlist(room:getOtherPlayers(target)) do
+                        if player:distanceTo(p) == player:distanceTo(target) then
+                            return self:objectName()
+                        end
+                    end
+                end
+            end
+        end
+        return ""
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(), data) -- 自动触发，无需消耗  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        local use = data:toCardUse()
+        local target = use.to:first()
+        for _, p in sgs.qlist(room:getOtherPlayers(target)) do
+            if player:distanceTo(p) == player:distanceTo(target) then
+                use.to:append(p)
+            end
+        end
+        data:setValue(use)
+        return false  
+    end  
+}
 -- 将防具牌添加到扩展包
 qiankundai:setParent(extension)
 shixuejian:setParent(extension)
@@ -1418,14 +1475,15 @@ kuangzhanshi:setParent(extension) --通过
 QiyiShouhu:setParent(extension)
 --xinlingganying:setParent(extension) --用的不多
 --ZhiyuZhijian:setParent(extension) --用的不多
+sanchaji:setParent(extension)
 
-if not sgs.Sanguosha:getSkill("qiankundai_maxcards") then
-    skills:append(qiankundai_maxcards)
+if not sgs.Sanguosha:getSkill("qiankundai") then
+    skills:append(qiankundai_skill)
 end
-if not sgs.Sanguosha:getSkill("shixuejian_recover") then
+if not sgs.Sanguosha:getSkill("shixuejian") then
     skills:append(shixuejian_skill)
 end
-if not sgs.Sanguosha:getSkill("anshajian_loseHp") then
+if not sgs.Sanguosha:getSkill("anshajian") then
     skills:append(anshajian_skill)
 end
 --[[
@@ -1458,78 +1516,24 @@ end
 if not sgs.Sanguosha:getSkill("QiyiShouhu") then
     skills:append(QiyiShouhuSkill)
 end
+if not sgs.Sanguosha:getSkill("sanchaji") then
+    skills:append(sanchajiSkill)
+end
 sgs.Sanguosha:addSkills(skills)
---[[
-skills:append(qiankundai_maxcards)
-skills:append(shixuejian_skill)
-skills:append(anshajian_skill)
-skills:append(jinxiuzhengpao_skill)
-skills:append(bileizhenSkill)
-skills:append(xiuliQiankunSkill)
---skills:append(zhenkongzhaoSkill)
-skills:append(yinleijianSkill)
---skills:append(baibaoxiang)
---skills:append(baibaoxiangTrigger)
-skills:append(yuansuzhirenSkill)
-skills:append(shengfanSkill)
-skills:append(fantanjiaSkill)
-skills:append(kuangzhanshiSkill)
---skills:append(axiuluoSkill)
---skills:append(shenmishouhuSkill)
-skills:append(QiyiShouhuSkill)
---skills:append(xinlingganyingSkill)
---skills:append(ZhiyuZhijianSkill)
-
-sgs.Sanguosha:addSkills(skills)
-]]
---[[
---用来绑定装备技能的临时武将。extension是个卡牌包，不是武将包
-equip_tmp = sgs.General(extension,"equip_tmp","god",4)
-equip_tmp:addSkill(qiankundai_maxcards)
-equip_tmp:addSkill(shixuejian_skill)
-equip_tmp:addSkill(anshajian_skill)
-equip_tmp:addSkill(jinxiuzhengpao_skill)
-
-equip_tmp:addSkill(bileizhenSkill)
-equip_tmp:addSkill(xiuliQiankunSkill)
---equip_tmp:addSkill(zhenkongzhaoSkill)
-equip_tmp:addSkill(yinleijianSkill)
---equip_tmp:addSkill(baibaoxiang)
---equip_tmp:addSkill(baibaoxiangTrigger)
-
-equip_tmp:addSkill(yuansuzhirenSkill)
-equip_tmp:addSkill(shengfanSkill)
-equip_tmp:addSkill(fantanjiaSkill)
-equip_tmp:addSkill(kuangzhanshiSkill)
---equip_tmp:addSkill(axiuluoSkill)
---equip_tmp:addSkill(shenmishouhuSkill)
-
-equip_tmp:addSkill(QiyiShouhuSkill)
---equip_tmp:addSkill(xinlingganyingSkill)
---equip_tmp:addSkill(ZhiyuZhijianSkill)
-]]
 -- 添加翻译  
 sgs.LoadTranslationTable{  
     ["equip"] = "装备",  
     ["qiankundai"] = "乾坤袋",  
     [":qiankundai"] = "装备牌·防具\n\n技能：你的手牌上限+1；当你失去装备区里的【乾坤袋】后，你摸一张牌。",  
-    ["qiankundai_maxcards"] = "乾坤袋",  
-    [":qiankundai_maxcards"] = "你的手牌上限+1；当你失去装备区里的【乾坤袋】后，你摸一张牌。",  
 
     ["shixuejian"] = "嗜血剑",  
     [":shixuejian"] = "装备牌·武器\n\n攻击范围：2\n技能：每当你使用【杀】造成伤害后，你回复1点体力。",  
-    ["shixuejian_recover"] = "嗜血剑",  
-    [":shixuejian_recover"] = "每当你使用【杀】造成伤害后，你回复1点体力。",
 
     ["anshajian"] = "暗杀剑",  
     [":anshajian"] = "装备牌·武器\n\n攻击范围：2\n技能：你可以令你使用【杀】造成的伤害改为令目标失去等量的体力。",  
-    ["anshajian_loseHp"] = "暗杀剑",  
-    [":anshajian_loseHp"] = "你可以令你使用【杀】造成的伤害改为令目标失去等量的体力。",
 
     ["jinxiuzhengpao"] = "锦绣征袍",  
     [":jinxiuzhengpao"] = "装备牌·防具\n\n技能：当你受到牌的伤害时，若你手牌中没有此花色的牌，你可以展示所有手牌并获得该牌，然后若你手牌包含所有花色，你免疫该牌的伤害。",  
-    ["jinxiuzhengpao_skill"] = "锦绣征袍",  
-    [":jinxiuzhengpao_skill"] = "当你受到牌的伤害时，若你手牌中没有此花色的牌，你可以展示所有手牌并获得该牌，然后若你手牌包含所有花色，你免疫该牌的伤害。",  
     ["@jinxiuzhengpao"] = "你可以发动【锦绣征袍】，展示所有手牌并获得 %arg 的 %arg2",  
     ["#JinxiuZhengpaoNullify"] = "%from 的【%arg】效果被触发，免疫了此次伤害",
 
@@ -1550,7 +1554,6 @@ sgs.LoadTranslationTable{
 
     ["YinLeiJian"] = "引雷剑",  
     [":YinLeiJian"] = "装备牌·武器\n\n攻击范围：4\n技能：你使用杀时，可以将其转化为雷杀",  
-    ["yinleijian"] = "引雷剑",
 
     ["baiBaoXiang"] = "百宝箱",
     [":baiBaoXiang"] = "装备牌·宝物\n\n技能：出牌阶段，你可以将一张装备放进“百宝箱”牌堆，或者从“百宝箱”中将一张装备放入装备区；当你被其他角色指定为目标时，你可以将装备区的一张非百宝箱装备放入“百宝箱”，并可以将“百宝箱”中的一张装备放入装备区",
@@ -1593,6 +1596,8 @@ sgs.LoadTranslationTable{
     [":ZhiyuZhijian"] = "装备牌·武器\n\n攻击范围：2\n\n技能：当你造成伤害时，你可以防止此伤害，改为令目标角色回复等量的体力。",  
     ["#ZhiyuZhijian"] = "%from 的武器【<font color=\"yellow\"><b>治愈之剑</b></font>】效果被触发，将 %arg 点伤害转换为体力恢复",  
 
+    ["sanchaji"] = "三叉戟",
+    [":sanchaji"] = "装备牌·武器\n\n攻击范围：2\n技能：你使用【杀】指定唯一目标时，你可以令距离等于你到该目标距离的所有其他角色也成为该【杀】的目标。",  
 }  
   
 -- 返回扩展包  
