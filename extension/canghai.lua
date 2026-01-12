@@ -4155,7 +4155,7 @@ miji = sgs.CreateTriggerSkill{
             return false  
         end  
           
-        if player:getPhase() == sgs.Player_Discard and player:isWounded() then  
+        if player:getPhase() == sgs.Player_Finish and player:isWounded() then  
             return self:objectName()  
         end  
           
@@ -4198,7 +4198,7 @@ mijiAsk = sgs.CreateTriggerSkill{
     name = "#mijiAsk",
     events = {sgs.CardsMoveOneTime},
     can_trigger = function(self, event, room, player, data)
-        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Discard then
+        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Finish then
             local move_datas = data:toList()
 			for _, move_data in sgs.qlist(move_datas) do
 				local move = move_data:toMoveOneTime()
@@ -4234,7 +4234,7 @@ sgs.LoadTranslationTable{
     ["zhenlie"] = "贞烈",
     [":zhenlie"] = "你成为杀或非延时性锦囊的目标时，你可以失去一点体力并取消之，然后摸一张牌，弃置来源一张牌",
     ["miji"] = "秘计",  
-    [":miji"] = "弃牌阶段结束后，你可以摸X张牌（X为你已损失的体力值），并任意分配这些牌",  
+    [":miji"] = "结束阶段，你可以摸X张牌（X为你已损失的体力值），并任意分配这些牌",  
     ["#mijiDraw"] = "%from 发动了【%arg2】，摸了 %arg 张牌",  
 }
 
