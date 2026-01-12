@@ -2767,7 +2767,10 @@ wenwu = sgs.CreateTriggerSkill{
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(), data)  
+        if not player:isNude() and player:askForSkillInvoke(self:objectName(), data) then
+            return room:askForDiscard(player,self:objectName(),1,1,false,true)
+        end
+        return false
     end,  
     on_effect = function(self, event, room, player, data)  
         -- 额外结算一次  
@@ -2845,7 +2848,7 @@ sgs.LoadTranslationTable{
 ["guoziyi"] = "郭子仪",  
 ["illustrator:guoziyi"] = "待定",  
 ["wenwu"] = "文武",  
-[":wenwu"] = "出牌阶段每项限一次。①当你使用基本牌结算后，若你使用的上一张牌是锦囊牌，此基本牌额外结算一次。②当你使用锦囊牌结算后，若你使用或打出的上一张牌是基本牌，此锦囊牌额外结算一次。",  
+[":wenwu"] = "出牌阶段每项限一次。当你使用基本牌/锦囊牌结算后，若你使用的上一张牌是锦囊牌/基本牌，你可以弃置1张牌，令此牌额外结算一次。",  
 ["qing2guo"] = "擎国",   
 [":qing2guo"] = "结束阶段开始时，若你于此回合内未使用过基本牌或未使用过锦囊牌，你摸一张牌。",
 }  
@@ -4611,14 +4614,15 @@ lianpo4 = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) then  
             local damage = data:toDamage()  
-            if damage.from and damage.from:objectName() == player:objectName() and not player:hasFlag("lianpo_used") then  
+            if damage.from and damage.from:objectName() == player:objectName() and not player:isFriendWith(damage.to) 
+            and not player:hasFlag("lianpo_used") and not player:isNude() then  
                 return self:objectName()  
             end  
         end  
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(), data) and room:askForDiscard(player, self:objectName(), 1, 1, true, true)
+        return player:askForSkillInvoke(self:objectName(), data) and room:askForDiscard(player, self:objectName(), 1, 1, false, true)
     end,  
     on_effect = function(self, event, room, player, data)    
         room:setPlayerFlag(player,"lianpo_used")  
@@ -4642,7 +4646,7 @@ sgs.LoadTranslationTable{
     ["fujing"] = "负荆",
     [":fujing"] = "出牌阶段限一次。你可以失去1点体力，令一名角色从摸牌堆获得1张锦囊",
     ["lianpo4"] = "连破",
-    [":lianpo4"] = "每回合限一次。你造成伤害后，你可以弃置1张牌，视为对伤害目标使用一张不计入次数的杀"
+    [":lianpo4"] = "每回合限一次。你对其他势力角色造成伤害后，你可以弃置1张牌，视为对伤害目标使用一张不计入次数的杀"
 }
 
 -- 创建武将：李白  
@@ -5063,7 +5067,8 @@ baotou = sgs.CreateTriggerSkill{
 		if skillTriggerable(player, self:objectName()) and event == sgs.CardUsed then
 			local use = data:toCardUse()
 			if use.card:isKindOf("Slash") and use.from == player then
-				local target_list = {}
+                use.card:setFlags("GlobalCardUseDisresponsive")  -- 设置不可响应标志  
+                local target_list = {}
 				for _, p in sgs.qlist(use.to) do
 					if p ~= player then
 						table.insert(target_list, p:objectName())
@@ -5108,7 +5113,7 @@ linchong:addSkill(baotou)
 sgs.LoadTranslationTable{  
     ["linchong"] = "林冲",  
     ["baotou"] = "豹头",  
-    [":baotou"] = "当你使用杀指定目标后，你可以令目标弃置手牌中所有闪",  
+    [":baotou"] = "当你使用杀不可闪避，且你可以令目标弃置手牌中所有闪",  
 }
 
 -- 创建武将：唐伯虎  
@@ -9194,11 +9199,15 @@ yangu = sgs.CreateDrawCardsSkill{
 
 xiyuan = sgs.CreateTriggerSkill{  
     name = "xiyuan",  
-    events = {sgs.Dying},  
+    events = {sgs.Dying},
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
-        local dying = data:toDying()  
-        return self:objectName() .. "->" .. dying.who:objectName()
+        local dying = data:toDying()
+        if player:willBeFriendWith(dying.who) then
+            return self:objectName() .. "->" .. dying.who:objectName()
+        end
+        return ""
     end,  
     on_cost = function(self, event, room, player, data, ask_who)  
         local dying = data:toDying()  
@@ -9267,10 +9276,9 @@ sgs.LoadTranslationTable{
     ["yangu"] = "验骨",  
     [":yangu"] = "摸牌阶段，你摸牌数+X，X为场上已死亡的角色数，且至多为3。",  
     ["xiyuan"] = "洗冤",  
-    [":xiyuan"] = "任意角色濒死时，你可以令其摸4张牌并弃置4张手牌，若弃置的牌包含4种花色，其恢复一点体力。",  
+    [":xiyuan"] = "与你势力相同的角色濒死时，你可以令其摸4张牌并弃置4张手牌，若弃置的牌包含4种花色，其恢复一点体力。",  
     ["@xiyuan-discard"] = "洗冤：请选择4张手牌弃置",  
 }
-
 -- 创建武将：
 sunquan_hero = sgs.General(extension, "sunquan_hero", "wu", 4)  -- 吴国，4血，男性  
 
@@ -9884,7 +9892,7 @@ luobi = sgs.CreateTriggerSkill{
             return false  
         end  
           
-        if player:getPhase() == sgs.Player_Discard and player:isWounded() then  
+        if player:getPhase() == sgs.Player_Finish and player:isWounded() then  
             return self:objectName()  
         end  
           
@@ -9926,7 +9934,7 @@ luobiAsk = sgs.CreateTriggerSkill{
     name = "#luobiAsk",
     events = {sgs.CardsMoveOneTime},
     can_trigger = function(self, event, room, player, data)
-        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Discard then
+        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Finish then
             local move_datas = data:toList()
 			for _, move_data in sgs.qlist(move_datas) do
 				local move = move_data:toMoveOneTime()
@@ -9968,7 +9976,7 @@ sgs.LoadTranslationTable{
     ["#FengliuDraw"] = "%from 的【%arg2】技能被触发，额外摸了 %arg 张牌",  
       
     ["luobi"] = "落笔",  
-    [":luobi"] = "弃牌阶段结束后，你可以摸X张牌（X为你已损失的体力值），并可以任意分配。",  
+    [":luobi"] = "结束阶段，你可以摸X张牌（X为你已损失的体力值），并可以任意分配。",  
     ["#LuobiDraw"] = "%from 发动了【%arg2】，摸了 %arg 张牌",  
       
     ["~tangbohu"] = "吾一生风流，今日竟折于此！"  
@@ -11223,8 +11231,9 @@ tianfa = sgs.CreateTriggerSkill{
             if  not player:isFriendWith(p) then  
                 targets:append(p)            
             end  
-        end  
-        local chosen_targets = room:askForPlayersChosen(player, targets, self:objectName(), 0, 2, "@tianfa-choose", true)            
+        end
+        local num = math.min(targets:length(),2)
+        local chosen_targets = room:askForPlayersChosen(player, targets, self:objectName(), num, num, "@tianfa-choose", false)            
         for _, target in sgs.qlist(chosen_targets) do  
             if target and target:isAlive() then  
                 local judge = sgs.JudgeStruct()  
@@ -12769,7 +12778,6 @@ jiandi = sgs.CreateTriggerSkill{
     end,  
     on_cost = function(self, event, room, player, data)  
         if player:askForSkillInvoke(self:objectName(), data) then  
-            room:setPlayerFlag(player,"ni")
             room:broadcastSkillInvoke(self:objectName())  
             return true  
         end  
@@ -12778,6 +12786,7 @@ jiandi = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data)            
         --弃置1张牌
         if room:askForDiscard(player, self:objectName(), 1, 1, false, true) then
+            room:setPlayerFlag(player,"ni")
             -- 失去1点体力 
             room:loseHp(player, 1)
             -- 获得所有角色各一张牌  
@@ -12810,8 +12819,7 @@ cuanquan = sgs.CreateTriggerSkill{
         return ""
     end,
     on_cost = function(self, event, room, player, data)
-        if player:askForSkillInvoke(self:objectName(), data) then  
-            room:setPlayerFlag(player,"ni")
+        if player:askForSkillInvoke(self:objectName(), data) then
             room:broadcastSkillInvoke(self:objectName())  
             return true  
         end  
@@ -12824,6 +12832,7 @@ cuanquan = sgs.CreateTriggerSkill{
         local choice = room:askForChoice(player, self:objectName(), "color+suit")
         local card = room:askForCard(player, ".|.|.|hand", self:objectName(), data, sgs.Card_MethodDiscard)
         if not card then return false end
+        room:setPlayerFlag(player,"ni")
         -- 获取弃置牌的花色
         if choice == "color" then
             local discarded_suit = card:getColor()
@@ -12898,7 +12907,6 @@ sgs.LoadTranslationTable{
     ["$cuanquan2"] = "君王无道，理当另立新主！",
     ["~yuwenhuaji"] = "篡逆之心，终遭天谴……"    
 }  
-
 yuxuanji = sgs.General(extension, "yuxuanji", "wei", 3, false)  --wei,jin
 -- 折柳技能实现 - 准备阶段和结束阶段的体力变化  
 zheliu = sgs.CreateTriggerSkill{  
