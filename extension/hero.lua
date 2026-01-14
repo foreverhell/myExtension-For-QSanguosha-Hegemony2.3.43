@@ -1382,9 +1382,28 @@ lijianSlashCard = sgs.CreateSkillCard{
         local target = targets[1]  
           
         -- 将牌交给目标角色  
-        local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, source:objectName(), target:objectName(), "lijianSlash", "")  
-        room:moveCardTo(self, target, sgs.Player_PlaceHand, reason)  
-                  
+        --local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, source:objectName(), target:objectName(), "lijianSlash", "")  
+        --room:moveCardTo(self, target, sgs.Player_PlaceHand, reason)  
+
+        local source_handcards = sgs.IntList()
+        for _, card in sgs.qlist(source:getHandcards()) do
+            source_handcards:append(card:getId())
+        end
+        
+        if not source_handcards:isEmpty() then
+            local move1 = sgs.CardsMoveStruct()
+            move1.card_ids = source_handcards
+            move1.from = source
+            move1.to = target
+            move1.to_place = sgs.Player_PlaceHand
+            move1.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXCHANGE_FROM_PILE,
+                                            source:objectName(), target:objectName(), "lijianGive", "")
+            
+            local moves = sgs.CardsMoveList()
+            moves:append(move1)
+            room:moveCardsAtomic(moves, true)
+        end
+
         -- 选择拼点的另一名角色  
         local others = sgs.SPlayerList()  
         for _, p in sgs.qlist(room:getOtherPlayers(target)) do  
@@ -1404,24 +1423,13 @@ lijianSlashCard = sgs.CreateSkillCard{
 }  
   
 -- 密诏视为技  
-lijianSlashViewAsSkill = sgs.CreateViewAsSkill{  
+lijianSlashViewAsSkill = sgs.CreateZeroCardViewAsSkill{  
     name = "lijianSlash",  
-      
-    view_filter = function(self, selected, to_select)  
-        return #selected < sgs.Self:getHandcardNum()
-    end,  
-      
-    view_as = function(self, cards)  
-        if #cards ~= sgs.Self:getHandcardNum() then return nil end  
-                    
+    view_as = function(self)  
         local card = lijianSlashCard:clone()  
-        for _, c in ipairs(cards) do  
-            card:addSubcard(c)  
-        end  
         card:setShowSkill(self:objectName())
         return card  
     end,  
-      
     enabled_at_play = function(self, player)  
         return not player:hasUsed("#lijianSlash") and not player:isKongcheng()
     end  
@@ -4236,6 +4244,13 @@ cike = sgs.CreateTriggerSkill{
             room:throwCard(card_id, skill_target, player)  
         elseif judge.card:isRed() then
             room:obtainCard(player,judge.card)
+            --[[
+            local use = data:toCardUse()
+            local jink_list = player:getTag("Jink_" .. use.card:toString()):toList()  
+            local index = use.to:indexOf(skill_target)  
+            jink_list[index] = 0  
+            player:setTag("Jink_" .. use.card:toString(), sgs.QVariant(jink_list))
+            ]]
         end  
     end
 }
@@ -11313,7 +11328,7 @@ yuefa = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)
 		if event == sgs.TargetChoosing and player and player:isAlive() then
 			local use = data:toCardUse()
-			if use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill and use.card:isKindOf("TrickCard") and use.to:length()>=room:getAlivePlayers():length()-1 then
+			if use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill and use.card:isKindOf("TrickCard") and use.to:length()>=room:alivePlayerCount(false)-1 then
 				local skill_list = {}
 				local name_list = {}
 				local skill_owners = room:findPlayersBySkillName(self:objectName())
@@ -13203,7 +13218,7 @@ Taiji = sgs.CreateTriggerSkill{
     events = {sgs.CardResponded, sgs.CardUsed},  
     frequency = sgs.Skill_Frequent,      
     can_trigger = function(self, event, room, player, data)  
-        if not player or player:isDead() or not player:hasSkill(self:objectName()) then  
+        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
             return ""  
         end  
           
@@ -13217,12 +13232,7 @@ Taiji = sgs.CreateTriggerSkill{
             card = data:toCardUse().card  
         end  
 
-        if card:isKindOf("Jink") then  
-            -- 检查玩家是否有杀可以使用  
-            if player:isKongcheng() or not player:canSlash(false) then  
-                return ""  
-            end  
-              
+        if card:isKindOf("Jink") then        
             -- 检查是否有合法目标  
             local targets = sgs.SPlayerList()  
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
