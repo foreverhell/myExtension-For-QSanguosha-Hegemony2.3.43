@@ -276,8 +276,8 @@ sgs.ai_skill_use["@@rende_basic"] = function(self, prompt, method)
 	if self.enemies then
 		self:sort(self.enemies, "defenseSlash")
 		for _, slash in ipairs(clone_slashes) do
-			for _, enemy in ipairs(self.enemies) do
-				if self:isWeak(enemy) and self.player:canSlash(enemy, slash, true) and not self:slashProhibit(slash, enemy)
+			for _, enemy in ipairs(self:sort(self.enemies, "hp")) do
+				if self.player:canSlash(enemy, slash, true) and not self:slashProhibit(slash, enemy)
 						and self:slashIsEffective(slash, enemy) and sgs.isGoodTarget(enemy, self.enemies, self)
 						and not (self.player:hasFlag("slashTargetFix") and not enemy:hasFlag("SlashAssignee")) then
 					return slash:toString() .. "->" .. enemy:objectName()
@@ -1104,7 +1104,7 @@ sgs.ai_skill_invoke.xiangle = function(self, data)
 	local shuPlayer = self.player:getPlayerNumWithSameKingdom("AI", "shu", 1)
 	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
 	self.player:getRole() ~= "careerist" and not self:isWeak() and self.player:inHeadSkills("xiangle") and not 
-	(shuPlayer >= x / 2) and not self.player:hasShownGeneral1() then
+	(shuPlayer >= x / 2) and not self.player:hasShownGeneral1() and sgs.GetConfig("BanPackages", "secLordGe") then
 		return false
 	end
 	local use = data:toCardUse()
@@ -1337,7 +1337,7 @@ end
 
 sgs.ai_skill_choice.zaiqi = function(self, choices)
 	local menghuo = sgs.findPlayerByShownSkillName("zaiqi")
-	if string.find(choices, "recover") and menghuo:getHp() < 3 and menghuo:canRecover() then
+	if menghuo and string.find(choices, "recover") and menghuo:getHp() < 3 and menghuo:canRecover() then
 		return "recover"
 	end
 	return "drawcard"
