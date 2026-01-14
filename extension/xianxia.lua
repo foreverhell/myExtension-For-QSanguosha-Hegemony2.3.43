@@ -726,7 +726,7 @@ ganfuren_xianxia:addSkill("shenzhi")
 sgs.LoadTranslationTable{
     ["ganfuren_xianxia"] = "甘夫人",
     ["jieshushen"] = "淑慎",
-    [":jieshushen"] = "当你回复1点体力/一次性失去2张以上牌后，你可令你与一名其他角色摸一张牌"
+    [":jieshushen"] = "当你回复1点体力/一次性失去至少2张牌后，你可令你与一名其他角色摸一张牌"
 }
 guanluo = sgs.General(extension, "guanluo", "wei", 3)
 
