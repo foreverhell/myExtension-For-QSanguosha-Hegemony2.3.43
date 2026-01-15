@@ -1,7 +1,7 @@
 -- 创建扩展包  
 extension = sgs.Package("canghai",sgs.Package_GeneralPack)  
 local skills = sgs.SkillList()
---[[
+
 buzhi = sgs.General(extension, "buzhi", "wu", 3)  
 hongde = sgs.CreateTriggerSkill{
 	name = "hongde",
@@ -26,7 +26,7 @@ hongde = sgs.CreateTriggerSkill{
                             end
 						end
 					end
-					if move.to_places:contains(sgs.Player_PlaceHand) then
+					if move.to_place == sgs.Player_PlaceHand then
 						if move.to and move.to:isAlive() and player:objectName()==move.to:objectName() then
                             if move.card_ids:length() >= 2 then
                                 return self:objectName()
@@ -100,7 +100,7 @@ dingpan = sgs.CreateZeroCardViewAsSkill{
         return not player:hasUsed("#dingpanCard")  
     end  
 }  
-buzhi:addSkill(hongde)--这个技能有点问题
+buzhi:addSkill(hongde)
 buzhi:addSkill(dingpan)
 sgs.LoadTranslationTable{
     ["buzhi"] = "步骘",
@@ -109,7 +109,7 @@ sgs.LoadTranslationTable{
     ["dingpan"] = "定叛",
     [":dingpan"] = "出牌阶段限1次。你可以选择一名装备区有牌的角色，令其摸1张牌，然后其选择（1）获得其装备区所有牌，你对其造成1点伤害（2）你弃置其装备区一张牌"
 }
-]]
+
 caifuren = sgs.General(extension, "caifuren", "qun", 3, false) -- 吴苋，蜀势力，3血，女性
 
 qieting = sgs.CreateTriggerSkill{  
