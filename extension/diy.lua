@@ -493,12 +493,12 @@ hongjv = sgs.CreateTriggerSkill{
         local rong_pile = player:getPile("rong_pile")
         local num = rong_pile:length()
         player:clearOnePrivatePile("rong") 
-        local chosen_players = room:askForPlayersChosen(player, room:getOtherPlayers(player), self:objectName(), 0, num, "请选择玩家", false)
-
-		--local commandIndex = player:startCommand("hongjv", player) --注意5为叠置军令，不能回复体力
+        local chosen_players = room:askForPlayersChosen(player, room:getOtherPlayers(player), self:objectName(), 1, num, "请选择玩家", false)
+        if chosen_players:isEmpty() then return false end
+		local commandIndex = player:startCommand("hongjv", player) --注意5为叠置军令，不能回复体力
         for _, p in sgs.qlist(chosen_players) do  
-            --if not p:doCommand("hongjv", commandIndex, player) then
-            if not player:askCommandto(self:objectName(),p) then
+            if not p:doCommand("hongjv", commandIndex, player) then
+            --if not player:askCommandto(self:objectName(),p) then
                 player:drawCards(2,self:objectName())
                 room:addPlayerMark(player,"@hongjv_extra_slash")
             end
