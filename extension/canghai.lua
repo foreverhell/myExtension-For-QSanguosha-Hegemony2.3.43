@@ -100,7 +100,7 @@ dingpan = sgs.CreateZeroCardViewAsSkill{
         return not player:hasUsed("#dingpanCard")  
     end  
 }  
-buzhi:addSkill(hongde)--这个技能有点问题
+buzhi:addSkill(hongde)
 buzhi:addSkill(dingpan)
 sgs.LoadTranslationTable{
     ["buzhi"] = "步骘",
