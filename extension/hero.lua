@@ -7839,7 +7839,7 @@ feigongSlash = sgs.CreateTriggerSkill{
       
     can_trigger = function(self, event, room, player, data)  
         local effect = data:toSlashEffect()  
-        owner = room:findPlayerBySkillName(self:objectName())
+        local owner = room:findPlayerBySkillName(self:objectName())
         -- 检查是否是技能拥有者使用的杀  
         if effect.to and effect.to:isAlive() then  
             return self:objectName(), owner:objectName()
