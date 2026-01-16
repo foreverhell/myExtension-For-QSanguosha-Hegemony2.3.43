@@ -2193,6 +2193,7 @@ sgs.LoadTranslationTable{
 }
 
 xuangongzhu = sgs.General(extension, "xuangongzhu", "jin", 3, false)  
+--[[
 qimei = sgs.CreateTriggerSkill{  
     name = "qimei",  
     events = {sgs.HpChanged, sgs.MaxHpChanged, sgs.CardsMoveOneTime},  
@@ -2216,8 +2217,6 @@ qimei = sgs.CreateTriggerSkill{
                 if move.to:getHandcardNum()==owner:getHandcardNum() then
                     return self:objectName(), owner:objectName()
                 end
-            --elseif move.from:objectName()~=owner:objectName() and move.to:objectName()~=owner:objectName() and player:getHandcardNum()==owner:getHandcardNum() then
-            --    return self:objectName(), owner:objectName()
             end
         elseif event == sgs.HpChanged or event == sgs.MaxHpChanged then  
             -- 体力值变化事件
@@ -2268,7 +2267,7 @@ qimei = sgs.CreateTriggerSkill{
         return false  
     end,  
 }
-
+]]
 zhuiji1 = sgs.CreateTriggerSkill{  
     name = "zhuiji1",  
     events = {sgs.EventPhaseStart, sgs.EventPhaseEnd},
@@ -2338,7 +2337,7 @@ zhuiji1 = sgs.CreateTriggerSkill{
     end  
 }
 
---[[
+
 qimei = sgs.CreateTriggerSkill{  
     name = "qimei",  
     events = {sgs.EventPhaseStart},  
@@ -2413,9 +2412,16 @@ qimeiEffect = sgs.CreateTriggerSkill{
                     local move_datas = data:toList()
                     for _, move_data in sgs.qlist(move_datas) do
                         local move = move_data:toMoveOneTime()
-                        if move.from and move.from:isAlive() and move.from:contains(sgs.Player_PlaceHand) and move.from:getMark("@qimei_target")>0 then
-                            for _, p in sgs.qlist(room:getOtherPlayers(move.from)) do
-                                if p:getMark("@qimei_target") > 0 and p:getHandcardNum() == move.from:getHandcardNum() then
+                        if move.from and move.from:isAlive() and move.from_places:contains(sgs.Player_PlaceHand) and move.from:getMark("@qimei_target")>0 then
+                            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                                if p:objectName()~=move.from:objectName() and p:getMark("@qimei_target") > 0 and p:getHandcardNum() == move.from:getHandcardNum() then
+                                    return self:objectName(), p:objectName()
+                                end
+                            end
+                        end
+                        if move.to and move.to:isAlive() and move.to_place == sgs.Player_PlaceHand and move.to:getMark("@qimei_target")>0 then
+                            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                                if p:objectName()~=move.to:objectName() and p:getMark("@qimei_target") > 0 and p:getHandcardNum() == move.to:getHandcardNum() then
                                     return self:objectName(), p:objectName()
                                 end
                             end
@@ -2445,19 +2451,17 @@ qimeiEffect = sgs.CreateTriggerSkill{
         return false  
     end,  
 }
-]]
+extension:insertRelatedSkills("qimei", "#qimei-effect")
 xuangongzhu:addSkill(qimei)
---xuangongzhu:addSkill(qimeiEffect)
---extension:insertRelatedSkills("qimei", "#qimei-effect")
+xuangongzhu:addSkill(qimeiEffect)
 xuangongzhu:addSkill(zhuiji1)
-
 sgs.LoadTranslationTable{
     ["#xuangongzhu"] = "举案齐眉",  
     ["xuangongzhu"] = "宣公主",  
     ["illustrator:xuangongzhu"] = "画师名",  
     ["qimei"] = "齐眉",  
     [":qimei"] = "当其他角色手牌数变化后，若你的手牌数与其相同，你可以摸一张牌；当你的体力值变化后，你可以令一名体力值和你相同的角色摸一张牌；当其他角色体力值变化后，若你的体力值与其相同，你可以摸一张牌。",  
-    --[":qimei"] = "每轮限一次，任意角色出牌阶段开始时，你可以选择一名角色齐眉。直到你的下回合开始前，你与其一方手牌数/体力值变化时，若与另一方手牌数/体力值相等，另一方摸一张牌",  
+    [":qimei"] = "每轮限一次，任意角色出牌阶段开始时，你可以选择一名角色齐眉。直到你的下回合开始前，你与其一方手牌数/体力值变化时，若与另一方手牌数/体力值相等，另一方摸一张牌",  
     ["zhuiji1"] = "追姬",  
     [":zhuiji1"] = "出牌阶段开始时，你可以选择：1.恢复1点体力，出牌阶段结束时弃置2张牌；2.摸2张牌，出牌阶段结束时失去1点体力。",
 }
