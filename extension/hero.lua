@@ -4256,12 +4256,21 @@ cike = sgs.CreateTriggerSkill{
             room:throwCard(card_id, skill_target, player)  
         elseif judge.card:isRed() then
             room:obtainCard(player,judge.card)
-            --[[
+            --[[--这是仿照烈弓
             local use = data:toCardUse()
             local jink_list = player:getTag("Jink_" .. use.card:toString()):toList()  
             local index = use.to:indexOf(skill_target)  
             jink_list[index] = 0  
             player:setTag("Jink_" .. use.card:toString(), sgs.QVariant(jink_list))
+            ]]
+            --[[
+            local use = data:toCardUse()
+            if use.disresponsive_list == "" then  
+                use.disresponsive_list = skill_target:objectName()  
+            else  
+                use.disresponsive_list = use.disresponsive_list .. "+" .. skill_target:objectName()  
+            end  
+            data:setValue(use)
             ]]
         end  
     end
