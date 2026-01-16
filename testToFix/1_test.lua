@@ -507,95 +507,25 @@ jiexiahouyuan:addSkill("shensu")
 
 jiediaodu = sgs.CreateTriggerSkill{
 	name = "jiediaodu",
-	events = {sgs.EventPhaseStart},
-
-	can_trigger = function(self, event, room, player)
-		if skillTriggerable(player, self:objectName()) then
-			if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Play then 
-				local targets = sgs.SPlayerList()
-				for _, p in sgs.qlist(room:getAlivePlayers()) do
-					local card_equip = p:getEquips()
-					if player:isFriendWith(p) and card_equip:length() > 0 then
-						targets:append(p)
-					end
-				end
-				if not targets:isEmpty() then
-					return self:objectName()
-				end
-			end
-		end
-		return false
-	end,
-
-	on_cost = function(self, event, room, player, data)
-		local targets = sgs.SPlayerList()
-		for _, p in sgs.qlist(room:getAlivePlayers()) do
-			local card_equip = p:getEquips()
-			if player:isFriendWith(p) and card_equip:length() > 0 then
-				targets:append(p)
-			end
-		end
-		if not targets:isEmpty() then
-			local target = room:askForPlayerChosen(player, targets, self:objectName(), "@jiediaodu_obtainEquip", true, true)
-			if target then
-				local card_id = room:askForCardChosen(player, target, "e", self:objectName(), false, sgs.Card_MethodGet)
-				local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXTRACTION, player:objectName())
-				room:obtainCard(player, sgs.Sanguosha:getCard(card_id), reason, false)
-				room:broadcastSkillInvoke("diaodu", player)
-				if player:objectName() == target:objectName() then
-					if player:getActualGeneral1Name() == "lvfan" then
-						player:showGeneral(true, false, false)
-					else
-						player:showGeneral(false, true, false)
-					end
-				end
-				local target_to = sgs.SPlayerList() --获取除选择目标的其他角色
-				for _, p in sgs.qlist(room:getOtherPlayers(target)) do
-					target_to:append(p)
-				end
-				if not target_to:isEmpty() then
-					local target_player = room:askForPlayerChosen(player, target_to, self:objectName(),
-					"@jiediaodu_exchangeToEquip", true, true)
-					if target_player then
-						if player:getActualGeneral1Name() == "lvfan" then
-							player:showGeneral(true, false, false)
-						elseif player:getActualGeneral2Name() == "lvfan" then
-							player:showGeneral(false, true, false)
-						end
-						local card = sgs.Sanguosha:getCard(card_id)
-						room:moveCardTo(card, player, target_player, sgs.Player_PlaceHand, reason, false)
-						room:doAnimate(1, player:objectName(), target_player:objectName())
-					end
-				end
-			end
-			return true
-		end
-		return false
-	end,
-
-	on_effect = function(self, event, room, player, data)
-		return false
-	end
-}
-
-jiediaoduDrawCard = sgs.CreateTriggerSkill{
-	name = "#jiediaoduDrawCard",
-	events = {sgs.CardUsed},
-	frequency = sgs.Skill_Frequent,
-
+	events = {sgs.EventPhaseStart, sgs.CardUsed},
 	can_trigger = function(self, event, room, player, data)
-		if player and player:isAlive() and event == sgs.CardUsed and not player:hasFlag("First_use_equipCard") then
+		if skillTriggerable(player, self:objectName()) and event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Play then
+			local targets = sgs.SPlayerList()
+			for _, p in sgs.qlist(room:getAlivePlayers()) do
+				local card_equip = p:getEquips()
+				if player:isFriendWith(p) and card_equip:length() > 0 then
+					return self:objectName(), player:objectName()
+				end
+			end
+		elseif player and player:isAlive() and event == sgs.CardUsed and not player:hasFlag("First_use_equipCard") then
 			local card_use = data:toCardUse()
 			if card_use.card:getTypeId() == sgs.Card_TypeEquip then
+				room:setPlayerFlag(player, "First_use_equipCard")
 				local skill_list = {}
 				local name_list = {}
 				local skill_owners = room:findPlayersBySkillName("jiediaodu")
 				for _, skill_owner in sgs.qlist(skill_owners) do
-					if skill_owner == player then
-						return self:objectName(), player:objectName()
-					end
-					if skillTriggerable(skill_owner, "jiediaodu") and skill_owner:hasShownSkill("jiediaodu") and 
-					player:isFriendWith(skill_owner) then
+					if (skill_owner == player or skill_owner:hasShownSkill("jiediaodu")) and player:isFriendWith(skill_owner) then
 						table.insert(skill_list, self:objectName())
 						table.insert(name_list, skill_owner:objectName())
 					end
@@ -607,24 +537,57 @@ jiediaoduDrawCard = sgs.CreateTriggerSkill{
 	end,
 
 	on_cost = function(self, event, room, player, data, skill_owner)
-		if player:askForSkillInvoke(self:objectName(), data) then
-			room:broadcastSkillInvoke("diaodu", skill_owner)
-			room:doAnimate(1, skill_owner:objectName(), player:objectName())
-			if player == skill_owner then --不知为何人机发动不会亮将，就写了这个了
-				if player:getActualGeneral1Name() == "lvfan" then
-					player:showGeneral(true, false, false)
-				elseif player:getActualGeneral2Name() == "lvfan" then
-					player:showGeneral(false, true, false)
+		if event == sgs.EventPhaseStart then
+			local targets = sgs.SPlayerList()
+			for _, p in sgs.qlist(room:getAlivePlayers()) do
+				local card_equip = p:getEquips()
+				if player:isFriendWith(p) and card_equip:length() > 0 then
+					targets:append(p)
 				end
 			end
-			return true
+			if not targets:isEmpty() then
+				local target = room:askForPlayerChosen(player, targets, "jiediaodu_take", "@jiediaodu_obtainEquip", true, true)
+				if target then
+					local card_id = room:askForCardChosen(player, target, "e", self:objectName(), false, sgs.Card_MethodGet)
+					local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXTRACTION, player:objectName())
+					room:obtainCard(player, sgs.Sanguosha:getCard(card_id), reason, false)
+					room:broadcastSkillInvoke("diaodu", player)
+					--[[if player:objectName() == target:objectName() then
+						if player:getActualGeneral1Name() == "lvfan" then
+							player:showGeneral(true, false, false)
+						else
+							player:showGeneral(false, true, false)
+						end
+					end]]
+					local target_to = sgs.SPlayerList() --获取除选择目标的其他角色
+					for _, p in sgs.qlist(room:getOtherPlayers(target)) do
+						target_to:append(p)
+					end
+					if not target_to:isEmpty() then
+						local target_player = room:askForPlayerChosen(player, target_to, "jiediaodu_give",
+						"@jiediaodu_exchangeToEquip", true, true)
+						if target_player then
+							local card = sgs.Sanguosha:getCard(card_id)
+							room:moveCardTo(card, player, target_player, sgs.Player_PlaceHand, reason, false)
+							room:doAnimate(1, player:objectName(), target_player:objectName())
+						end
+					end
+					return true
+				end
+			end
+		elseif event == sgs.CardUsed then
+			local choice = room:askForChoice(player, self:objectName(), "yes+no", sgs.QVariant(), "@jiediaoduDraw")
+			if choice == "yes" then
+				room:broadcastSkillInvoke("diaodu", skill_owner)
+				room:doAnimate(1, skill_owner:objectName(), player:objectName())
+				return true
+			end
 		end
-		room:setPlayerFlag(player, "First_use_equipCard")
 		return false
 	end,
 
 	on_effect = function(self, event, room, player, data, skill_owner)
-		if not player:hasFlag("First_use_equipCard") then
+		if event == sgs.CardUsed then
 			player:drawCards(1, "jiediaodu")
 			room:setPlayerFlag(player, "First_use_equipCard")
 		end
@@ -634,8 +597,6 @@ jiediaoduDrawCard = sgs.CreateTriggerSkill{
 
 jielvfan:addSkill("diancai")
 jielvfan:addSkill(jiediaodu)
-jielvfan:addSkill(jiediaoduDrawCard)
-testToFix:insertRelatedSkills("jiediaodu", "#jiediaoduDrawCard")
 
 -- 加载翻译表
 sgs.LoadTranslationTable{
@@ -643,9 +604,9 @@ sgs.LoadTranslationTable{
     ["jiediaodu"] = "调度",
 	[":jiediaodu"] = "每回合首次有与你势力相同的角色使用装备牌时，其可以摸一张牌。出牌阶段开始时，你可以获得一名与你势力相同的角色" ..
 	"装备区的一张牌，然后你可以将此牌交给另一名角色。",
-	["@jiediaodu_obtainEquip"] = "是否发动“调度”，获得一名与你相同势力角色装备区的一张牌",
-	["@jiediaodu_exchangeToEquip"] = "是否将该装备牌交给另一名角色",
-	["#jiediaoduDrawCard"] = "调度",
+	["@jiediaodu_obtainEquip"] = "调度：你可以获得一名与你势力相同的角色装备区的一张牌",
+	["@jiediaodu_exchangeToEquip"] = "调度：你可以将该装备牌交给另一名角色",
+	["@jiediaoduDraw"] = "调度：是否摸一张牌",
 }
 
 jieduoshi = sgs.CreatePhaseChangeSkill{
@@ -1413,7 +1374,7 @@ jiejingheCard = sgs.CreateSkillCard{
 		room:addPlayerMark(target, "##" .. skill_list[skill_number])
 		local d = sgs.QVariant()
 		d:setValue(target)
-		source:setTag("jiejinghe_skill", d)
+		room:setPlayerMark(target, "jiejinghe_skill", 1)
 	end,
 }
 
@@ -1427,7 +1388,7 @@ jiejinghe = sgs.CreateZeroCardViewAsSkill{
 	end,
 
 	enabled_at_play = function(self, player)
-		return not player:hasUsed("#jiejingheCard") 
+		return not player:hasUsed("#jiejingheCard")
 	end,
 }
 
@@ -1435,42 +1396,30 @@ jiejinghe_clear = sgs.CreateTriggerSkill{
 	name = "#jiejinghe-clear",
 	events = {sgs.EventPhaseStart, sgs.EventLoseSkill, sgs.Death},
 	on_record = function(self, event, room, player, data)
-		if (event == sgs.EventLoseSkill and data:toString():split(":")[1] == self:objectName() and player) or 
-		event == sgs.Death then
-			local death = data:toDeath()
-			if death.who:getActualGeneral1Name() == "nanhualaoxian" or death.who:getActualGeneral2Name() == "nanhualaoxian" then
-				local target = player:getTag("jiejinghe_skill"):toPlayer()
-				local skill_list = {"lundao", "guanyue", "yanzheng", "leiji_tianshu", "yinbing", "huoqi", "guizhu", "xianshou"}
-				if target and target:isAlive() then
+		if (event == sgs.EventLoseSkill and data:toString():split(":")[1] == "jiejinghe" and player) or
+		event == sgs.Death or (event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_RoundStart and
+		player:getMark("jiejinghe_skill") > 0) then
+			if event == sgs.Death then
+				local death = data:toDeath()
+				if not (death and death.who and (death.who:getActualGeneral1Name() == "nanhualaoxian" or
+				death.who:getActualGeneral2Name() == "nanhualaoxian")) then return false end
+			end
+			local skill_list = {"lundao", "guanyue", "yanzheng", "leiji_tianshu", "yinbing", "huoqi", "guizhu", "xianshou"}
+			for _, p in sgs.qlist(room:getAlivePlayers()) do
+				if p:getMark("jiejinghe_skill") > 0 then
 					for i = 1, #skill_list do
-						if target:hasSkill(skill_list[i]) then
-							room:detachSkillFromPlayer(target, skill_list[i])
-							room:detachSkillFromPlayer(target, skill_list[i], false, false, false)
-							room:removePlayerMark(target, "##" .. skill_list[i])
+						if p:hasSkill(skill_list[i]) then
+							room:detachSkillFromPlayer(p, skill_list[i])
+							room:detachSkillFromPlayer(p, skill_list[i], false, false, false)
+							room:removePlayerMark(p, "##" .. skill_list[i])
 						end
 					end
-					target:removeTag("jiejinghe_skill")
+					room:setPlayerMark(p, "jiejinghe_skill", 0)
 				end
 			end
 		end
 	end,
 	can_trigger = function(self, event, room, player, data)
-		if skillTriggerable(player, self:objectName()) then
-			if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_RoundStart then
-				local target = player:getTag("jiejinghe_skill"):toPlayer()
-				local skill_list = {"lundao", "guanyue", "yanzheng", "leiji_tianshu", "yinbing", "huoqi", "guizhu", "xianshou"}
-				if target and target:isAlive() then
-					for i = 1, #skill_list do
-						if target:hasSkill(skill_list[i]) then
-							room:detachSkillFromPlayer(target, skill_list[i])
-							room:detachSkillFromPlayer(target, skill_list[i], false, false, false)
-							room:removePlayerMark(target, "##" .. skill_list[i])
-						end
-						target:removeTag("jiejinghe_skill")
-					end
-				end
-			end
-		end
 		return false
 	end,
 }
@@ -1482,7 +1431,6 @@ jienanhualaoxian:addSkill(jiejinghe_clear)
 jienanhualaoxian:addSkill("gongxiu")
 testToFix:insertRelatedSkills("taidan", "#taiping_viewhas")
 testToFix:insertRelatedSkills("jiejinghe", "#jiejinghe-clear")
-
 
 -- 加载翻译表
 sgs.LoadTranslationTable{
@@ -2501,6 +2449,9 @@ jiechengshang = sgs.CreateTriggerSkill{
 			if card_id >= 0 then
 				room:setPlayerMark(player, "jiechengshangCardId", card_id + 1)
 			end
+			if use.card:hasFlag("jiechengshangDamaged") then
+				use.card:setFlags("-jiechengshangDamaged")
+			end
 		end
 	end,
 
@@ -2543,7 +2494,6 @@ jiechengshang = sgs.CreateTriggerSkill{
 		local target = room:askForPlayerChosen(player, targets, self:objectName(), "@luachengshang-choose", false, true)
 		if target then
 			room:setPlayerFlag(player, "luachengshangUsed")
-			room:broadcastSkillInvoke("chengshang", player)
 			local card_id = room:askForExchange(target, self:objectName(), 1, 1, "@luachengshang-give::" .. player:objectName())
 			room:showCard(target, card_id)
 			local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, target:objectName(), player:objectName(), self:objectName(), "")

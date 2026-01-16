@@ -519,7 +519,17 @@ luanji_skill.getTurnUseCard = function(self)
 	local archery = sgs.cloneCard("archery_attack")
 	local first_found, second_found = false, false
 	local first_card, second_card
-	local usedsuits = self.player:property("luanjiUsedSuits"):toString():split("+")
+	--local usedsuits = self.player:property("luanjiUsedSuits"):toString():split("+") --源代码不是用这个记录
+	------------
+	local usedsuits = {spade = false, club = false, diamond = false, heart = false}
+	local suitTable = {"spade", "club", "diamond", "heart"}
+	local room = self.player:getRoom()
+	for i = 1, 4 do
+		if self.player:hasFlag("luanji_suitfg_" .. suitTable[i]) then
+			usedsuits[suitTable[i]] = true
+		end
+	end
+	------------
 
 	if self.player:getHandcardNum() + self.player:getHandPile():length() >= 2 then
 		local cards = self.player:getHandcards()
@@ -568,10 +578,10 @@ luanji_skill.getTurnUseCard = function(self)
 			end
 		end
 		--去除保留牌的花色，优先使用同色
-		if (self:getSuitNum("heart", false, self.player) > 1 + heartKeepnum and not table.contains(usedsuits, "heart")) or
-			(self:getSuitNum("diamond", false, self.player) > 1 + diamondKeepnum and not table.contains(usedsuits, "diamond")) or
-			(self:getSuitNum("spade", false, self.player) > 1 + spadeKeepnum and not table.contains(usedsuits, "spade")) or
-			(self:getSuitNum("club", false, self.player) > 1 + clubKeepnum and not table.contains(usedsuits, "club")) then
+		if (self:getSuitNum("heart", false, self.player) > 1 + heartKeepnum and not usedsuits["heart"]) or
+			(self:getSuitNum("diamond", false, self.player) > 1 + diamondKeepnum and not usedsuits["diamond"]) or
+			(self:getSuitNum("spade", false, self.player) > 1 + spadeKeepnum and not usedsuits["spade"]) or
+			(self:getSuitNum("club", false, self.player) > 1 + clubKeepnum and not usedsuits["club"]) then
 			hasSamesuit = true
 			Global_room:writeToConsole("乱击有同色牌")
 		end
@@ -582,7 +592,7 @@ luanji_skill.getTurnUseCard = function(self)
 								or isCard("ArcheryAttack", fcard, self.player) or isCard("JadeSeal", fcard, self.player))
 			if useAll and not can_jianxiong then fvalueCard = (isCard("ArcheryAttack", fcard, self.player) or isCard("BefriendAttacking", fcard, self.player))
 			elseif useAll and can_jianxiong then fvalueCard = (isCard("ArcheryAttack", fcard, self.player) or isCard("BefriendAttacking", fcard, self.player) or isCard("Peach", fcard, caocao)) end
-			if not fvalueCard and not table.contains(usedsuits, sgs.Sanguosha:getCard(fcard:getId()):getSuitString()) then
+			if not fvalueCard and not usedsuits[sgs.Sanguosha:getCard(fcard:getId()):getSuitString()] then
 				first_card = fcard
 				first_found = true
 				for _, scard in ipairs(cards) do
@@ -590,7 +600,7 @@ luanji_skill.getTurnUseCard = function(self)
 					if useAll and not can_jianxiong then svalueCard = (isCard("ArcheryAttack", scard, self.player) or isCard("BefriendAttacking", scard, self.player))
 					elseif useAll and can_jianxiong then svalueCard = (isCard("ArcheryAttack", scard, self.player) or isCard("BefriendAttacking", scard, self.player) or isCard("Peach", scard, caocao)) end
 					if first_card ~= scard and (scard:getSuit() == first_card:getSuit() and not hasSamesuit)--新万箭齐发
-						and not svalueCard and not table.contains(usedsuits, sgs.Sanguosha:getCard(scard:getId()):getSuitString()) then
+						and not svalueCard and not usedsuits[sgs.Sanguosha:getCard(scard:getId()):getSuitString()] then
 
 						local card_str = ("archery_attack:luanji[%s:%s]=%d+%d&luanji"):format("to_be_decided", 0, first_card:getId(), scard:getId())
 						local archeryattack = sgs.Card_Parse(card_str)
@@ -614,14 +624,16 @@ luanji_skill.getTurnUseCard = function(self)
 	if first_found and second_found then
 		local first_id = first_card:getId()
 		local second_id = second_card:getId()
-		if table.contains(usedsuits, sgs.Sanguosha:getCard(first_id):getSuitString())--前边也有检测
-		or table.contains(usedsuits, sgs.Sanguosha:getCard(second_id):getSuitString()) then
+		if usedsuits[sgs.Sanguosha:getCard(first_id):getSuitString()]--前边也有检测
+		or usedsuits[sgs.Sanguosha:getCard(second_id):getSuitString()] then
 			return nil
 		end
 		Global_room:writeToConsole("乱击万箭")
 		local card_str = ("archery_attack:luanji[%s:%s]=%d+%d&luanji"):format("to_be_decided", 0, first_id, second_id)
 		local archeryattack = sgs.Card_Parse(card_str)
 		assert(archeryattack)
+		room:setPlayerFlag(self.player, "luanji_suit_" .. first_card:getSuitString())
+		room:setPlayerFlag(self.player, "luanji_suit_" .. second_card:getSuitString())
 		return archeryattack
 	end
 end
@@ -1004,7 +1016,7 @@ sgs.ai_skill_cardask["@guidao-card"]=function(self, data)
 	end]]
 	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
 	self.player:getRole() ~= "careerist" and not self.player:hasShownOneGeneral() and not self:isWeak() and not 
-	(qunPlayer >= x / 2) and not self.player:hasShownGeneral1() then
+	(qunPlayer >= x / 2) and not self.player:hasShownGeneral1() and sgs.GetConfig("BanPackages", "momentum") then
 		return "."
 	end
 	if not (self:willShowForAttack() or self:willShowForDefence() ) then return "." end
@@ -1182,7 +1194,7 @@ sgs.ai_skill_playerchosen.leiji = function(self, targets)
 	end]]
 	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
 	self.player:getRole() ~= "careerist" and self.player:inHeadSkills("leiji") and not self:isWeak() and not 
-	(qunPlayer >= x / 2) and not self.player:hasShownGeneral1() then
+	(qunPlayer >= x / 2) and not self.player:hasShownGeneral1() and sgs.GetConfig("BanPackages", "momentum") then
 		return nil
 	end
 	self:updatePlayers()

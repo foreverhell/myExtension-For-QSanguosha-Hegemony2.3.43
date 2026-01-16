@@ -6418,7 +6418,7 @@ function SmartAI:getAoeValue(card)
 	end
 	--]]
 	----------
-	if self.player:getKingdom() == "wei" and not punish then
+	if self.player:getSeemingKingdom() == "wei" and not punish then
 		value = 500
 	end
 	return good - bad

@@ -29,7 +29,7 @@ sgs.ai_skill_invoke.jianxiong = function(self, data)
 	local weiPlayer = self.player:getPlayerNumWithSameKingdom("AI", "wei", 1)
 	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
 	self.player:getRole() ~= "careerist" and not self:isWeak() and self.player:inHeadSkills("jianxiong") and not 
-	(weiPlayer >= x / 2) and not self.player:hasShownGeneral1() then
+	(weiPlayer >= x / 2) and not self.player:hasShownGeneral1() and sgs.GetConfig("BanPackages", "power") then
 		return false
 	end
 	if not self:willShowForMasochism() then return false end
@@ -1701,7 +1701,7 @@ sgs.ai_skill_use_func.QuhuCard = function(QHCard, use, self)
 	self:sort(self.enemies, "handcard")
 
 	for _, enemy in ipairs(self.enemies) do
-		if enemy:getHp() > self.player:getHp() and not enemy:isKongcheng() then
+		if enemy:getHp() > self.player:getHp() and not enemy:isKongcheng() and not enemy:isRemoved() then
 			local enemy_max_card = self:getMaxNumberCard(enemy)
 			local enemy_number = enemy_max_card and enemy_max_card:getNumber() or 0
 			if enemy_max_card and enemy:hasShownSkill("yingyang") then enemy_number = math.min(enemy_number + 3, 13) end
@@ -1818,7 +1818,7 @@ sgs.ai_skill_invoke.xingshang = function(self, data)
 	local weiPlayer = self.player:getPlayerNumWithSameKingdom("AI", "wei", 1)
 	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
 	self.player:getRole() ~= "careerist" and self.player:getHp() > 1 and self.player:inHeadSkills("fangzhu") and not 
-	(weiPlayer >= x / 2) and not self.player:hasShownGeneral1() then
+	(weiPlayer >= x / 2) and not self.player:hasShownGeneral1() and sgs.GetConfig("BanPackages", "secLordGe") then
 		return false
 	end
 	return true
@@ -1852,7 +1852,7 @@ sgs.ai_skill_playerchosen.fangzhu = function(self, targets)
 	local weiPlayer = self.player:getPlayerNumWithSameKingdom("AI", "wei", 1)
 	if sgs.GetConfig("EnableLordConvertion", true) and self.player:getMark("Global_RoundCount") <= 1 and
 	self.player:getRole() ~= "careerist" and self.player:getHp() > 1 and self.player:inHeadSkills("fangzhu") and not 
-	(weiPlayer >= x / 2) and not self.player:hasShownGeneral1() then
+	(weiPlayer >= x / 2) and not self.player:hasShownGeneral1() and sgs.GetConfig("BanPackages", "secLordGe") then
 		return {}
 	end
 
