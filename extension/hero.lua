@@ -1662,7 +1662,7 @@ zhisheng = sgs.CreateTriggerSkill{
         end  
           
         local judge = data:toJudge() 
-        owner = room:findPlayerBySkillName(self:objectName()) 
+        local owner = room:findPlayerBySkillName(self:objectName()) 
         if judge.card:getNumber() < 7 then  
             return self:objectName(), owner:objectName()
         end  
@@ -4256,22 +4256,7 @@ cike = sgs.CreateTriggerSkill{
             room:throwCard(card_id, skill_target, player)  
         elseif judge.card:isRed() then
             room:obtainCard(player,judge.card)
-            --[[--这是仿照烈弓
-            local use = data:toCardUse()
-            local jink_list = player:getTag("Jink_" .. use.card:toString()):toList()  
-            local index = use.to:indexOf(skill_target)  
-            jink_list[index] = 0  
-            player:setTag("Jink_" .. use.card:toString(), sgs.QVariant(jink_list))
-            ]]
-            --[[
-            local use = data:toCardUse()
-            if use.disresponsive_list == "" then  
-                use.disresponsive_list = skill_target:objectName()  
-            else  
-                use.disresponsive_list = use.disresponsive_list .. "+" .. skill_target:objectName()  
-            end  
             data:setValue(use)
-            ]]
         end  
     end
 }
@@ -6085,7 +6070,7 @@ Lumang = sgs.CreateTriggerSkill{
         local use = data:toCardUse()  
         if not (use.card:isNDTrick()) then return "" end 
         if use.card:isKindOf("Duel") then return "" end 
-        owner = room:findPlayerBySkillName(self:objectName())  
+        local owner = room:findPlayerBySkillName(self:objectName())  
         if owner:objectName() ~= use.from:objectName() and use.to:length()==1 and use.to:contains(owner) then 
             return self:objectName(),owner:objectName()
         end
@@ -6648,7 +6633,7 @@ yangbing = sgs.CreateTriggerSkill{
             return ""  
         elseif event == sgs.EventPhaseEnd and player and player:isAlive() and player:getPhase() == sgs.Player_Finish then  
             -- 回合结束时，检查是否有角色拥有养兵技能  
-            owner = room:findPlayerBySkillName(self:objectName())
+            local owner = room:findPlayerBySkillName(self:objectName())
             if owner and owner:isAlive() and not player:hasFlag("yangbing_damage") and owner:willBeFriendWith(player) then  
                 return self:objectName(), owner:objectName()
             end  
@@ -8999,7 +8984,7 @@ jianlie = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         -- 任意角色回合结束时都可能触发
-        owner = room:findPlayerBySkillName(self:objectName())
+        local owner = room:findPlayerBySkillName(self:objectName())
         if player:getPhase() == sgs.Player_Finish then  
             for _, p in sgs.qlist(room:getAlivePlayers()) do  
                 if p:getHandcardNum()<2 and owner:willBeFriendWith(p) then  
@@ -12136,7 +12121,7 @@ fengyan = sgs.CreateTriggerSkill{
         end  
           
         local judge = data:toJudge() 
-        owner = room:findPlayerBySkillName(self:objectName()) 
+        local owner = room:findPlayerBySkillName(self:objectName()) 
         if judge.who:isMale() and judge.card:isBlack() and room:getCardPlace(judge.card:getId()) == sgs.Player_DiscardPile then  
             return self:objectName(), owner:objectName()
         end  
@@ -13432,7 +13417,7 @@ zhishangtanbing = sgs.CreateTriggerSkill{
         if not player or not player:isAlive() then   
             return ""   
         end  
-        owner = room:findPlayerBySkillName(self:objectName())
+        local owner = room:findPlayerBySkillName(self:objectName())
         return self:objectName(), owner:objectName()
     end,  
     on_cost = function(self, event, room, player, data, ask_who)  
@@ -13640,7 +13625,7 @@ xiangshou = sgs.CreateTriggerSkill{
         --local source = player--recover.to  --恢复体力的角色source就是player
           
         -- 其他角色恢复体力时触发  
-        owner = room:findPlayerBySkillName(self:objectName())
+        local owner = room:findPlayerBySkillName(self:objectName())
         if player and player:objectName() ~= owner:objectName() and not owner:isKongcheng() then  
             return self:objectName(), owner:objectName() 
         end  
