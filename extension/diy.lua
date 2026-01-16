@@ -33,14 +33,12 @@ dongzhan = sgs.CreateTriggerSkill{
         -- 让这些角色摸2张牌然后弃2张牌  
         local card_ids = sgs.IntList()
         for _, p in sgs.qlist(same_kingdom_players) do  
-            room:drawCards(p, 2, self:objectName())          
-            for i = 1, 2 do  
-                local card_id = room:askForCardChosen(p, p, "he", self:objectName(), false, sgs.Card_MethodDiscard)  
-                card_ids:append(card_id)
-                
-                -- 弃置该牌  
-                room:throwCard(card_id, p, p) 
-            end
+            room:drawCards(p, 2, self:objectName())
+            card_ids = room:askForExchange(p, self:objectName(), 2,2)  
+            -- 弃置这些牌  
+            local dummy = sgs.DummyCard(card_ids)  
+            room:throwCard(dummy, p, p, self:objectName())  
+            dummy:deleteLater()
         end  
         if player:askCommandto(self:objectName(),player) then
             local dummy = sgs.DummyCard(card_ids)  
@@ -395,7 +393,7 @@ sgs.LoadTranslationTable{
     [":zhixiang"] = "副将技。当其他角色造成伤害后，若存活角色数大于你的体力值，你可以视为对伤害来源以外的一名其他角色使用【调虎离山】；然后每回合限一次，你可以摸1张牌，"
 }
 
-wuqiujian = sgs.General(extension, "wuqiujian", "wei", 4)  
+wuqiujian = sgs.General(extension, "wuqiujian", "jin", 4)  
 wuqiujian:setHeadMaxHpAdjustedValue(-1)
 zhengrong = sgs.CreateTriggerSkill{  
     name = "zhengrong",  
@@ -454,6 +452,7 @@ qingce = sgs.CreateOneCardViewAsSkill{
     name = "qingce",
     filter_pattern = ".|.|.|rong",
     expand_pile = "rong",
+    relate_to_place = "deputy",
 	view_as = function(self, card)
         local supCard = qingceCard:clone()
         supCard:addSubcard(card:getId())
@@ -524,7 +523,7 @@ sgs.LoadTranslationTable{
     ["zhengrong"] = "征荣",
     [":zhengrong"] = "当你造成或受到伤害后，你可以令伤害来源将1张牌置于你的武将牌上，称为”荣“",
     ["qingce"] = "清侧",
-    [":qingce"] = "出牌阶段，你可以弃置1张”荣“并弃置1名角色1张牌，若其与你势力相同，其摸2张牌",
+    [":qingce"] = "副将技。出牌阶段，你可以弃置1张”荣“并弃置1名角色1张牌，若其与你势力相同，其摸2张牌",
     ["hongjv"] = "鸿举",
     [":hongjv"] = "主将技，限定技。-1阴阳鱼。准备阶段，你可以弃置所有”荣“，并对至多等量名其他角色发起军令，若其不执行，你摸2张牌，并令本回合使用杀次数+1"
 }
