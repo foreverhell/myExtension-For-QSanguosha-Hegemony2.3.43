@@ -1679,7 +1679,8 @@ qinqing = sgs.CreateTriggerSkill{
             room:moveCardTo(card, target, nil, sgs.Player_DiscardPile, reason, true)  
             ]]
             target:drawCards(1,self:objectName())
-            if player:isFriendWith(target) and player:getMark("qinqing_transform")==0 then
+            if player:isFriendWith(target) and player:getMark("qinqing_transform")==0 
+            and room:askForChoice(target, "transform_qinqing", "yes+no", data, "@transform-ask:::qinqing") == "yes" then
                 room:transformDeputyGeneral(target)
                 room:setPlayerMark(player,"qinqing_transform",1)
             end
