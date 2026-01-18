@@ -663,7 +663,7 @@ sgs.LoadTranslationTable{
 }
 
 
-ganfuren_xianxia = sgs.General(extension, "ganfuren_xianxia", "shu", 3, false)
+ganfuren = sgs.General(extension, "ganfuren", "shu", 3, false)
 shushen = sgs.CreateTriggerSkill{  
     name = "jieshushen",  
     frequency = sgs.Skill_Frequent,  
@@ -688,7 +688,11 @@ shushen = sgs.CreateTriggerSkill{
             if target then
                 room:broadcastSkillInvoke("shushen", player)
                 player:drawCards(1, "shushen")
-                target:drawCards(1, "shushen")
+                if target:isKongcheng() then
+                    target:drawCards(2, "shushen")
+                else
+                    target:drawCards(1, "shushen")
+                end
             end
         end
         return false
@@ -720,13 +724,13 @@ shushenLose = sgs.CreateTriggerSkill{
 	end
 }
 extension:insertRelatedSkills("jieshushen","#jieshushen-lose")
-ganfuren_xianxia:addSkill(shushen)
-ganfuren_xianxia:addSkill(shushenLose)
-ganfuren_xianxia:addSkill("shenzhi")
+ganfuren:addSkill(shushen)
+ganfuren:addSkill(shushenLose)
+ganfuren:addSkill("shenzhi")
 sgs.LoadTranslationTable{
-    ["ganfuren_xianxia"] = "甘夫人",
+    ["ganfuren"] = "甘夫人",
     ["jieshushen"] = "淑慎",
-    [":jieshushen"] = "当你回复1点体力/一次性失去至少2张牌后，你可令你与一名其他角色摸一张牌"
+    [":jieshushen"] = "当你回复1点体力/一次性失去至少2张牌后，你可以选择一名其他角色，令你与其各摸一张牌，若其没有手牌，其摸2张牌"
 }
 guanluo = sgs.General(extension, "guanluo", "wei", 3)
 
@@ -2016,9 +2020,16 @@ quanji = sgs.CreateTriggerSkill{
         return false  
     end  
 }
-extension:insertRelatedSkills("jiequanji", "#quanji-maxcards")
-extension:insertRelatedSkills("jiequanji", "#quanji-clear")
+quanjiMaxCard = sgs.CreateMaxCardsSkill{  
+    name = "#jiequanji-maxcard",  
+    frequency = sgs.Skill_Compulsory,  
+    extra_func = function(self, target)  
+        return target:getPile("power_pile"):length()
+    end  
+}  
+extension:insertRelatedSkills("jiequanji", "#jiequanji-maxcard")
 zhonghuiQuan:addSkill(quanji)
+zhonghuiQuan:addSkill(quanjiMaxCard)
 zhonghuiQuan:addSkill("paiyi")
 sgs.LoadTranslationTable{
     ["zhonghuiQuan"] = "钟会",
