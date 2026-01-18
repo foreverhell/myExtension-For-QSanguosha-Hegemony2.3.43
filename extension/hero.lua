@@ -3081,7 +3081,7 @@ gongxinFireVS = sgs.CreateZeroCardViewAsSkill{
         return fire_attack  
     end,
     enabled_at_play = function(self, player)  
-        return not player:hasFlag("gongxinFire")
+        return not player:hasFlag("gongxinFire_used")
     end  
 }
 gongxinFire = sgs.CreateTriggerSkill{  
@@ -5606,8 +5606,8 @@ rendeDamaged = sgs.CreateTriggerSkill{
         player:drawCards(1,self:objectName())
 
         local select_card_ids = room:askForExchange(player, self:objectName(), 2, 0, "", "", ".|.|.|.")  
-        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())
         if not select_card_ids:isEmpty() then
+            local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())
             local dummy = sgs.DummyCard(select_card_ids)  
             room:obtainCard(target, dummy)  
             dummy:deleteLater()  
@@ -11308,7 +11308,7 @@ yuefa = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)
 		if event == sgs.TargetChoosing and player and player:isAlive() then
 			local use = data:toCardUse()
-			if use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill and use.card:isKindOf("TrickCard") and use.to:length()>=room:alivePlayerCount(false)-1 then
+			if use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill and use.card:isKindOf("TrickCard") and use.to:length() >= room:getAlivePlayers():length()-1 then--room:alivePlayerCount(false)-1
 				local skill_list = {}
 				local name_list = {}
 				local skill_owners = room:findPlayersBySkillName(self:objectName())
@@ -12785,18 +12785,20 @@ jiandi = sgs.CreateTriggerSkill{
             room:setPlayerFlag(player,"ni")
             -- 失去1点体力 
             room:loseHp(player, 1)
-            -- 获得所有角色各一张牌  
-            local targets = room:getAlivePlayers()  
-            for _, target in sgs.qlist(targets) do  
-                if target:objectName() ~= player:objectName() and not target:isAllNude() then  
-                    local card_id = room:askForCardChosen(player, target, "hej", self:objectName())  
-                    room:obtainCard(player, card_id, false)  
-                end  
+            if player:isAlive() then
+                -- 获得所有角色各一张牌  
+                local targets = room:getAlivePlayers()  
+                for _, target in sgs.qlist(targets) do  
+                    if target:objectName() ~= player:objectName() and not target:isAllNude() then  
+                        local card_id = room:askForCardChosen(player, target, "hej", self:objectName())  
+                        room:obtainCard(player, card_id, false)  
+                    end  
+                end
+                -- 跳过摸牌阶段  
+                --player:skip(sgs.Player_Draw)
+                local count = data:toInt()
+                data:setValue(0)
             end
-            -- 跳过摸牌阶段  
-            --player:skip(sgs.Player_Draw)
-            local count = data:toInt()
-            data:setValue(0)  
         end
         return false  
     end  
@@ -13413,10 +13415,7 @@ zhishangtanbing = sgs.CreateTriggerSkill{
     name = "zhishangtanbing",  
     events = {sgs.Damaged},  
     frequency = sgs.Skill_Compulsory,
-    can_trigger = function(self, event, room, player, data)  
-        if not player or not player:isAlive() then   
-            return ""   
-        end  
+    can_trigger = function(self, event, room, player, data)
         local owner = room:findPlayerBySkillName(self:objectName())
         return self:objectName(), owner:objectName()
     end,  
@@ -13430,13 +13429,13 @@ zhishangtanbing = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data, ask_who)  
         local damage = data:toDamage()  
         local to = damage.to  
-        if to==ask_who then
-            if not owner:hasFlag("zhishangtanbing_discard") then
+        if to:objectName() == ask_who:objectName() then
+            if not ask_who:hasFlag("zhishangtanbing_discard") then
                 room:askForDiscard(ask_who, self:objectName(), 1, 1, false, true)
                 room:setPlayerFlag(ask_who,"zhishangtanbing_discard")
             end
         else
-            if not owner:hasFlag("zhishangtanbing_draw") then
+            if not ask_who:hasFlag("zhishangtanbing_draw") then
                 ask_who:drawCards(1)
                 room:setPlayerFlag(ask_who,"zhishangtanbing_draw")
             end
