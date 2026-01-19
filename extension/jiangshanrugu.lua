@@ -142,7 +142,7 @@ xundao = sgs.CreateTriggerSkill{
         local judge = data:toJudge()  
         if card_ids:length() > 0 then  
             room:fillAG(card_ids, player)  
-            local card_id = room:askForAG(player, card_ids, true, "@xundao-choose")  
+            local card_id = room:askForAG(player, card_ids, false, "@xundao-choose")  
             room:clearAG(player) 
 
             local card = sgs.Sanguosha:getCard(card_id)  
