@@ -1795,7 +1795,7 @@ chengfeng = sgs.CreateTriggerSkill{
         while not equips:isEmpty() and room:askForDiscard(player,self:objectName(),1,1,true,true) do
             -- 使用AG界面让玩家选择一张牌  
             room:fillAG(equips, player)  
-            local card_id = room:askForAG(player, equips, true, self:objectName())  
+            local card_id = room:askForAG(player, equips, false, self:objectName())  
             room:clearAG(player) 
             if card_id == nil then return false end
             local equip = sgs.Sanguosha:getCard(card_id)
