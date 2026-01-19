@@ -427,7 +427,7 @@ yiyong = sgs.CreateTriggerSkill{
 		return false
 	end
 }
---[[
+
 yiyong = sgs.CreateTriggerSkill{
 	name = "yiyong",
 	events = {sgs.CardsMoveOneTime},
@@ -439,23 +439,21 @@ yiyong = sgs.CreateTriggerSkill{
 				local move_datas = data:toList()
 				for _, move_data in sgs.qlist(move_datas) do
 					local move = move_data:toMoveOneTime()
-					if move.to_places:contains(sgs.Player_PlaceHand) then
-						if move.to and move.to:isAlive() and move.to:hasSkill(objectName()) then
-                            for _,card_id in sgs.qlist(move.card_ids) do
-                                local card = sgs.Sanguosha:getCard(card_id)
-                                if card:isKindOf("EquipCard") then 
-                                    return self:objectName()
-                                end
+                    if move.to and move.to:isAlive() and move.to:hasSkill(self:objectName()) and move.to_place == sgs.Player_PlaceHand then
+                        for _,card_id in sgs.qlist(move.card_ids) do
+                            local card = sgs.Sanguosha:getCard(card_id)
+                            if card:isKindOf("EquipCard") then 
+                                return self:objectName()
                             end
-						end
-					end
+                        end
+                    end
 				end
 			end
 		end
 		return ""
 	end,
     on_cost = function(self, event, room, player, data)
-		return player:askForSkillInvoke(self:objectName(),data) --player:hasShownSkill(self:objectName())
+		return player:askForSkillInvoke(self:objectName(),data)
 	end,
     on_effect = function(self, event, room, player, data)
         local move_datas = data:toList()
@@ -487,7 +485,7 @@ yiyong = sgs.CreateTriggerSkill{
         return false
 	end
 }
-]]
+
 yashang = sgs.CreateMasochismSkill{  
     name = "yashang",  
     frequency = sgs.Skill_Compulsory,  
@@ -567,7 +565,7 @@ sgs.LoadTranslationTable{
 ["#cuifei"] = "魏宫贵妃",  
 ["cuifei"] = "崔妃",   
 ["yiyong"] = "衣镛",  
-[":yiyong"] = "当你使用装备牌后，你可以摸1张牌。",  
+[":yiyong"] = "当你回合外获得装备时，你可以使用之",  
 ["yashang"] = "雅殇",  
 [":yashang"] = "锁定技，当你受到伤害后，若伤害来源与你势力不同，其须将手牌弃至X张，若其未弃牌，你将手牌摸至X张；若伤害来源与你势力相同，你须将手牌弃至X张，若你未弃牌，伤害来源将手牌摸至X张。X为你空置装备栏数。",
 }
