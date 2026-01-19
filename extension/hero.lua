@@ -1127,17 +1127,17 @@ sgs.LoadTranslationTable{
 }
 
 dayu = sgs.General(extension, "dayu", "wu", 3)  
-  
 zhuding = sgs.CreateTriggerSkill{  
     name = "zhuding",  
-    events = {sgs.EventPhaseStart},  
+    events = {sgs.EventPhaseStart, sgs.DrawNCards},  
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
-        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
-            return ""   
-        end  
-        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and not player:isKongcheng() then  
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and not player:isKongcheng() then
+            if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end  
             return self:objectName()
+        elseif event == sgs.DrawNCards then
+            local num = data:toInt()
+            data:setValue(num + math.min(player:getMark("@ding"),3))
         end  
         return ""  
     end,  
@@ -1156,22 +1156,13 @@ zhuding = sgs.CreateTriggerSkill{
         end  
         local target = room:askForPlayerChosen(player, targets, self:objectName(), "@zhuding-target", false)  
         if target then  
-            --room:addPlayerMark(target, "@ding", 1)  
-            room:setPlayerMark(target, "@ding", target:getMark("@ding")+1)
-            room:acquireSkill(target, "ding", false) 
+            room:addPlayerMark(target, "@ding", 1)  
+            --room:setPlayerMark(target, "@ding", target:getMark("@ding")+1)
         end  
         return false  
     end  
 }
 
-zhuding_draw = sgs.CreateDrawCardsSkill{  
-    name = "ding",  
-    draw_num_func = function(self, player, n)  
-        return n + math.min(player:getMark("@ding"),3)
-    end  
-}  
-
--- 增鼎技能  
 zhishui = sgs.CreateTriggerSkill{  
     name = "zhishui",  
     events = {sgs.EventPhaseStart},  
@@ -1202,7 +1193,6 @@ zhishui = sgs.CreateTriggerSkill{
         end  
           
         if player:getMark("@ding") > 0 then  
-            --player:addMark("@ding")  
             room:setPlayerMark(player, "@ding", player:getMark("@ding")+1) 
         end  
           
@@ -1212,17 +1202,13 @@ zhishui = sgs.CreateTriggerSkill{
   
 -- 添加技能到武将  
 dayu:addSkill(zhuding)  
-dayu:addSkill(zhuding_draw)  
 dayu:addSkill(zhishui)  
---extension:insertRelatedSkills("zhuding", "#zhuding_draw")
 -- 翻译表  
 sgs.LoadTranslationTable{  
     ["hero"] = "英雄",  
     ["dayu"] = "大禹",  
     ["zhuding"] = "铸鼎",  
-    [":zhuding"] = "准备阶段，你可以弃置一张黑色手牌，令一名相同势力角色获得一个'鼎'标记。",  
-    ["ding"] = "鼎",  
-    [":ding"] = "拥有'鼎'的角色摸牌阶段摸牌数+X，X为'鼎'的数量，且至多为3",  
+    [":zhuding"] = "准备阶段，你可以弃置一张黑色手牌，令一名相同势力角色获得一个'鼎'标记。拥有'鼎'的角色摸牌阶段摸牌数+X，X为'鼎'的数量，且至多为3",  
     ["zhishui"] = "治水",  
     [":zhishui"] = "任意一名角色准备阶段，若其手牌数大于等于4，你可以弃置其一张牌，若其有'鼎'，其'鼎'标记+1。",  
     ["@zhuding-discard"] = "铸鼎：弃置一张黑色手牌",  
@@ -3715,47 +3701,42 @@ sgs.LoadTranslationTable{
 }
 
 huoqubing = sgs.General(extension, "huoqubing", "wu", 3) 
-
-guanjunhou = sgs.CreateDrawCardsSkill{  
+guanjunhou = sgs.CreateTriggerSkill{  
     name = "guanjunhou",  
-    draw_num_func = function(self, player, n)  
-        return n + 2  
-    end,  
-}  
-  
--- 冠军侯弃牌效果  
-guanjunhou_discard = sgs.CreateTriggerSkill{  
-    name = "#guanjunhou-discard",  
-    events = {sgs.EventPhaseEnd},  
+    events = {sgs.DrawNCards, sgs.AfterDrawNCards},  
     frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)  
-        if player and player:isAlive() and player:hasShownSkill("guanjunhou")   
-           and player:getPhase() == sgs.Player_Draw then  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then     
             return self:objectName()  
         end  
         return ""  
     end,  
-    on_cost = function(self, event, room, player, data, ask_who)  
-        return true -- 强制执行，无需询问  
+    on_cost = function(self, event, room, player, data)  
+        if event == sgs.DrawNCards then
+            return player:askForSkillInvoke(self:objectName(),data)
+        elseif event == sgs.AfterDrawNCards then
+            return player:hasFlag("guanjunhou_used")
+        end
     end,  
-    on_effect = function(self, event, room, player, data, ask_who)  
-        if not player:isNude() then  
-            room:askForDiscard(player, "guanjunhou", 1, 1, false, true)  
-        end  
+    on_effect = function(self, event, room, player, data)
+        if event == sgs.DrawNCards then
+           local num = data:toInt()
+           data:setValue(num+2)
+           room:setPlayerFlag(player,"guanjunhou_used")
+        elseif event == sgs.AfterDrawNCards then
+            if not player:isNude() then  
+                room:askForDiscard(player, "guanjunhou", 1, 1, false, true)  
+            end  
+        end
         return false  
     end,  
 }  
-  
--- 将附属技能关联到主技能  
-extension:insertRelatedSkills("guanjunhou", "#guanjunhou-discard")
-
 huoqubing:addSkill(guanjunhou)
-huoqubing:addSkill(guanjunhou_discard)
 huoqubing:addSkill("kurou")
 sgs.LoadTranslationTable{
 ["huoqubing"] = "霍去病",
 ["guanjunhou"] = "冠军侯",  
-[":guanjunhou"] = "摸牌阶段，你令额定摸牌数+2；摸牌阶段结束时，你弃置1张牌。",
+[":guanjunhou"] = "摸牌阶段开始时，你可以令额定摸牌数+2；若如此做，摸牌阶段结束时，你弃置1张牌。",
 }
 
 
@@ -7547,7 +7528,12 @@ yaoji = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data)  
         local source = room:askForPlayerChosen(player,  room:getAlivePlayers(), self:objectName(), "@yaoji-target")
         local target = room:askForPlayerChosen(player,  room:getOtherPlayers(source), self:objectName(), "@yaoji-victim")  
-          
+        --[[
+        local chosen_players = room:askForPlayersChosen(player, room:getAlivePlayers(), self:objectName(), 2, 2, "请选择2名玩家，先选的视为对后选的使用杀", true)
+        if chosen_players:length() < 2 then return false end
+        local source = chosen_players:first()
+        local target = chosen_players:last()
+        ]]
         if source and target then  
             -- 创建【杀】并使用  
             local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
@@ -13492,11 +13478,7 @@ chuhai = sgs.CreateTriggerSkill{
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
             return false  
         end  
-          
-        --if player:getPhase() == sgs.Player_Start then  
         return self:objectName()  
-        --end  
-        --return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
         return player:askForSkillInvoke(self:objectName(),data)
@@ -13522,32 +13504,15 @@ chuhai = sgs.CreateTriggerSkill{
                 room:useCard(use)  
                 duel:deleteLater()
             end
-            --room:setPlayerFlag(player,"chuhai_used")
-            --player:skip(sgs.Player_Draw)
             local count = data:toInt()
             data:setValue(0)
         end
         return false  
     end  
 }  
---[[
-chuhai_draw = sgs.CreateDrawCardsSkill{  
-    name = "chuhai_draw",  
-    frequency = sgs.Skill_Compulsory,  
-      
-    draw_num_func = function(self, player, n)  
-        if player:hasFlag("chuhai_used") then
-            return 0
-        else
-            return n
-        end
-    end  
-}  
-]]
 -- 添加技能到武将  
 zhouchu_hero:addSkill(gaiguo)  
 zhouchu_hero:addSkill(chuhai)  
---zhouchu_hero:addSkill(chuhai_draw)  
 -- 翻译表  
 sgs.LoadTranslationTable{  
     ["hero"] = "英雄传",  
