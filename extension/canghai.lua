@@ -931,15 +931,21 @@ touxi = sgs.CreateTriggerSkill{
                     sgs.CardMoveReason(sgs.CardMoveReason.S_REASON_TRANSFER, to_target:objectName(), target:objectName(), self:objectName(), "")) 
             end
         elseif targets:length()>1 then
+            local source = room:askForPlayerChosen(ask_who,  targets, self:objectName(), "@touxi-target")
+            local target = room:askForPlayerChosen(ask_who,  targets:removeOne(source), self:objectName(), "@touxi-victim")  
+            --[[
             local chosen_players = room:askForPlayersChosen(ask_who, targets, self:objectName(), 2, 2, "请选择2名玩家，后选的视为对先选的使用决斗（先选的先出杀）", true)
             if chosen_players:length() < 2 then return false end
+            local source = chosen_players:first()
+            local target = chosen_players:last()
+            ]]
             local duel = sgs.Sanguosha:cloneCard("duel")  
             duel:setSkillName(self:objectName())  
             duel:deleteLater()
 
             local use = sgs.CardUseStruct()  
-            use.from = chosen_players:last()  
-            use.to:append(chosen_players:first())   
+            use.from = source  
+            use.to:append(target)   
             use.card = duel  
             room:useCard(use) 
         end
