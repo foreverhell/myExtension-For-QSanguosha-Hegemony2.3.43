@@ -39,9 +39,6 @@ jiezongyu = sgs.General(testToFix, "zongyux", "shu", 3, true, false, true)
 
 --吴势力
 jielvfan = sgs.General(testToFix, "lvfan", "wu", 3, true, false, true)
-jieluxun = sgs.General(testToFix, "luxun", "wu", 3, true, false, true)
-jieluxun:addCompanion("lukang")
-jieluxun:addCompanion("sunhuan")
 jiepanshu = sgs.General(testToFix, "jiepanshu", "wu", 3, false)
 jiepanshu:addCompanion("sunquan")
 jiezumao = sgs.General(testToFix, "zumao", "wu", 4, true, false, true)
@@ -71,86 +68,6 @@ jiehuangquan = sgs.General(testToFix, "huangquan", "shu", 3, true, false, true)
 jiehuangquan:setSubordinateKingdom("wei")]]
 
 local skills = sgs.SkillList()
-
-
---[[******************
-    建立一些通用内容
-]]--******************
---建立空卡
-
-MemptyCard = sgs.CreateSkillCard{
-	name = "MemptyCard",
-	target_fixed = true,
-}
---建立table-qlist函数
-Table2IntList = function(theTable)
-	local result = sgs.IntList()
-	for _, x in ipairs(theTable) do
-		result:append(x)
-	end
-	return result
-end
-
-listIndexOf = function(theqlist, theitem)
-	local index = 0
-	for _, item in sgs.qlist(theqlist) do
-		if item == theitem then return index end
-		index = index + 1
-	end
-end
-
-CardList2Table = function(theqlist)
-	local result = {}
-	for _, item in sgs.qlist(theqlist) do
-		table.insert(result, item:getId())
-	end
-	return result
-end
-
---建立获取服务器玩家函数
-function getServerPlayer(room, name)
-	for _, p in sgs.qlist(room:getAllPlayers(true)) do
-		if p:objectName() == name then return p end
-	end
-	return nil
-end
-
-function skillTriggerable(player, name)
-	return player ~= nil and player:isAlive() and player:hasSkill(name)
-end
-
-getKingdoms = function(player, will_show)
-	local n = 0
-    local kingdom_set = {}
-	local allplayers = player:getAliveSiblings()
-	local same_kingdom = false
-	if will_show and not player:hasShownOneGeneral() then
-	    for _, p in sgs.qlist(allplayers) do
-	        if player:willBeFriendWith(p) then
-		        same_kingdom = true
-				break
-		    end
-	    end
-		if not same_kingdom then
-	        n = n + 1
-	    end
-	end
-	if not same_kingdom then
-	    allplayers:append(player)
-	end
-	for _, p in sgs.qlist(allplayers) do
-		if not p:hasShownOneGeneral() then
-			continue
-		end
-		if p:getRole() == "careerist" then
-		    n = n + 1
-			continue
-		end
-		if not table.contains(kingdom_set, p:getKingdom()) then table.insert(kingdom_set, p:getKingdom()) end
-	end
-	return n + #kingdom_set
-end
-
 
 --[[jieganglie = sgs.CreateTriggerSkill{
 	name = "jieganglie",
@@ -607,69 +524,8 @@ sgs.LoadTranslationTable{
 	["@jiediaodu_obtainEquip"] = "调度：你可以获得一名与你势力相同的角色装备区的一张牌",
 	["@jiediaodu_exchangeToEquip"] = "调度：你可以将该装备牌交给另一名角色",
 	["@jiediaoduDraw"] = "调度：是否摸一张牌",
-}
-
-jieduoshi = sgs.CreatePhaseChangeSkill{
-	name = "jieduoshi",
-	frequency = sgs.Skill_Frequent,
-	can_trigger = function(self, event, room, player)
-		if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Play then
-			return self:objectName()
-		end
-		return false
-	end,
-
-	on_cost = function(self, event, room, player, data)
-		if player:askForSkillInvoke(self:objectName(), data) then
-			room:broadcastSkillInvoke("duoshi", player)
-			local await = sgs.Sanguosha:cloneCard("await_exhausted", sgs.Card_NoSuit, -1)
-			await:setSkillName(self:objectName())
-			await:setShowSkill(self:objectName())
-			local targets = sgs.SPlayerList()
-			for _, p in sgs.qlist(room:getAlivePlayers()) do
-				if player:isFriendWith(p) then
-					targets:append(p)
-				end
-			end
-			room:useCard(sgs.CardUseStruct(await, player, targets), true)
-			return true
-		end
-		return false
-	end,
-
-	on_phasechange = function(self, player)
-		local room = player:getRoom()
-		
-		return false
-	end
-}
-
-jieduoshi_flamemap = sgs.CreateTriggerSkill{ --变相修改原君孙烽火图中的度势技能
-	name = "jieduoshi_flamemap",
-	events = {sgs.EventPhaseStart},
-	frequency = sgs.Skill_Frequent,
-	can_trigger = function(self, event, room, player)
-		if skillTriggerable(player, "duoshi_flamemap") and player:getPhase() == sgs.Player_Play then
-			room:detachSkillFromPlayer(player, "duoshi_flamemap")
-			room:detachSkillFromPlayer(player, "duoshi_flamemap", false, false, false)
-			return "jieduoshi"
-		end
-		return false
-	end
-}
-
-jieluxun:addSkill(jieduoshi)
-jieluxun:addSkill("qianxun")
-
-if not sgs.Sanguosha:getSkill("jieduoshi_flamemap") then skills:append(jieduoshi_flamemap) end
-
--- 加载翻译表
-sgs.LoadTranslationTable{
-    ["jieluxun"] = "陆逊",
-    ["jieduoshi"] = "度势",
-	[":jieduoshi"] = "出牌阶段开始时，你可以视为使用一张【以逸待劳】。",
-	["jieduoshi_flamemap"] = "度势",
-	[":jieduoshi_flamemap"] = "出牌阶段开始时，你可以视为使用一张【以逸待劳】。",
+	["jiediaodu_take"] = "调度",
+	["jiediaodu_give"] = "调度",
 }
 
 jiehengjiang = sgs.CreateMasochismSkill{
@@ -823,9 +679,10 @@ jiejianglveCard = sgs.CreateSkillCard{
 		room:doSuperLightbox("wangping", "jianglve")
 		local commandIndex = source:startCommand("jiejianglve", source) --注意5为叠置军令，不能回复体力
 		local doCommandPlayer = {}
+		local srcKindom = source:getKingdom()
 		for _, player in sgs.qlist(room:getOtherPlayers(source)) do
 			if player and player:isAlive() then
-				if player:isFriendWith(source) or player:willBeFriendWith(source) then
+				if player:isFriendWith(source) or (player:willBeFriendWith(source) and player:getKingdom() == srcKindom) then
 					if not player:hasShownOneGeneral() then
 						player:askForGeneralShow("jiejianglve", true, true, true, true)
 					end
@@ -838,22 +695,20 @@ jiejianglveCard = sgs.CreateSkillCard{
 			end
 		end
 		table.insert(doCommandPlayer, source)
+		local x = 0
 		for _, p in pairs(doCommandPlayer) do
 			if not p:isAlive() then continue end
 			p:setMaxHp(p:getMaxHp() + 1)
 			room:broadcastProperty(p, "maxhp")
 			if p:canRecover() then
+				x = x + 1
 				local recover = sgs.RecoverStruct()
 				recover.who = p
 				recover.recover = 1
 				room:recover(p, recover)
 			end
 		end
-		if commandIndex + 1 ~= 5 then
-			source:drawCards(#doCommandPlayer, "jiejianglve")
-		else
-			source:drawCards(1, "jiejianglve")
-		end
+		source:drawCards(x, "jiejianglve")
 	end
 }  
 
@@ -1374,7 +1229,8 @@ jiejingheCard = sgs.CreateSkillCard{
 		room:addPlayerMark(target, "##" .. skill_list[skill_number])
 		local d = sgs.QVariant()
 		d:setValue(target)
-		room:setPlayerMark(target, "jiejinghe_skill", 1)
+		room:setPlayerMark(getServerPlayer(room, source:objectName()), "jiejinghe_skill", 1)
+		room:setPlayerMark(getServerPlayer(room, target:objectName()), "jiejinghe_getskill", 1)
 	end,
 }
 
@@ -1406,7 +1262,7 @@ jiejinghe_clear = sgs.CreateTriggerSkill{
 			end
 			local skill_list = {"lundao", "guanyue", "yanzheng", "leiji_tianshu", "yinbing", "huoqi", "guizhu", "xianshou"}
 			for _, p in sgs.qlist(room:getAlivePlayers()) do
-				if p:getMark("jiejinghe_skill") > 0 then
+				if p:getMark("jiejinghe_getskill") > 0 then
 					for i = 1, #skill_list do
 						if p:hasSkill(skill_list[i]) then
 							room:detachSkillFromPlayer(p, skill_list[i])
@@ -1414,9 +1270,10 @@ jiejinghe_clear = sgs.CreateTriggerSkill{
 							room:removePlayerMark(p, "##" .. skill_list[i])
 						end
 					end
-					room:setPlayerMark(p, "jiejinghe_skill", 0)
+					room:setPlayerMark(p, "jiejinghe_getskill", 0)
 				end
 			end
+			room:setPlayerMark(player, "jiejinghe_skill", 0)
 		end
 	end,
 	can_trigger = function(self, event, room, player, data)
