@@ -165,7 +165,7 @@ function SetInitialTables()
 	sgs.masochism_skill = "yiji|fankui|jieming|ganglie|fangzhu|jianxiong|qianhuan|zhiyu|jihun|fudi|huashen|luashibei|" ..
 						  "bushi|shicai|quanji|zhaoxin|fankui_simazhao|wanggui|sidi|shangshi|benyu|jiehengjiang|fangzhu_lordcaopi"
 	sgs.defense_skill = "qingguo|longdan|kongcheng|niepan|bazhen|kanpo|xiangle|tianxiang|liuli|qianxun|leiji|duanchang|beige|weimu|" ..
-						"tuntian|shoucheng|yicheng|qianhuan|jizhao|wanwei|enyuan|buyi|keshou|qiuan|biluan|jiancai|aocai|jieyicheng" ..
+						"tuntian|shoucheng|yicheng|qianhuan|jizhao|wanwei|enyuan|buyi|keshou|qiuan|biluan|jiancai|aocai|jieyicheng|" ..
 						"xibing|zhente|qiao|shejian|yusui|deshao|yuanyu|mingzhe|jilei|shigong|dingke|shefu|taidan"
 	sgs.usefull_skill = "tiandu|qiaobian|xingshang|xiaoguo|wusheng|guanxing|qicai|jizhi|kuanggu|lianhuan|huoshou|juxiang|shushen|zhiheng|keji|" ..
 						"duoshi|xiaoji|hongyan|haoshi|guzheng|zhijian|shuangxiong|guidao|guicai|xiongyi|mashu|lirang|yizhi|shengxi|" ..
@@ -1664,7 +1664,7 @@ function SmartAI:adjustKeepValue(card, v)
 		if card:isKindOf("NatureSlash") then v = v + 0.03 end
 		if self.player:hasSkill("jiang") and card:isRed() then v = v + 0.04 end
 	end
-	if card:isKindOf("HegNullification") then v = v + 0.02 end
+	if card:isKindOf("HegNullification") then v = v + 0.04 end
 	if card:isKindOf("ThreatenEmperor") then v = v + (self.player:isBigKingdomPlayer() and 3 or -3) end
 	if self.player:getHandPile():contains(card:getEffectiveId()) then
 		v = v - 0.1
