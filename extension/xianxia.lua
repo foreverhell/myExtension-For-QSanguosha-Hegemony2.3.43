@@ -2035,7 +2035,7 @@ sgs.LoadTranslationTable{
     [":jiequanji"] = "你受到伤害后，你可以摸1张牌并将1张牌置于“权”牌堆；你的手牌上限+X，X为“权”的数量"
 }
 
-zhugedan = sgs.General(extension, "zhugedan", "wei", 4) -- 蜀势力，4血，男性（默认）  
+zhugedan = sgs.General(extension, "zhugedan", "wei", 3) -- 蜀势力，4血，男性（默认）  
 
 gongao = sgs.CreateTriggerSkill{  
     name = "gongao",  
@@ -2090,13 +2090,41 @@ gongao = sgs.CreateTriggerSkill{
         return false  
     end,  
 }
-zhugedan:addSkill(gongao)
 
+zhugedan1 = sgs.CreateTriggerSkill{  
+    name = "zhugedan1",  
+    frequency = sgs.Skill_Frequent,  
+    events = {sgs.PostHpReduced},  
+    can_trigger = function(self, event, room, player, data)          
+        -- 检查是否是技能拥有者杀死的角色  
+        if player and player:hasSkill(self:objectName()) then  
+            return self:objectName()
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(),data) then
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end
+        return false
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        player:drawCards(1,self:objectName()) 
+    end
+}
+
+zhugedan:addSkill(gongao)
+zhugedan:addSkill(zhugedan1)
 sgs.LoadTranslationTable{
 ["zhugedan"] = "诸葛诞",  
 ["illustrator:zhugedan"] = "插画师名称",  
 ["gongao"] = "功獒",  
 [":gongao"] = "锁定技，你杀死角色后，若有与其势力相同的角色存活，你对与其势力相同的角色各造成1点伤害；若没有与其势力相同的角色存活，你获得1个额外回合。",
+["zhugedan1"] = "技能1",
+[":zhugedan1"] = "你体力减少时，你可以摸一张牌"
 }
 zhugeguo = sgs.General(extension, "zhugeguo", "shu", 3, false)  
 qidao = sgs.CreateTriggerSkill{
