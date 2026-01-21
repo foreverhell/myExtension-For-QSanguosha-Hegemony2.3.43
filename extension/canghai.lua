@@ -3606,16 +3606,15 @@ junxing_card = sgs.CreateSkillCard{
         end  
 
         local cards = target:getCards("he")  
-        local valid_cards = {}         
+        local valid_cards = sgs.IntList()
         -- 添加目标的牌  
         for _, card in sgs.qlist(cards) do
             if not used_types[card:getTypeId()] then
-                table.insert(valid_cards, card:getEffectiveId()) 
+                valid_cards:append(card:getEffectiveId()) 
             end
         end  
-
         local choices = {"junxing_loseHp", "junxing_turnOver"}  
-        if #valid_cards > 0 then
+        if valid_cards:length() > 0 then
             table.insert(choices,"junxing_discard")
         end
         local choice = room:askForChoice(target, "junxing", table.concat(choices, "+"))  
@@ -3623,9 +3622,10 @@ junxing_card = sgs.CreateSkillCard{
         if choice == "junxing_discard" then
             local chosen_id = nil
             local card = nil
-            if #valid_cards > 0 then  
-                --chosen_id = room:askForDiscard(target, "junxing", 1, 1, false, true, "@junxing-discard")  
-                chosen_id = room:askForCardChosen(target, target, "he", self:objectName(), false, sgs.Card_MethodDiscard)  
+            if valid_cards:length() > 0 then  
+                room:fillAG(valid_cards, target)
+                chosen_id = room:askForAG(target, valid_cards, true, self:objectName())
+                room:clearAG(target)
                 if chosen_id then                
                     card = sgs.Sanguosha:getCard(chosen_id)
                 end
@@ -3633,7 +3633,7 @@ junxing_card = sgs.CreateSkillCard{
                     room:throwCard(chosen_id, target, target, self:objectName())  
                 end
             end  
-            if #valid_cards<=0 or chosen_id==nil or card==nil or used_types[card:getTypeId()] then  
+            if valid_cards:isEmpty() or chosen_id==nil or card==nil or used_types[card:getTypeId()] then  
                 -- 没有第三种类别的牌，失去体力  
                 room:loseHp(target, 1)  
             end  
@@ -3698,15 +3698,8 @@ yuce = sgs.CreateTriggerSkill{
         if not player:askForSkillInvoke(self:objectName(),data) then
             return false
         end
-        local damage = data:toDamage()  
-        local cards = player:getHandcards()  
-        local card_ids = {}  
-        for _, card in sgs.qlist(cards) do  
-            table.insert(card_ids, card:getEffectiveId())  
-        end  
-          
         local card_id = room:askForCardChosen(player, player, "h", self:objectName(), true)  
-        if card_id >= 0 then  
+        if card_id then  
             room:broadcastSkillInvoke(self:objectName(), player)  
             room:showCard(player, card_id)  
             player:setTag("yuce_card", sgs.QVariant(card_id))  
@@ -3717,28 +3710,27 @@ yuce = sgs.CreateTriggerSkill{
       
     on_effect = function(self, event, room, player, data)  
         local damage = data:toDamage()  
-        local card_id = player:getTag("yuce_card"):toInt()  
-        local shown_card = sgs.Sanguosha:getCard(card_id)  
         --没有伤害源
         if not damage.from then return false end
 
+        local card_id = player:getTag("yuce_card"):toInt()  
+        local shown_card = sgs.Sanguosha:getCard(card_id)  
+
         local from_cards = damage.from:getHandcards()  
-        local valid_cards = {}  
-        local invalid_cards = {}
+        local valid_cards = sgs.IntList()  
         -- 找到类别不同的手牌  
         for _, card in sgs.qlist(from_cards) do  
             if card:getTypeId() ~= shown_card:getTypeId() then  
-                table.insert(valid_cards, card:getEffectiveId())  
-            else
-                table.insert(invalid_cards, card:getEffectiveId())  
+                valid_cards:append(card:getEffectiveId())  
             end  
         end
         --伤害源有手牌，且有有效牌，弃置该牌
         local card_id = nil
         local card = nil
-        if not damage.from:isKongcheng() and #valid_cards > 0 then      
-            --card_id = room:askForDiscard(damage.from, self:objectName(), 1, 1, false, false, "@yuce-discard") --返回bool值
-            card_id = room:askForCardChosen(damage.from, damage.from, "h", self:objectName(), false, sgs.Card_MethodDiscard)  
+        if not damage.from:isKongcheng() and valid_cards:length() > 0 then              
+            room:fillAG(valid_cards, damage.from)
+            card_id = room:askForAG(damage.from, valid_cards, true, self:objectName())
+            room:clearAG(damage.from)
             if card_id then                
                 card = sgs.Sanguosha:getCard(card_id)
             end
@@ -3746,9 +3738,8 @@ yuce = sgs.CreateTriggerSkill{
                 room:throwCard(card_id, damage.from, damage.from, self:objectName())  
             end
         end
-
         --伤害源没有手牌，或没有有效牌，或弃置的牌类别相同，伤害-1
-        if damage.from:isKongcheng() or #valid_cards <= 0 or card_id==nil or card==nil or (card and card:getTypeId() == shown_card:getTypeId()) then
+        if damage.from:isKongcheng() or valid_cards:isEmpty() or card_id==nil or card==nil or (card and card:getTypeId() == shown_card:getTypeId()) then
             -- 没有不同类别的手牌，伤害-1  
             damage.damage = damage.damage - 1  
             data:setValue(damage)  
@@ -3756,7 +3747,6 @@ yuce = sgs.CreateTriggerSkill{
                 return true -- 阻止伤害  
             end  
         end  
-          
         return false  
     end  
 }  
