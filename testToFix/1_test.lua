@@ -607,6 +607,8 @@ sgs.LoadTranslationTable{
 	["@jiediaodu_obtainEquip"] = "调度：你可以获得一名与你势力相同的角色装备区的一张牌",
 	["@jiediaodu_exchangeToEquip"] = "调度：你可以将该装备牌交给另一名角色",
 	["@jiediaoduDraw"] = "调度：是否摸一张牌",
+	["jiediaodu_take"] = "调度",
+	["jiediaodu_give"] = "调度",
 }
 
 jieduoshi = sgs.CreatePhaseChangeSkill{
@@ -823,9 +825,10 @@ jiejianglveCard = sgs.CreateSkillCard{
 		room:doSuperLightbox("wangping", "jianglve")
 		local commandIndex = source:startCommand("jiejianglve", source) --注意5为叠置军令，不能回复体力
 		local doCommandPlayer = {}
+		local srcKindom = source:getKingdom()
 		for _, player in sgs.qlist(room:getOtherPlayers(source)) do
 			if player and player:isAlive() then
-				if player:isFriendWith(source) or player:willBeFriendWith(source) then
+				if player:isFriendWith(source) or (player:willBeFriendWith(source) and player:getKingdom() == srcKindom) then
 					if not player:hasShownOneGeneral() then
 						player:askForGeneralShow("jiejianglve", true, true, true, true)
 					end
@@ -838,22 +841,20 @@ jiejianglveCard = sgs.CreateSkillCard{
 			end
 		end
 		table.insert(doCommandPlayer, source)
+		local x = 0
 		for _, p in pairs(doCommandPlayer) do
 			if not p:isAlive() then continue end
 			p:setMaxHp(p:getMaxHp() + 1)
 			room:broadcastProperty(p, "maxhp")
 			if p:canRecover() then
+				x = x + 1
 				local recover = sgs.RecoverStruct()
 				recover.who = p
 				recover.recover = 1
 				room:recover(p, recover)
 			end
 		end
-		if commandIndex + 1 ~= 5 then
-			source:drawCards(#doCommandPlayer, "jiejianglve")
-		else
-			source:drawCards(1, "jiejianglve")
-		end
+		source:drawCards(x, "jiejianglve")
 	end
 }  
 
@@ -1374,7 +1375,8 @@ jiejingheCard = sgs.CreateSkillCard{
 		room:addPlayerMark(target, "##" .. skill_list[skill_number])
 		local d = sgs.QVariant()
 		d:setValue(target)
-		room:setPlayerMark(target, "jiejinghe_skill", 1)
+		room:setPlayerMark(getServerPlayer(room, source:objectName()), "jiejinghe_skill", 1)
+		room:setPlayerMark(getServerPlayer(room, target:objectName()), "jiejinghe_getskill", 1)
 	end,
 }
 
@@ -1406,7 +1408,7 @@ jiejinghe_clear = sgs.CreateTriggerSkill{
 			end
 			local skill_list = {"lundao", "guanyue", "yanzheng", "leiji_tianshu", "yinbing", "huoqi", "guizhu", "xianshou"}
 			for _, p in sgs.qlist(room:getAlivePlayers()) do
-				if p:getMark("jiejinghe_skill") > 0 then
+				if p:getMark("jiejinghe_getskill") > 0 then
 					for i = 1, #skill_list do
 						if p:hasSkill(skill_list[i]) then
 							room:detachSkillFromPlayer(p, skill_list[i])
@@ -1414,9 +1416,10 @@ jiejinghe_clear = sgs.CreateTriggerSkill{
 							room:removePlayerMark(p, "##" .. skill_list[i])
 						end
 					end
-					room:setPlayerMark(p, "jiejinghe_skill", 0)
+					room:setPlayerMark(p, "jiejinghe_getskill", 0)
 				end
 			end
+			room:setPlayerMark(player, "jiejinghe_skill", 0)
 		end
 	end,
 	can_trigger = function(self, event, room, player, data)
