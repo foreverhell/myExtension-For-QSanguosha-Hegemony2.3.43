@@ -1,7 +1,7 @@
 -- 创建扩展包  
 extension = sgs.Package("canghai",sgs.Package_GeneralPack)  
 local skills = sgs.SkillList()
-
+--[[
 buzhi = sgs.General(extension, "buzhi", "wu", 3)  
 hongde = sgs.CreateTriggerSkill{
 	name = "hongde",
@@ -109,7 +109,7 @@ sgs.LoadTranslationTable{
     ["dingpan"] = "定叛",
     [":dingpan"] = "出牌阶段限1次。你可以选择一名装备区有牌的角色，令其摸1张牌，然后其选择（1）获得其装备区所有牌，你对其造成1点伤害（2）你弃置其装备区一张牌"
 }
-
+]]
 caifuren = sgs.General(extension, "caifuren", "qun", 3, false) -- 吴苋，蜀势力，3血，女性
 
 qieting = sgs.CreateTriggerSkill{  
@@ -995,6 +995,7 @@ juetu = sgs.CreateTriggerSkill{
             for _,p in sgs.qlist(room:getAlivePlayers()) do
                 room:setPlayerMark(p,"GlobalBattleRoyalMode",1)
             end
+            --room:doBroadcastNotify(sgs.CommandType.S_COMMAND_BATTLE_START, "")
             -- 广播进入鏖战状态的消息  
             local message = sgs.LogMessage()  
             message.type = "#EnterBattleRoyalMode"  
@@ -1027,6 +1028,151 @@ sgs.LoadTranslationTable{
     ["juetu"] = "绝途",
     [":juetu"] = "锁定技。结束阶段，若没有进入鏖战状态，你摸牌至体力上限，然后进入鏖战状态；若已经进入鏖战状态，且你未移除副将，则你移除副将；若已经进入鏖战状态，且你已经移除副将，则你视为使用一张决斗",
 }
+gaoshun = sgs.General(extension, "gaoshun", "qun", 4)  
+xunji = sgs.CreateTriggerSkill{
+	name = "xunji",
+	events = {sgs.GeneralShowed},
+	frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)
+        local owner = room:findPlayerBySkillName(self:objectName())
+        if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+        local current = room:getCurrent()
+        if player == current or player == owner then return "" end --其他角色，回合外
+		return self:objectName(), owner:objectName()
+	end,
+    on_cost = function(self, event, room, player, data, ask_who)
+        return ask_who:askForSkillInvoke(self:objectName())
+	end,
+    on_effect = function(self, event, room, player, data, ask_who)
+        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
+        slash:setSkillName(self:objectName())  
+        slash:deleteLater()
+
+        local use = sgs.CardUseStruct()  
+        use.card = slash  
+        use.from = ask_who  
+        use.to:append(player)  
+        room:useCard(use) 
+		return false
+	end,
+}
+
+huanjia = sgs.CreateTriggerSkill{  
+    name = "huanjia",  
+    events = {sgs.TargetConfirming, sgs.CardFinished},  
+    frequency = sgs.Skill_Frequent,  
+      
+    can_trigger = function(self, event, room, player, data)    
+        -- 寻找拥有诗怨技能的角色  
+        local huanjia_player = room:findPlayerBySkillName(self:objectName())  
+        if not (huanjia_player and huanjia_player:isAlive() and huanjia_player:hasSkill(self:objectName())) then return "" end
+
+        local use = data:toCardUse()
+        local source = use.from
+        if not (source and source:isAlive()) then return "" end
+        if use.card:getTypeId()==sgs.Card_TypeSkill then return "" end --不能是技能卡
+        if not use.card:isKindOf("Slash") then return "" end --必须是杀
+        if use.to:length() ~= 1 then return "" end --唯一目标
+
+        local is_involved = false  
+        local other_player = nil  
+            
+        -- 检查是否为使用者或目标  
+        if source and source:objectName() == huanjia_player:objectName() then  
+            -- 技能拥有者使用牌指定其他角色  
+            for _, target in sgs.qlist(use.to) do  
+                if target:objectName() ~= huanjia_player:objectName() then  
+                    is_involved = true  
+                    other_player = target  
+                    break  
+                end  
+            end  
+        elseif source and source:objectName() ~= huanjia_player:objectName() then  
+            -- 其他角色使用牌指定技能拥有者  
+            for _, target in sgs.qlist(use.to) do  
+                if target:objectName() == huanjia_player:objectName() then  
+                    is_involved = true  
+                    other_player = source  
+                    break  
+                end  
+            end  
+        end
+        if event == sgs.TargetConfirming then
+            if is_involved and not huanjia_player:hasFlag("huanjia_used") and (other_player:getWeapon() or other_player:getArmor()) then
+                return self:objectName(), huanjia_player:objectName()
+            end
+        elseif event == sgs.CardFinished then
+            --将有标记的装备还回去
+            for _, card in sgs.qlist(huanjia_player:getEquips()) do
+                if (card:isKindOf("Weapon") or card:isKindOf("Armor")) and card:hasFlag("huanjia_transfer") then
+                    card:setFlags("-huanjia_transfer")--清除标记
+                    room:moveCardTo(card, other_player, sgs.Player_PlaceEquip,   
+                        sgs.CardMoveReason(sgs.CardMoveReason.S_REASON_TRANSFER, other_player:objectName(), huanjia_player:objectName(), self:objectName(), ""))       
+                end
+            end
+        end
+        return ""
+          
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local use = data:toCardUse()  
+        local source = use.from  
+        local other_player = nil  
+          
+        -- 确定对比的角色  
+        if source and source:objectName() == ask_who:objectName() then  
+            -- 技能拥有者使用牌  
+            for _, target in sgs.qlist(use.to) do  
+                if target:objectName() ~= ask_who:objectName() then  
+                    other_player = target  
+                    break  
+                end  
+            end  
+        else  
+            -- 其他角色使用牌指定技能拥有者  
+            other_player = source  
+        end  
+        --将other_player武器或者防具置入自己装备区。最小实现：给装备加标记
+        local equips = sgs.IntList()  
+        for _, card in sgs.qlist(other_player:getEquips()) do
+            if card:isKindOf("Weapon") or card:isKindOf("Armor") then
+                equips:append(card:getId())
+            end
+        end
+        if equips:isEmpty() then return false end
+        -- 使用AG界面让玩家选择一张牌  
+        room:fillAG(equips, ask_who)
+        local card_id = room:askForAG(ask_who, equips, true, self:objectName())
+        room:clearAG(ask_who)
+        if card_id then
+            local card = sgs.Sanguosha:getCard(card_id)
+            card:setFlags("huanjia_transfer")
+            room:moveCardTo(card, ask_who, sgs.Player_PlaceEquip,   
+                sgs.CardMoveReason(sgs.CardMoveReason.S_REASON_TRANSFER, ask_who:objectName(), other_player:objectName(), self:objectName(), ""))  
+            room:setPlayerFlag(ask_who,"huanjia_used")
+        end
+        return false  
+    end  
+}  
+gaoshun:addSkill(xunji)
+gaoshun:addSkill(huanjia)
+sgs.LoadTranslationTable{
+    ["gaoshun"] = "高顺",
+    ["xunji"] = "迅击",
+    [":xunji"] = "其他角色于其回合外明置武将后，你可以视为对其使用一张杀",
+    ["huanjia"] = "懁甲",
+    [":huanjia"] = "每回合限一次。你使用杀指定唯一目标或成为杀的唯一目标后，你可以将对方装备区的武器或防具置入你的装备区，结算后将你装备区因此置入的装备置入其装备区",
+}
+
 guanping = sgs.General(extension, "guanping", "shu", 4)  
 
 zuolie = sgs.CreateTriggerSkill{  
