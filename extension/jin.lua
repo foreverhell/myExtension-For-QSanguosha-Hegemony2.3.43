@@ -3023,13 +3023,13 @@ sgs.LoadTranslationTable{
     ["zhaoyun_jin"] = "晋赵云",
 }  
 
-zhangchunhua_jiang1 = sgs.General(extension, "zhangchunhua_jiang1", "jin", 3, false)  -- 吴国，4血，男性 
+zhangchunhua_jin = sgs.General(extension, "zhangchunhua_jin", "jin", 3, false)  -- 吴国，4血，男性 
 
-zhangchunhua_jiang1:addSkill("xiuhua")
-zhangchunhua_jiang1:addSkill("cuanni")
+zhangchunhua_jin:addSkill("xiuhua")
+zhangchunhua_jin:addSkill("cuanni")
 
 sgs.LoadTranslationTable{        
-    ["zhangchunhua_jiang1"] = "张春华",  
+    ["zhangchunhua_jin"] = "张春华",  
 }  
 
 --caoren_junba = sgs.General(extension, "caoren_junba", "jin", 3)  -- 吴国，4血，男性  
