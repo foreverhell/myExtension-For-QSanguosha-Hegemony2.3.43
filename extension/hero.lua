@@ -2,7 +2,7 @@
 extension = sgs.Package("hero", sgs.Package_GeneralPack)  
 local skills = sgs.SkillList()
 
-baiqi = sgs.General(extension, "baiqi", "wei", 4)  --wei,wu
+baiqi = sgs.General(extension, "baiqi", "shu", 4)
   
 -- 技能1：歼灭  
 jianmie = sgs.CreateTriggerSkill{  
@@ -1474,7 +1474,7 @@ sgs.LoadTranslationTable{
     [":lijianSlash"] = "出牌阶段限1次。你可以将所有手牌交给一名其他男性角色，令其与另一名男性角色拼点，赢的角色视为对输的角色使用1张杀"
 }
 
-direnjie = sgs.General(extension, "direnjie", "qun", 3)  -- 吴国，4血，男性  
+direnjie = sgs.General(extension, "direnjie", "shu", 3)  --qun, wu, shu  
 
 jujianSnatchCard = sgs.CreateSkillCard{
     name = "jujianSnatchCard",
@@ -2715,7 +2715,7 @@ sgs.LoadTranslationTable{
     [":zunwang"] = "每回合限一次。你拼点结算后，你摸一张牌。"  
 }  
 
-guoziyi = sgs.General(extension, "guoziyi", "qun", 4) -- 蜀势力，4血，男性（默认）  
+guoziyi = sgs.General(extension, "guoziyi", "shu", 4) --shu, qun, wu
 
 wenwu = sgs.CreateTriggerSkill{  
     name = "wenwu",  
@@ -3143,7 +3143,7 @@ sgs.LoadTranslationTable{
     [":bingxian"] = "每当你一次性获得两张或以上牌时，你可以摸一张牌。"  
 }
 
-hongfunv = sgs.General(extension, "hongfunv", "qun", 3, false)  -- 吴国，4血，男性  
+hongfunv = sgs.General(extension, "hongfunv", "shu", 3, false)  --qun, wu, shu
 zishu = sgs.CreateTriggerSkill{  
     name = "zishu",  
     events = {sgs.TargetConfirming},  
@@ -3305,7 +3305,7 @@ sgs.LoadTranslationTable{
     [":hongfu"] = "每回合限一次。你的回合外，其他角色因弃置而失去红色牌时，你摸1张牌"
 }
 
-houyi = sgs.General(extension, "houyi", "wu", 4)  --或者把虞姬放到qun？
+houyi = sgs.General(extension, "houyi", "wu", 4)
 sheri = sgs.CreateTriggerSkill{
 	name = "sheri",
 	events = {sgs.CardUsed},
@@ -3733,6 +3733,7 @@ guanjunhou = sgs.CreateTriggerSkill{
 }  
 huoqubing:addSkill(guanjunhou)
 huoqubing:addSkill("kurou")
+--huoqubing:addSkill("jieduoshi")
 sgs.LoadTranslationTable{
 ["huoqubing"] = "霍去病",
 ["guanjunhou"] = "冠军侯",  
@@ -4251,7 +4252,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：唐伯虎  
-kangxi = sgs.General(extension, "kangxi", "wu", 3)  -- 吴国，4血，男性  
+kangxi = sgs.General(extension, "kangxi", "wu", 3)  
   
 xuefan = sgs.CreateDrawCardsSkill{  
     name = "xuefan",  
@@ -4373,7 +4374,7 @@ sgs.LoadTranslationTable{
 }  
   
 -- 创建武将：唐伯虎  
-kongzi = sgs.General(extension, "kongzi", "qun", 3)  -- 吴国，4血，男性  
+kongzi = sgs.General(extension, "kongzi", "qun", 3)
 
 shouli_card = sgs.CreateSkillCard{  
     name = "shouli",  
@@ -4557,7 +4558,7 @@ sgs.LoadTranslationTable{
     [":zhubei"] = "每回合限一次。你造成伤害后，你本回合出杀次数+1"
 }
 
-lianpo = sgs.General(extension, "lianpo", "wu", 4)  --wei 
+lianpo = sgs.General(extension, "lianpo", "wu", 4) 
 
 fujingCard = sgs.CreateSkillCard{  
     name = "fujingCard",  
@@ -4863,7 +4864,7 @@ sgs.LoadTranslationTable{
     ["#dihuiDamage"] = "%from 的'%arg'效果被触发，伤害从 %arg2 点增加至 %arg3 点"  
 }
 
-lijing = sgs.General(extension, "lijing", "wu", 4)  --wei 
+lijing = sgs.General(extension, "lijing", "wu", 4) 
 
 junshenCard = sgs.CreateSkillCard{  
     name = "junshenCard",  
@@ -4966,7 +4967,7 @@ sgs.LoadTranslationTable{
     [":bingshi"] = "你的回合开始时，你可以令1名其他角色摸2张牌；其回合开始时，其需弃置2张牌，不足则失去1点血量。"
 }
 
-limu = sgs.General(extension, "limu", "shu", 4) -- 吴苋，蜀势力，3血，女性
+limu = sgs.General(extension, "limu", "shu", 4)
 lianque = sgs.CreateTriggerSkill{  
     name = "lianque",  
     events = {sgs.SlashHit},
@@ -5061,7 +5062,7 @@ sgs.LoadTranslationTable{
     [":poluDamage"] = "回合结束时，若你本回合未造成伤害，你摸一张牌",
 }
 
-linchong = sgs.General(extension, "linchong", "wu", 4)  --或者把虞姬放到qun？
+linchong = sgs.General(extension, "linchong", "wu", 4)
 baotou = sgs.CreateTriggerSkill{
 	name = "baotou",
 	events = {sgs.CardUsed},
@@ -5120,7 +5121,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：唐伯虎  
-linxiangru = sgs.General(extension, "linxiangru", "wu", 3)  -- 吴国，4血，男性  
+linxiangru = sgs.General(extension, "linxiangru", "wu", 3)  
 
 wanbiCard = sgs.CreateSkillCard{  
     name = "wanbi",  
@@ -5239,7 +5240,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：李清照  
-liqingzhao = sgs.General(extension, "liqingzhao", "wu", 3, false)  -- 吴国，3血，女性   
+liqingzhao = sgs.General(extension, "liqingzhao", "wu", 3, false)
 -- 创建技能：词赋  
 shangli = sgs.CreateTriggerSkill{  
     name = "shangli",  
@@ -6039,7 +6040,7 @@ sgs.LoadTranslationTable{
     [":manwu"] = "你受到伤害时，你可以弃置一张红桃或黑桃手牌，将伤害转移给一名其他角色，然后你选择令其摸X张牌，X为其体力值或失去的体力值",
 }
 
-lizicheng = sgs.General(extension, "lizicheng", "qun", 4)  -- 吴国，4血，男性  
+lizicheng = sgs.General(extension, "lizicheng", "qun", 4)
 
 Lumang = sgs.CreateTriggerSkill{  
     name = "lumang",  
@@ -6135,7 +6136,7 @@ sgs.LoadTranslationTable{
     [":yongchuang"] = "响应【决斗】【南蛮入侵】时，你的任何一张牌都可以当【杀】打出。"  
 }
 
-luban = sgs.General(extension, "luban", "wu", 3)  -- 吴国，4血，男性  
+luban = sgs.General(extension, "luban", "wu", 3)
 
 -- 创建鬼斧技能卡  
 GuifuCard = sgs.CreateSkillCard{  
@@ -6347,7 +6348,7 @@ sgs.LoadTranslationTable{
 }  
 
 -- 创建武将：
-luobingwang = sgs.General(extension, "luobingwang", "qun", 3)  -- 吴国，4血，男性 
+luobingwang = sgs.General(extension, "luobingwang", "qun", 3)
 yonge = sgs.CreateTriggerSkill{  
     name = "yonge",  
     events = {sgs.CardUsed, sgs.CardResponded, sgs.EventPhaseChanging},  
@@ -6482,7 +6483,7 @@ sgs.LoadTranslationTable{
 
 
 
-lvbuwei = sgs.General(extension, "lvbuwei", "qun", 3)  -- 吴国，4血，男性  
+lvbuwei = sgs.General(extension, "lvbuwei", "shu", 3)--shu,qun
 
 zongquan = sgs.CreateOneCardViewAsSkill{  
     name = "zongquan",  
@@ -6601,7 +6602,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：吕雉  
-lvzhi = sgs.General(extension, "lvzhi", "qun", 4, false)  
+lvzhi = sgs.General(extension, "lvzhi", "shu", 4, false)  --shu,qun
 
 yangbing = sgs.CreateTriggerSkill{  
     name = "yangbing",  
@@ -6760,7 +6761,7 @@ sgs.LoadTranslationTable{
     [":xumou"] = "回合结束时，你可以摸三张牌，然后进入叠置状态。",  
 }
 
-maosui = sgs.General(extension, "maosui", "wu", 3)  --jin,qun
+maosui = sgs.General(extension, "maosui", "qun", 3)  --jin,qun,wu
   
 zijian = sgs.CreateTriggerSkill{  
     name = "zijian",  
@@ -7882,7 +7883,7 @@ sgs.LoadTranslationTable{
     ["@feigongSlash-give"] = "你可以交给 %src 一张手牌"  
 }
 
-murong = sgs.General(extension, "murong", "wei", 4)  --或者把虞姬放到qun？
+murong = sgs.General(extension, "murong", "wei", 4)
 
 diehun = sgs.CreateTriggerSkill{  
     name = "diehun",  
@@ -8073,7 +8074,7 @@ sgs.LoadTranslationTable{
     ["yingxi_immune"] = "影袭免疫",  
 }  
 
-panan = sgs.General(extension, "panan", "wu", 4)  -- 群雄，4血  
+panan = sgs.General(extension, "panan", "wu", 4)
 panan:addSkill("fangquan")
 panan:addSkill("xingshang")
 sgs.LoadTranslationTable{  
@@ -8735,7 +8736,7 @@ sgs.LoadTranslationTable{
 
  
 -- 创建武将：唐伯虎  
-shangzhou = sgs.General(extension, "shangzhou", "qun", 4)  -- 吴国，4血，男性  
+shangzhou = sgs.General(extension, "shangzhou", "qun", 4)
 
 zhongpanVS = sgs.CreateOneCardViewAsSkill{
     name = "zhongpan",  
@@ -8812,7 +8813,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：时迁  
-shiqian = sgs.General(extension, "shiqian", "wu", 3)  -- 群雄，3血  
+shiqian = sgs.General(extension, "shiqian", "wu", 3)
   
 -- 技能1：神偷 - 将梅花手牌视为顺手牵羊  
 shentou = sgs.CreateOneCardViewAsSkill{  
@@ -10867,6 +10868,145 @@ sgs.LoadTranslationTable{
     [":beide"] = "当你成为杀的目标时，你可以指定一名其他角色也成为杀的目标。",  
     ["@beide-choose"] = "背德：你可以指定一名其他角色也成为此杀的目标"  
 }
+wuqi = sgs.General(extension, "wuqi", "wei", 3)  
+bingru = sgs.CreateTriggerSkill{
+	name = "bingru",
+	events = {sgs.DrawNCards},
+	frequency = sgs.Skill_Compulsory,
+    priority = 5,  -- 数值越大优先级越高。默认优先级是3，游戏规则优先级是0。这个技能先触发收益更高
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+		return self:objectName()
+	end,
+    on_cost = function(self, event, room, player, data)
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName())
+	end,
+    on_effect = function(self, event, room, player, data)
+        --如果满血，先询问失去体力+1摸牌，再询问弃牌回血；
+        --否则，先询问弃牌回血，再询问失去体力+1摸牌
+        if player:isWounded() then
+            local isMaxHandcardNum = true
+            for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                if player:getHandcardNum() < p:getHandcardNum() then
+                    isMaxHandcardNum = false
+                    break
+                end
+            end
+            if isMaxHandcardNum then
+                if room:askForDiscard(player, self:objectName(), 2, 2, true, true) then
+                    local recover = sgs.RecoverStruct()  
+                    recover.who = player  
+                    recover.recover = 1  
+                    room:recover(player, recover)
+                end
+            end
+
+            local isMaxHp = true
+            for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                if player:getHp() < p:getHp() then
+                    isMaxHp = false
+                    break
+                end
+            end
+            if isMaxHp and player:askForSkillInvoke("@bingru-losehp") then
+                room:loseHp(player,1)
+                local num = data:toInt()
+                data:setValue(num+1)
+            end
+        else
+            local isMaxHp = true
+            for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                if player:getHp() < p:getHp() then
+                    isMaxHp = false
+                    break
+                end
+            end
+            if isMaxHp and player:askForSkillInvoke("@bingru-losehp") then
+                room:loseHp(player,1)
+                local num = data:toInt()
+                data:setValue(num+1)
+            end
+
+            local isMaxHandcardNum = true
+            for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                if player:getHandcardNum() < p:getHandcardNum() then
+                    isMaxHandcardNum = false
+                    break
+                end
+            end
+            if isMaxHandcardNum then
+                if room:askForDiscard(player, self:objectName(), 2, 2, true, true) then
+                    local recover = sgs.RecoverStruct()  
+                    recover.who = player  
+                    recover.recover = 1  
+                    room:recover(player, recover)
+                end
+            end
+        end
+		return false
+	end,
+}
+bingfa = sgs.CreateTriggerSkill{
+	name = "bingfa",
+	events = {sgs.DrawNCards, sgs.DamageCaused},
+	frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+        if event == sgs.DrawNCards then
+    		return self:objectName()
+        elseif event == sgs.DamageCaused then
+            local damage = data:toDamage()
+            if damage.card and damage.card:isKindOf("Slash") then
+                return self:objectName()
+            end
+        end
+        return ""
+	end,
+    on_cost = function(self, event, room, player, data)
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName())
+	end,
+    on_effect = function(self, event, room, player, data)
+        if event == sgs.DrawNCards then
+    		local n = 0
+            for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                if player:getHandcardNum() > p:getHandcardNum() then
+                    n = n - 1
+                elseif player:getHandcardNum() < p:getHandcardNum() then
+                    n = n + 1
+                end
+            end
+            local num = data:toInt() + math.min(n,3)
+            num = math.max(num,0)
+            data:setValue(num)
+        elseif event == sgs.DamageCaused then
+    		local n = 0
+            for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                if player:getHp() > p:getHp() then
+                    n = n - 1
+                elseif player:getHp() < p:getHp() then
+                    n = n + 1
+                end
+            end
+            local damage = data:toDamage()
+            damage.damage = damage.damage + math.min(n,3)
+            data:setValue(damage)
+            if damage.damage <= 0 then
+                return true
+            end
+        end     
+		return false
+	end,
+}
+wuqi:addSkill(bingru)
+wuqi:addSkill(bingfa)
+sgs.LoadTranslationTable{
+    ["wuqi"] = "吴起",
+    ["bingru"] = "兵儒",
+    [":bingru"] = "锁定技。摸牌阶段开始时，若你的手牌数全场最多，你可以弃置2张牌并恢复一点体力；若的你体力值全场最多，你可以失去1点体力令本回合摸牌阶段摸牌量+1（若你已受伤，先触发第一项，否则先触发第二项）",
+    ["bingfa"] = "兵法",
+    [":bingfa"] = "锁定技。你的手牌数每多/少于1名角色，摸牌阶段摸牌量-1/+1；你的体力每多/少于1名角色，造成杀的伤害-1/+1；以上均至多+3",
+    ["@bingru-losehp"] = "是否失去1点体力，令本回合摸牌阶段摸牌量+1"
+}
 
 wuyong = sgs.General(extension, "wuyong", "qun", 3)  
 
@@ -11286,7 +11426,7 @@ sgs.LoadTranslationTable{
     [":pofu"] = "出牌阶段，你可以将所有手牌当作决斗使用",  
 }
 
-xiaohe = sgs.General(extension, "xiaohe", "wu", 3)  
+xiaohe = sgs.General(extension, "xiaohe", "wei", 3)  --shu,wei,qun
 
 yuefa = sgs.CreateTriggerSkill{
 	name = "yuefa",
@@ -11389,7 +11529,7 @@ sgs.LoadTranslationTable{
     [":yunliang"] = "出牌阶段限一次。你可以弃置2张牌，令一名角色摸2张牌",
 }
 
-xiaoqiao_hero = sgs.General(extension, "xiaoqiao_hero", "wu", 3, false)  -- 吴国，4血，男性  
+xiaoqiao_hero = sgs.General(extension, "xiaoqiao_hero", "wu", 3, false)
 
 tianxiangSkip = sgs.CreateTriggerSkill{  
     name = "tianxiangSkip",  
@@ -11901,7 +12041,7 @@ sgs.LoadTranslationTable{
 }  
 
 -- 创建武将：
-yangguang = sgs.General(extension, "yangguang", "wei", 3)  -- 吴国，4血，男性  
+yangguang = sgs.General(extension, "yangguang", "wei", 3)
 
 -- 拒绝谏言技能卡  
 JujueJianyanCard = sgs.CreateSkillCard{  
@@ -12059,7 +12199,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：杨玉环
-yangyuhuan = sgs.General(extension, "yangyuhuan", "wei", 3, false)  -- 群雄，3血  
+yangyuhuan = sgs.General(extension, "yangyuhuan", "wei", 3, false)
 
 
 -- 技能1：羞花 - 当你的手牌数小于失去的体力时，你摸一张牌  
@@ -12369,7 +12509,7 @@ sgs.LoadTranslationTable{
     [":tianxiang4"] = "你的准备阶段时，你可以观看牌堆顶的2张牌并以任意顺序放回牌堆顶，然后弃置牌堆顶1张牌：若为红色，场上所有手牌数最多的角色摸1张牌；若为黑色，场上所有手牌数最少的角色弃置1张牌"
 }
 
-yuantiangang = sgs.General(extension, "yuantiangang", "qun", 3)  --wei 
+yuantiangang = sgs.General(extension, "yuantiangang", "qun", 3)  --wei,wu,qun
 
 xiangshuCard = sgs.CreateSkillCard{  
     name = "xiangshuCard",  
@@ -12637,7 +12777,7 @@ sgs.LoadTranslationTable{
     [":longnuSlash"] = "你的杀被抵消后，你可以继续对目标使用杀"
 }  
 
-yuji1 = sgs.General(extension, "yuji1", "wei", 3, false)  -- 吴国，4血，男性  
+yuji1 = sgs.General(extension, "yuji1", "wei", 3, false)
 
 juebie = sgs.CreateTriggerSkill{  
     name = "juebie",  
@@ -12721,7 +12861,7 @@ sgs.LoadTranslationTable{
 }  
   
 -- 创建武将：唐伯虎  
-yuwenhuaji = sgs.General(extension, "yuwenhuaji", "qun", 4)  -- 吴国，4血，男性 
+yuwenhuaji = sgs.General(extension, "yuwenhuaji", "qun", 4)
 cuanni = sgs.CreateTriggerSkill{  
     name = "cuanni",  
     events = {sgs.DamageCaused},  
@@ -13178,7 +13318,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：
-zhangsanfeng = sgs.General(extension, "zhangsanfeng", "shu", 4)  -- 吴国，4血，男性  
+zhangsanfeng = sgs.General(extension, "zhangsanfeng", "shu", 4)
 
 -- 创建太极触发技能  
 Taiji = sgs.CreateTriggerSkill{  
@@ -13395,7 +13535,7 @@ sgs.LoadTranslationTable{
     ["@jiandie-target"] = "鹣鲽：选择一名角色交换手牌"  
 }  
   
-zhaokuo = sgs.General(extension, "zhaokuo", "qun", 4)  -- 吴国，4血，男性  
+zhaokuo = sgs.General(extension, "zhaokuo", "qun", 4)
 
 zhishangtanbing = sgs.CreateTriggerSkill{  
     name = "zhishangtanbing",  
@@ -13529,7 +13669,7 @@ sgs.LoadTranslationTable{
   
 
 -- 创建武将：
-zhuowenjun = sgs.General(extension, "zhuowenjun", "qun", 3, false)  -- 吴国，4血，男性  
+zhuowenjun = sgs.General(extension, "zhuowenjun", "qun", 3, false) 
 
 qinxin = sgs.CreateZeroCardViewAsSkill{  
     name = "qinxin",          
@@ -13875,7 +14015,7 @@ sgs.LoadTranslationTable{
     [":tianpeng"] = "你的回合外，其他角色使用或打出【杀】时，你摸一张牌。",  
 }  
 -- 创建武将：朱元璋
-zhuyuanzhang = sgs.General(extension, "zhuyuanzhang", "wu", 4)  -- 群雄，3血  
+zhuyuanzhang = sgs.General(extension, "zhuyuanzhang", "wu", 4)
 
 
 -- 技能1：强运 - 你失去最后一张手牌时，你摸一张牌  
@@ -14374,7 +14514,6 @@ sgs.LoadTranslationTable{
 --人物关系联动
 lvzhi:addCompanion("lvbuwei")
 change:addCompanion("houyi")
-direnjie:addCompanion("wuzetian")
 guiguzi:addCompanion("suqin")
 huoqubing:addCompanion("weizifu")
 --诸子百家
@@ -14413,6 +14552,7 @@ daji:addCompanion("shangzhou")
 dufu:addCompanion("libai")
 fanzeng:addCompanion("xiangyu")
 gaojianli:addCompanion("jingke")
+lianpo:addCompanion("linxiangru")
 liuche:addCompanion("huoqubing")
 liuche:addCompanion("weizifu")
 moxi:addCompanion("xiajie")
