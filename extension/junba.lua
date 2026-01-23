@@ -2260,7 +2260,7 @@ sgs.LoadTranslationTable{
 
 -- 创建武将蒙恬  
 
-kuailiangkuaiyue = sgs.General(extension, "kuailiangkuaiyue", "jin", 3) -- 蜀势力，4血，男性（默认）  
+kuailiangkuaiyue = sgs.General(extension, "kuailiangkuaiyue", "wei", 3) -- 蜀势力，4血，男性（默认）  
 
 jianxiangCard = sgs.CreateSkillCard{  
     name = "jianxiangCard",  
@@ -3889,7 +3889,7 @@ sgs.LoadTranslationTable{
     [":yanyu"] = "出牌阶段，你可以将杀重铸；回合结束时，你可以令一名角色摸X张牌，X为以此法重铸杀的次数，至多为3"
 }
 
-xing_caoren = sgs.General(extension, "xing_caoren", "jin", 3)  -- 吴国，4血，男性  
+xing_caoren = sgs.General(extension, "xing_caoren", "wei", 3)  -- 吴国，4血，男性  
 
 sujun = sgs.CreateTriggerSkill{  
     name = "sujun",  
@@ -5033,7 +5033,14 @@ sgs.LoadTranslationTable{
     [":cansi"] = "准备阶段，你可以跳过摸牌阶段，并选择一名其他角色，令你与其各回复一点体力，然后你视为对其依次使用【杀】、【决斗】、【火攻】。每当你以此法造成1次伤害后，你摸2张牌。",  
     ["@cansi-invoke"] = "残肆：选择一名其他角色"  
 }
+zhangchunhua_jiang1 = sgs.General(extension, "zhangchunhua_jiang1", "wei", 3, false)  -- 吴国，4血，男性 
 
+zhangchunhua_jiang1:addSkill("xiuhua")
+zhangchunhua_jiang1:addSkill("cuanni")
+
+sgs.LoadTranslationTable{        
+    ["zhangchunhua_jiang1"] = "张春华",  
+}  
 zhangjinyun = sgs.General(extension, "zhangjinyun", "shu", 3, false)  -- 吴国，4血，男性  
 huizi = sgs.CreateTriggerSkill{  
     name = "huizi",  
