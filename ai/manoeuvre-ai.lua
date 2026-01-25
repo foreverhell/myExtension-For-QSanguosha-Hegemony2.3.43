@@ -664,19 +664,19 @@ end]]
 sgs.ai_skill_cardschosen.weimeng = function(self, who, flags, reason, min_num, max_num, method, disabled_ids)
   local cards = {}
   local card_ids = {}
-  cards = CardList2Table(who:getCards("h"))
+  cards = sgs.QList2Table(who:getCards("h"))
   if #cards > self.player:getHp() then
     for i = 1, self.player:getHp() do
       table.insert(card_ids, cards[i]:getEffectiveId())
     end
   end
   if #card_ids > 0 then
-    return Table2IntList(card_ids)
+    return card_ids
   else
     for _, card in pairs(cards) do
       table.insert(card_ids, card:getEffectiveId())
     end
-    return Table2IntList(card_ids)
+    return card_ids
   end
   return self:askForCardsChosen(who, flags, reason, self.player:getHp(), max_num, disable_list)
 end
