@@ -75,7 +75,51 @@ jinxiuzhengpao_skill = sgs.CreateTriggerSkill{
                 end
             end
         elseif (event == sgs.CardEffected or event == sgs.SlashEffected) and player:hasArmorEffect("jinxiuzhengpao") then
-            local use = data:toCardUse()
+            return self:objectName()
+        end
+        return false 
+    end,  
+      
+    on_cost = function(self, event, room, player, data)
+        if event == sgs.TargetConfirmed then
+            return room:askForSkillInvoke(player, self:objectName(), data)
+        else
+            return true
+        end
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local use = data:toCardUse()
+        if event == sgs.TargetConfirmed then
+          
+            -- 展示所有手牌  
+            local handcards = player:getHandcards()  
+            if not handcards:isEmpty() then  
+                room:showAllCards(player)  
+            end  
+            
+            -- 获得该牌
+            player:obtainCard(use.card)  
+            
+            -- 检查是否包含所有花色  
+            local suits = {}  
+            local all_cards = player:getHandcards()  
+            for _, card in sgs.qlist(all_cards) do  
+                local suit = card:getSuit()  
+                if suit ~= sgs.Card_NoSuit then  
+                    suits[suit] = true  
+                end  
+            end  
+            
+            -- 检查是否有四种花色
+            local suit_count = 0  
+            for suit = sgs.Card_Spade, sgs.Card_Diamond do  
+                if suits[suit] then  
+                    suit_count = suit_count + 1  
+                end  
+            end 
+            if suit_count >= 4 then room:setPlayerFlag(player, "jxzpCancel") end
+        else
             if use.card and use.card:isKindOf("Slash") and event == sgs.CardEffected then return false end
             if player:hasFlag("jxzpCancel") then
                 room:setPlayerFlag(player, "-jxzpCancel")
@@ -87,44 +131,6 @@ jinxiuzhengpao_skill = sgs.CreateTriggerSkill{
                 return true
             end
         end
-        return false 
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        local use = data:toCardUse() 
-        return room:askForSkillInvoke(player, self:objectName(), data)  
-    end,  
-      
-    on_effect = function(self, event, room, player, data)  
-        local use = data:toCardUse() 
-          
-        -- 展示所有手牌  
-        local handcards = player:getHandcards()  
-        if not handcards:isEmpty() then  
-            room:showAllCards(player)  
-        end  
-          
-        -- 获得该牌
-        player:obtainCard(use.card)  
-          
-        -- 检查是否包含所有花色  
-        local suits = {}  
-        local all_cards = player:getHandcards()  
-        for _, card in sgs.qlist(all_cards) do  
-            local suit = card:getSuit()  
-            if suit ~= sgs.Card_NoSuit then  
-                suits[suit] = true  
-            end  
-        end  
-          
-        -- 检查是否有四种花色
-        local suit_count = 0  
-        for suit = sgs.Card_Spade, sgs.Card_Diamond do  
-            if suits[suit] then  
-                suit_count = suit_count + 1  
-            end  
-        end 
-        if suit_count >= 4 then room:setPlayerFlag(player, "jxzpCancel") end  
           
         return false  
     end  
@@ -1000,6 +1006,8 @@ luahuangchu = sgs.CreateTriggerSkill{
             room:broadcastSkillInvoke(self:objectName(), player)
         end
         if player and player:isAlive() and player:getSeemingKingdom() == "wei" then
+            local skill_owners1 = room:findPlayerBySkillName("luahuangchu")
+            if skill_owners1 == nil then return false end
             for _, p in sgs.qlist(room:getAlivePlayers()) do --先清标记
                 if p:getMark("##luajpzzg_peach") > 0 then
                     room:setPlayerMark(p, "##luajpzzg_peach", 0)
