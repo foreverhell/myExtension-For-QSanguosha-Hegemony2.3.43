@@ -1240,7 +1240,7 @@ huaierCard = sgs.CreateSkillCard{
                 move.from_place = sgs.Player_PlaceHand  
                 move.to = nil  
                 move.to_place = sgs.Player_DiscardPile  
-                move.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT, source:objectName(), "huaier", "")  
+                move.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_DISCARD, source:objectName(), "huaier", "")  
                 room:moveCardsAtomic(move, true)  
 
                 local targets = room:askForPlayersChosen(source, room:getOtherPlayers(source),   
@@ -5525,7 +5525,7 @@ sgs.LoadTranslationTable{
     [":zhuanzheng1"] = "出牌阶段限1次。若你与所有角色的距离都为1，你可以将：任意数量的基础牌当作杀，指定等量角色；任意数量的锦囊当作顺手牵羊，指定等量角色"
 }
 
-xujing = sgs.General(extension, "xujing", "shu", 3) -- 吴苋，蜀势力，3血，女性
+xujing = sgs.General(extension, "xujing", "shu", 3)
 
 -- 许名技能卡  
 XumingCard = sgs.CreateSkillCard{  
@@ -5544,7 +5544,10 @@ XumingCard = sgs.CreateSkillCard{
         local target = effect.to  
           
         -- 视为使用远交近攻  
-        local yuanjiao = sgs.Sanguosha:cloneCard("befriend_attacking", sgs.Card_SuitToBeDecided, -1)  
+        local card_id = self:getSubcards():first()
+        local card = sgs.Sanguosha:getCard(card_id)
+        local yuanjiao = sgs.Sanguosha:cloneCard("befriend_attacking", card:getSuit(), card:getNumber())
+        yuanjiao:addSubcard(card_id)  
         yuanjiao:setSkillName("xuming")  
         local use = sgs.CardUseStruct()  
         use.card = yuanjiao  
@@ -5600,7 +5603,7 @@ xuming = sgs.CreateOneCardViewAsSkill{
 -- 靖德技能  
 jingde = sgs.CreateTriggerSkill{  
     name = "jingde",  
-    frequency = sgs.Skill_NotFrequent,  
+    frequency = sgs.Skill_Frequent,  
     events = {sgs.DamageInflicted},  
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:hasSkill(self:objectName()) then return "" end  
