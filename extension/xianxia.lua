@@ -1607,6 +1607,117 @@ sgs.LoadTranslationTable{
     [":zunwei"] = "若你弃牌阶段未弃牌或受到伤害后，你可以摸1张牌，并弃置1张牌，直到你的下回合开始，你失去与弃置牌花色相同的牌时，你摸一张牌",  
     ["1r1b"] = "1黑1红"
 }
+liubian = sgs.General(extension, "liubian", "qun", 3)  -- 吴国，4血，男性  
+shiyuan_skill = sgs.CreateTriggerSkill{  
+    name = "shiyuan",  
+    events = {sgs.TargetConfirmed},  
+    frequency = sgs.Skill_Frequent,  
+      
+    can_trigger = function(self, event, room, player, data)    
+        -- 寻找拥有诗怨技能的角色  
+        local shiyuan_player = room:findPlayerBySkillName(self:objectName())  
+        if not (shiyuan_player and shiyuan_player:isAlive() and shiyuan_player:hasSkill(self:objectName())) then return "" end
+        if shiyuan_player:hasFlag("shiyuan_used") then return "" end
+
+        local use = data:toCardUse()  
+        local source = use.from
+        if not (source and source:isAlive()) then return "" end
+        if use.card:getTypeId()==sgs.Card_TypeSkill then return "" end --不能是技能卡
+        local is_involved = false  
+        local other_player = nil  
+        --[[
+        -- 检查是否为使用者或目标  
+        if source and source:objectName() == shiyuan_player:objectName() then  
+            -- 技能拥有者使用牌指定其他角色  
+            for _, target in sgs.qlist(use.to) do  
+                if target:objectName() ~= shiyuan_player:objectName() then  
+                    is_involved = true  
+                    other_player = target  
+                    break  
+                end  
+            end  
+        elseif source and source:objectName() ~= shiyuan_player:objectName() then  
+            -- 其他角色使用牌指定技能拥有者  
+            for _, target in sgs.qlist(use.to) do  
+                if target:objectName() == shiyuan_player:objectName() then  
+                    is_involved = true  
+                    other_player = source  
+                    break  
+                end  
+            end  
+        end
+        ]]
+        if source and source:objectName() ~= shiyuan_player:objectName() then  
+        -- 其他角色使用牌指定技能拥有者  
+        for _, target in sgs.qlist(use.to) do  
+            if target:objectName() == shiyuan_player:objectName() then  
+                is_involved = true  
+                other_player = source  
+                break  
+            end  
+        end  
+        if is_involved then
+            return self:objectName(), shiyuan_player:objectName()
+        end
+        return ""
+          
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName())  
+            room:setPlayerFlag(ask_who, "shiyuan_used")  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local use = data:toCardUse()  
+        local source = use.from  
+        local other_player = nil  
+          
+        -- 确定对比的角色  
+        if source and source:objectName() == ask_who:objectName() then  
+            -- 技能拥有者使用牌  
+            for _, target in sgs.qlist(use.to) do  
+                if target:objectName() ~= ask_who:objectName() then  
+                    other_player = target  
+                    break  
+                end  
+            end  
+        else  
+            -- 其他角色使用牌指定技能拥有者  
+            other_player = source  
+        end  
+          
+        if other_player then  
+            local my_hp = ask_who:getHp()  
+            local other_hp = other_player:getHp()  
+            local draw_num = 0  
+              
+            if other_hp > my_hp then  
+                draw_num = 2  -- 对方体力大于自己  
+            elseif other_hp <= my_hp then  
+                draw_num = 1  -- 对方体力小于等于自己  
+            end  
+              
+            if draw_num > 0 then  
+                ask_who:drawCards(draw_num, self:objectName())  
+            end  
+        end  
+          
+        return false  
+    end  
+}  
+liubian:addSkill(shiyuan_skill)
+
+-- 翻译表  
+sgs.LoadTranslationTable{
+["liubian"] = "刘辩",  
+["shiyuan"] = "诗怨",  
+[":shiyuan"] = "每回合限一次。当你成为其他角色使用牌的目标时，若其体力值：大于你，你摸2张牌；小于等于你，你摸1张牌。"
+}
 --[[
 liuchen = sgs.General(extension, "liuchen", "shu", 4) -- 蜀势力，4血，男性（默认）  
 
