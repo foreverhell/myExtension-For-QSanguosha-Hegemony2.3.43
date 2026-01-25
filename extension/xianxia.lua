@@ -2,12 +2,12 @@ extension = sgs.Package("xianxia", sgs.Package_GeneralPack)
 local skills = sgs.SkillList()
 
 
-caifuren_xianxia = sgs.General(extension, "caifuren_xianxia", "qun", 3, false) -- 吴苋，蜀势力，3血，女性
+caifuren = sgs.General(extension, "caifuren", "qun", 3, false)
 
 qietingX = sgs.CreateTriggerSkill{  
     name = "qietingX",  
     frequency = sgs.Skill_Frequent,  
-    events = {sgs.CardUsed, sgs.Damage, sgs.EventPhaseStart}, -- 结束阶段触发  
+    events = {sgs.CardUsed, sgs.Damage, sgs.EventPhaseStart},  
       
     can_trigger = function(self, event, room, player, data)            
         -- 检查是否是其他角色的结束阶段  
@@ -77,21 +77,111 @@ qietingX = sgs.CreateTriggerSkill{
         return false  
     end  
 }  
+-- 技能2：献州（限定技）  
+xianzhouCard = sgs.CreateSkillCard{  
+    name = "xianzhou_card",  
+    target_fixed = false,  
+    will_throw = false,  
+      
+    filter = function(self, targets, to_select, player)  
+        return #targets == 0 and to_select:objectName() ~= player:objectName()  
+    end,  
+      
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+        local equips = source:getEquips()  
+          
+        if equips:isEmpty() then return false end  
+          
+        local equip_count = 0  
+        local equip_ids = sgs.IntList()
+          
+        -- 收集所有装备牌  
+        for _, card in sgs.qlist(equips) do  
+            equip_ids:append(card:getEffectiveId())  
+            equip_count = equip_count + 1  
+        end  
+          
+        -- 将装备交给目标  
+        local move = sgs.CardsMoveStruct()  
+        move.card_ids = equip_ids  
+        move.from = source  
+        move.from_place = sgs.Player_PlaceEquip  
+        move.to = target  
+        move.to_place = sgs.Player_PlaceEquip  
+        move.reason = sgs.CardMoveReason(sgs.CardMoveReason.S_REASON_GIVE, source:objectName(), target:objectName(), "xianzhou", "")  
+          
+        room:moveCardsAtomic(move, false)  
+          
+        -- 目标选择攻击范围内的角色造成伤害  
+        if equip_count > 0 then  
+            local damage_targets = sgs.SPlayerList()
+            local victims = room:getAlivePlayers()  
+              
+            for _, victim in sgs.qlist(victims) do  
+                if victim:objectName() ~= target:objectName() and target:inMyAttackRange(victim) then  
+                    damage_targets:append(victim)  
+                end  
+            end  
+              
+            local max_targets = math.min(equip_count, damage_targets:length())  
+            if max_targets > 0 then  
+                --至多 max_targets 名
+                local selected_targets = room:askForPlayersChosen(source,  damage_targets, self:objectName(), 0, max_targets, "请选择玩家", false)
+    
+                -- 造成伤害  
+                for _, victim in sgs.qlist(selected_targets) do  
+                    local damage = sgs.DamageStruct()  
+                    damage.from = target  
+                    damage.to = victim  
+                    damage.damage = 1  
+                    damage.reason = "xianzhou"  
+                    room:damage(damage)  
+                end  
+                  
+                -- 蔡夫人回复等量体力  
+                local recover = sgs.RecoverStruct()  
+                recover.recover = selected_targets:length()
+                recover.who = source  
+                room:recover(source, recover)  
+            end  
+        end  
+        room:setPlayerMark(source, "@xianzhou", 0)
+        return false  
+    end  
+}  
   
+xianzhou = sgs.CreateZeroCardViewAsSkill{  
+    name = "xianzhou",  
+    limit_mark = "@xianzhou",       
+    view_as = function(self)  
+        local card = xianzhouCard:clone()  
+        card:setShowSkill(self:objectName())
+        return card
+    end,
+    enabled_at_play = function(self, player)  
+        return player:getMark("@xianzhou") > 0 and not player:getEquips():isEmpty()  
+    end
+}  
 -- 添加技能到武将  
-caifuren_xianxia:addSkill(qietingX)  
-caifuren_xianxia:addSkill("xianzhou")  
+caifuren:addSkill(qietingX)  
+caifuren:addSkill(xianzhou)  
 
 sgs.LoadTranslationTable{
-    ["caifuren_xianxia"] = "蔡夫人",  
-    ["#caifuren_xianxia"] = "荆州的妇人",  
-    ["&caifuren_xianxia"] = "蔡夫人",  
-    ["illustrator:caifuren_xianxia"] = "未知",  
+    ["caifuren"] = "蔡夫人",  
+    ["#caifuren"] = "荆州的妇人",  
+    ["&caifuren"] = "蔡夫人",  
+    ["illustrator:caifuren"] = "未知",  
     
     ["qietingX"] = "窃听",  
     [":qietingX"] = "其他角色的结束阶段：若其本回合未对除其外的角色使用牌，你可以摸1张牌；若其本回合未造成伤害，你可以将其装备区1张牌移动到你的装备区。",  
     ["qietingX:draw"] = "摸1张牌",  
     ["qietingX:move"] = "移动其1张装备牌",  
+
+    ["xianzhou"] = "献州",  
+    [":xianzhou"] = "限定技，出牌阶段，你可以将装备区所有牌交给一名其他角色，其对攻击范围内至多等量角色造成1点伤害，然后你恢复等量体力。",  
+    ["@xianzhou"] = "献州",  
+    ["@xianzhou-damage"] = "献州：请选择攻击范围内的一名角色造成1点伤害",
 }
 
 caozhi_xianxia = sgs.General(extension, "caozhi_xianxia", "wei", 3) -- 蜀势力，4血，男性（默认）  
@@ -1693,7 +1783,128 @@ sgs.LoadTranslationTable{
     ["yiqi"] = "刈旗",
     [":yiqi"] = "准备阶段，你可以令一名势力不同角色获得先驱。你对角色造成伤害后，你可以获得其先驱"
 }
+simashi = sgs.General(extension, "simashi", "wei", 3)
 
+yimie = sgs.CreateTriggerSkill{  
+    name = "yimie",  
+    events = {sgs.DamageCaused},
+    frequency = sgs.Skill_Limited,
+    limit_mark = "@yimie",
+    can_trigger = function(self, event, room, player, data) 
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getMark("@yimie") > 0 then
+            local damage = data:toDamage()
+            if damage.to:getHp() > damage.from:getHp() then
+                return self:objectName()
+            end
+        end
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(), data)  
+    end,  
+    on_effect = function(self, event, room, player, data)
+        local damage = data:toDamage()
+        damage.damage = damage.damage * 2
+        data:setValue(damage)
+        room:setPlayerMark(player, "@yimie", 0)
+        return false
+    end
+}
+
+tairanCard = sgs.CreateSkillCard{
+    name = "tairanCard",
+    target_fixed = true,--是否需要指定目标，默认false，即需要
+    on_use = function(self, room, source)
+        local choices = {}  
+        for i = 0, source:getHp()-1 do  
+            table.insert(choices, tostring(i))  
+        end  
+        if #choices ~= 0 then
+            local choice = room:askForChoice(source, "@tairan-losehp", table.concat(choices, "+"))  
+            local hp_mark = tonumber(choice)  
+            if hp_mark > 0 then
+                room:loseHp(source, hp_mark)
+                room:setPlayerMark(source, "@tairan_hp", hp_mark)
+            end
+        end
+
+        choices = {}  
+        for i = 0, source:getLostHp() do  
+            table.insert(choices, tostring(i))  
+        end  
+        if #choices ~= 0 then
+            local choice = room:askForChoice(source, "@tairan-discard", table.concat(choices, "+"))  
+            local card_mark = tonumber(choice)
+            if card_mark > 0 then
+                room:askForDiscard(source, self:objectName(), card_mark, card_mark, false, true)
+                room:setPlayerMark(source, "@tairan_card", card_mark)
+            end
+        end
+    end
+}
+
+tairanVS = sgs.CreateZeroCardViewAsSkill{
+    name = "tairan",
+	view_as = function(self)
+        local supCard = tairanCard:clone()
+        supCard:setSkillName(self:objectName())
+		supCard:setShowSkill(self:objectName())
+        return supCard
+    end,
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#tairanCard") and not player:isNude() 
+    end  
+}
+
+tairan = sgs.CreateTriggerSkill{  
+    name = "tairan",  
+    events = {sgs.EventPhaseEnd},
+    view_as_skill = tairanVS,
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data) 
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Finish then
+            if player:getMark("@tairan_hp") > 0 or player:getMark("@tairan_card") > 0 then
+                return self:objectName()
+            end
+        end
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(), data)  
+    end,  
+    on_effect = function(self, event, room, player, data)
+        local hp_mark = player:getMark("@tairan_hp")
+        local card_mark = player:getMark("@tairan_card")
+        if hp_mark > 0 then
+            --恢复
+            local recover = sgs.RecoverStruct()  
+            recover.who = player
+            recover.recover = hp_mark
+            room:recover(player, recover)
+            --清除标记
+            room:setPlayerMark(player, "@tairan_hp", 0)
+        end
+        if card_mark > 0 then
+            --摸牌
+            player:drawCards(card_mark)
+            --清除标记
+            room:setPlayerMark(player, "@tairan_card", 0)
+        end
+        return false
+    end
+}
+
+simashi:addSkill(yimie)
+simashi:addSkill(tairan)
+sgs.LoadTranslationTable{
+    ["simashi"] = "司马师",
+    ["yimie"] = "夷灭",
+    [":yimie"] = "限定技。你对体力值大于你的角色造成伤害时，你可以令伤害翻倍",
+    ["tairan"] = "泰然",
+    [":tairan"] = "出牌阶段限一次。你可以失去任意点体力并弃置至多X张牌（X为已失去的体力值），回合结束时，你恢复因此失去的体力值，并摸因此弃置的牌数",
+    ["@tairan-losehp"] = "要失去的体力值",
+    ["@tairan-discard"] = "要弃的牌数"
+}
 wangyun = sgs.General(extension, "wangyun", "qun", 3) -- 蜀势力，4血，男性（默认）  
 
 ShelunCard = sgs.CreateSkillCard{  
@@ -2413,129 +2624,6 @@ sgs.LoadTranslationTable{
 ["fuyin"] = "父荫",  
 [":fuyin"] = "锁定技，你每回合首次成为【杀】或【决斗】的目标后，若使用者的手牌数大于你，取消之。",  
 ["@zuilun-choose"] = "罪论：选择一名其他角色，你与其各失去一点体力",
-}
-
-simashi = sgs.General(extension, "simashi", "wei", 3)
-
-simashi1 = sgs.CreateTriggerSkill{  
-    name = "simashi1",  
-    events = {sgs.DamageCaused},
-    frequency = sgs.Skill_Limited,
-    limit_mark = "@simashi1",
-    can_trigger = function(self, event, room, player, data) 
-        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getMark("@simashi1") > 0 then
-            local damage = data:toDamage()
-            if damage.to:getHp() > damage.from:getHp() then
-                return self:objectName()
-            end
-        end
-        return ""  
-    end,  
-    on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(), data)  
-    end,  
-    on_effect = function(self, event, room, player, data)
-        local damage = data:toDamage()
-        damage.damage = damage.damage * 2
-        data:setValue(damage)
-        room:setPlayerMark(player, "@simashi1", 0)
-        return false
-    end
-}
-
-simashi2Card = sgs.CreateSkillCard{
-    name = "simashi2Card",
-    target_fixed = true,--是否需要指定目标，默认false，即需要
-    on_use = function(self, room, source)
-        local choices = {}  
-        for i = 0, source:getHp()-1 do  
-            table.insert(choices, tostring(i))  
-        end  
-        if #choices ~= 0 then
-            local choice = room:askForChoice(source, "@simashi2-losehp", table.concat(choices, "+"))  
-            local hp_mark = tonumber(choice)  
-            if hp_mark > 0 then
-                room:loseHp(source, hp_mark)
-                room:setPlayerMark(source, "@simashi2_hp", hp_mark)
-            end
-        end
-
-        choices = {}  
-        for i = 0, source:getLostHp() do  
-            table.insert(choices, tostring(i))  
-        end  
-        if #choices ~= 0 then
-            local choice = room:askForChoice(source, "@simashi2-discard", table.concat(choices, "+"))  
-            local card_mark = tonumber(choice)
-            if card_mark > 0 then
-                room:askForDiscard(source, self:objectName(), card_mark, card_mark, false, true)
-                room:setPlayerMark(source, "@simashi2_card", card_mark)
-            end
-        end
-    end
-}
-
-simashi2VS = sgs.CreateZeroCardViewAsSkill{
-    name = "simashi2",
-	view_as = function(self)
-        local supCard = simashi2Card:clone()
-        supCard:setSkillName(self:objectName())
-		supCard:setShowSkill(self:objectName())
-        return supCard
-    end,
-    enabled_at_play = function(self, player)  
-        return not player:hasUsed("#simashi2Card") and not player:isNude() 
-    end  
-}
-
-simashi2 = sgs.CreateTriggerSkill{  
-    name = "simashi2",  
-    events = {sgs.EventPhaseEnd},
-    view_as_skill = simashi2VS,
-    frequency = sgs.Skill_Frequent,
-    can_trigger = function(self, event, room, player, data) 
-        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Finish then
-            if player:getMark("@simashi2_hp") > 0 or player:getMark("@simashi2_card") > 0 then
-                return self:objectName()
-            end
-        end
-        return ""  
-    end,  
-    on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(), data)  
-    end,  
-    on_effect = function(self, event, room, player, data)
-        local hp_mark = player:getMark("@simashi2_hp")
-        local card_mark = player:getMark("@simashi2_card")
-        if hp_mark > 0 then
-            --恢复
-            local recover = sgs.RecoverStruct()  
-            recover.who = player
-            recover.recover = hp_mark
-            room:recover(player, recover)
-            --清除标记
-            room:setPlayerMark(player, "@simashi2_hp", 0)
-        end
-        if card_mark > 0 then
-            --摸牌
-            player:drawCards(card_mark)
-            --清除标记
-            room:setPlayerMark(player, "@simashi2_card", 0)
-        end
-        return false
-    end
-}
-
-simashi:addSkill(simashi1)
-simashi:addSkill(simashi2)
-sgs.LoadTranslationTable{
-    ["simashi"] = "司马师",
-    ["simashi1"] = "技能1",
-    [":simashi1"] = "限定技。你对体力值大于你的角色造成伤害时，你可以令伤害翻倍",
-    ["simashi2"] = "技能2",
-    [":simashi2"] = "出牌阶段限一次。你可以失去任意点体力并弃置至多X张牌（X为已失去的体力值），回合结束时，你恢复因此失去的体力值，并摸因此弃置的牌数",
-    ["@simashi2-losehp"] = "要失去的体力值",
-    ["@simashi2-discard"] = "要弃的牌数"
 }
 
 zhoucang = sgs.General(extension, "zhoucang", "shu", 4) 
