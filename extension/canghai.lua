@@ -109,7 +109,7 @@ sgs.LoadTranslationTable{
     ["dingpan"] = "定叛",
     [":dingpan"] = "出牌阶段限1次。你可以选择一名装备区有牌的角色，令其摸1张牌，然后其选择（1）获得其装备区所有牌，你对其造成1点伤害（2）你弃置其装备区一张牌"
 }
-]]
+
 caifuren = sgs.General(extension, "caifuren", "qun", 3, false) -- 吴苋，蜀势力，3血，女性
 
 qieting = sgs.CreateTriggerSkill{  
@@ -187,96 +187,10 @@ qieting = sgs.CreateTriggerSkill{
         return false  
     end  
 }  
--- 技能2：献州（限定技）  
-xianzhouCard = sgs.CreateSkillCard{  
-    name = "xianzhou_card",  
-    target_fixed = false,  
-    will_throw = false,  
-      
-    filter = function(self, targets, to_select, player)  
-        return #targets == 0 and to_select:objectName() ~= player:objectName()  
-    end,  
-      
-    on_use = function(self, room, source, targets)  
-        local target = targets[1]  
-        local equips = source:getEquips()  
-          
-        if equips:isEmpty() then return false end  
-          
-        local equip_count = 0  
-        local equip_ids = sgs.IntList()
-          
-        -- 收集所有装备牌  
-        for _, card in sgs.qlist(equips) do  
-            equip_ids:append(card:getEffectiveId())  
-            equip_count = equip_count + 1  
-        end  
-          
-        -- 将装备交给目标  
-        local move = sgs.CardsMoveStruct()  
-        move.card_ids = equip_ids  
-        move.from = source  
-        move.from_place = sgs.Player_PlaceEquip  
-        move.to = target  
-        move.to_place = sgs.Player_PlaceEquip  
-        move.reason = sgs.CardMoveReason(sgs.CardMoveReason.S_REASON_GIVE, source:objectName(), target:objectName(), "xianzhou", "")  
-          
-        room:moveCardsAtomic(move, false)  
-          
-        -- 目标选择攻击范围内的角色造成伤害  
-        if equip_count > 0 then  
-            local damage_targets = sgs.SPlayerList()
-            local victims = room:getAlivePlayers()  
-              
-            for _, victim in sgs.qlist(victims) do  
-                if victim:objectName() ~= target:objectName() and target:inMyAttackRange(victim) then  
-                    damage_targets:append(victim)  
-                end  
-            end  
-              
-            local max_targets = math.min(equip_count, damage_targets:length())  
-            if max_targets > 0 then  
-                --至多 max_targets 名
-                local selected_targets = room:askForPlayersChosen(source,  damage_targets, self:objectName(), 0, max_targets, "请选择玩家", false)
-    
-                -- 造成伤害  
-                for _, victim in sgs.qlist(selected_targets) do  
-                    local damage = sgs.DamageStruct()  
-                    damage.from = target  
-                    damage.to = victim  
-                    damage.damage = 1  
-                    damage.reason = "xianzhou"  
-                    room:damage(damage)  
-                end  
-                  
-                -- 蔡夫人回复等量体力  
-                local recover = sgs.RecoverStruct()  
-                recover.recover = selected_targets:length()
-                recover.who = source  
-                room:recover(source, recover)  
-            end  
-        end  
-        room:setPlayerMark(source, "@xianzhou", 0)
-        return false  
-    end  
-}  
-  
-xianzhou = sgs.CreateZeroCardViewAsSkill{  
-    name = "xianzhou",  
-    limit_mark = "@xianzhou",       
-    view_as = function(self)  
-        local card = xianzhouCard:clone()  
-        card:setShowSkill(self:objectName())
-        return card
-    end,
-    enabled_at_play = function(self, player)  
-        return player:getMark("@xianzhou") > 0 and not player:getEquips():isEmpty()  
-    end
-}  
   
 -- 添加技能到武将  
 caifuren:addSkill(qieting)  
-caifuren:addSkill(xianzhou)  
+caifuren:addSkill("xianzhou")  
 
 sgs.LoadTranslationTable{
     ["caifuren"] = "蔡夫人",  
@@ -288,13 +202,8 @@ sgs.LoadTranslationTable{
     [":qieting"] = "其他角色的结束阶段，若其本回合未对除其外的角色使用牌，你可以（1）摸1张牌（2）将其装备区1张牌移动到你的装备区。",  
     ["qieting:draw"] = "摸1张牌",  
     ["qieting:move"] = "移动其1张装备牌",  
-    
-    ["xianzhou"] = "献州",  
-    [":xianzhou"] = "限定技，出牌阶段，你可以将装备区所有牌交给一名其他角色，其对攻击范围内至多等量角色造成1点伤害，然后你恢复等量体力。",  
-    ["@xianzhou"] = "献州",  
-    ["@xianzhou-damage"] = "献州：请选择攻击范围内的一名角色造成1点伤害",
 }
---[[
+
 caiyong = sgs.General(extension, "caiyong", "qun", 3) -- 吴苋，蜀势力，3血，女性
 zhudian = sgs.CreateTriggerSkill{  
     name = "zhudian",  
@@ -674,8 +583,8 @@ sgs.LoadTranslationTable{
 ]]
 duanwei = sgs.General(extension, "duanwei", "qun", 4)  
 
-duanwei1Card = sgs.CreateSkillCard{  
-    name = "duanwei1Card",  
+zhongjieEmperCard = sgs.CreateSkillCard{  
+    name = "zhongjieEmperCard",  
     target_fixed = true,  
     will_throw = false,  
     handling_method = sgs.Card_MethodUse,  
@@ -684,7 +593,7 @@ duanwei1Card = sgs.CreateSkillCard{
         local card = sgs.Sanguosha:getCard(card_id)
         local threaten_emperor = sgs.Sanguosha:cloneCard("threaten_emperor", card:getSuit(), card:getNumber())
         threaten_emperor:addSubcard(card_id)
-        threaten_emperor:setSkillName("duanwei1")  
+        threaten_emperor:setSkillName("zhongjieEmper")  
         threaten_emperor:deleteLater()
 
         local use = sgs.CardUseStruct()  
@@ -695,12 +604,12 @@ duanwei1Card = sgs.CreateSkillCard{
     end  
 }  
   
-duanwei1VS = sgs.CreateOneCardViewAsSkill{  
-    name = "duanwei1",  
+zhongjieEmperVS = sgs.CreateOneCardViewAsSkill{  
+    name = "zhongjieEmper",  
     filter_pattern = "ThreatenEmperor",  
     
     view_as = function(self, card)  
-        local skillcard = duanwei1Card:clone()  
+        local skillcard = zhongjieEmperCard:clone()  
         skillcard:addSubcard(card)  
         --skillcard:setSkillName(self:objectName())  
         skillcard:setShowSkill(self:objectName())
@@ -711,9 +620,9 @@ duanwei1VS = sgs.CreateOneCardViewAsSkill{
     end
 }  
 
-duanwei1 = sgs.CreateTriggerSkill{  
-    name = "duanwei1",  
-    view_as_skill = duanwei1VS,  
+zhongjieEmper = sgs.CreateTriggerSkill{  
+    name = "zhongjieEmper",  
+    view_as_skill = zhongjieEmperVS,  
     events = {sgs.CardUsed, sgs.CardsMoveOneTime},  
     can_trigger = function(self, event, room, player, data)  
         if event == sgs.CardUsed then
@@ -755,13 +664,13 @@ duanwei1 = sgs.CreateTriggerSkill{
             if use.from:hasSkill(self:objectName()) then
                 return true
             elseif not player:isFriendWith(use.from) then
-                if not room:askForCard(player, ".|heart", "@duanwei1-discard", data, sgs.Card_MethodDiscard) then
+                if not room:askForCard(player, ".|heart", "@zhongjieEmper-discard", data, sgs.Card_MethodDiscard) then
                     room:loseHp(player,1)
                 end
                 return true
             end
         elseif event == sgs.CardsMoveOneTime and player:askForSkillInvoke(self:objectName(),data) then
-            if not room:askForCard(player, ".|heart", "@duanwei1-discard", data, sgs.Card_MethodDiscard) then
+            if not room:askForCard(player, ".|heart", "@zhongjieEmper-discard", data, sgs.Card_MethodDiscard) then
                 room:loseHp(player,1)
             end
             return true 
@@ -833,12 +742,12 @@ farou = sgs.CreateTriggerSkill{
         return false
     end
 }
-duanwei:addSkill(duanwei1)
+duanwei:addSkill(zhongjieEmper)
 duanwei:addSkill(farou)
 sgs.LoadTranslationTable{
     ["duanwei"] = "段煨",
-    ["duanwei1"] = "技能1",
-    [":duanwei1"] = "【挟天子以令诸侯】因弃置或不同势力角色使用进入弃牌堆时，你可以弃置一张红桃牌或失去1点体力，获得之；" ..
+    ["zhongjieEmper"] = "忠节",
+    [":zhongjieEmper"] = "【挟天子以令诸侯】因弃置或不同势力角色使用进入弃牌堆时，你可以弃置一张红桃牌或失去1点体力，获得之；" ..
     "你使用【挟天子以令诸侯】无视大势力限制；你使用【挟天子以令诸侯】后，与你势力相同的所有角色摸1张牌",
     ["farou"] = "伐柔",
     [":farou"] = "每回合限一次。有角色脱离濒死时，若当前回合角色或伤害源与你势力相同，你可以弃置一张牌，对其造成一点伤害"
@@ -2750,7 +2659,7 @@ MizhaoViewAsSkill = sgs.CreateViewAsSkill{
         end  
           
         local required_cards = kingdom_count - 1 
-        if #cards ~= required_cards then return nil end  
+        if #cards > required_cards then return nil end  
           
         local card = MizhaoCard:clone()  
         for _, c in ipairs(cards) do  
@@ -2829,7 +2738,7 @@ sgs.LoadTranslationTable{
     ["tianming"] = "天命",  
     [":tianming"] = "当你成为【杀】的目标后，你可以弃置两张手牌，不足则全弃，没有则不弃，然后摸两张牌。",  
     ["mizhao"] = "密诏",  
-    [":mizhao"] = "出牌阶段限1次，你可以将X张牌交给一名其他角色（X为场上势力数-1），令其与另一名角色拼点，赢的角色视为对没赢的角色使用一张【杀】。",  
+    [":mizhao"] = "出牌阶段限1次，你可以将至多X张牌交给一名其他角色（X为场上势力数-1），令其与另一名角色拼点，赢的角色视为对没赢的角色使用一张【杀】。",  
     ["@mizhao-pindian"] = "请选择拼点的目标",  
 }
 --[[
