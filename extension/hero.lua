@@ -6049,25 +6049,25 @@ Lumang = sgs.CreateTriggerSkill{
       
     can_trigger = function(self, event, room, player, data)   
         --TargetConfirmed是卡牌使用
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
         local use = data:toCardUse()  
         if not (use.card:isNDTrick()) then return "" end 
         if use.card:isKindOf("Duel") then return "" end 
-        local owner = room:findPlayerBySkillName(self:objectName())  
-        if owner:objectName() ~= use.from:objectName() and use.to:length()==1 and use.to:contains(owner) then 
-            return self:objectName(),owner:objectName()
+        if player:objectName() ~= use.from:objectName() and use.to:length()==1 and use.to:contains(player) then 
+            return self:objectName()
         end
         return ""  
     end,  
       
-    on_cost = function(self, event, room, player, data, ask_who)  
-        if ask_who:askForSkillInvoke(self:objectName(), data) then  
-            room:broadcastSkillInvoke(self:objectName(), ask_who)  
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName(), player)  
             return true  
         end  
         return false  
     end,  
       
-    on_effect = function(self, event, room, player, data, ask_who)
+    on_effect = function(self, event, room, player, data)
         local use = data:toCardUse()
         local from = use.from
    
@@ -6077,15 +6077,6 @@ Lumang = sgs.CreateTriggerSkill{
         --    sgs.Room_cancelTarget(use, p)
         end  
         data:setValue(use) --用以上方式修改use后，需要setValue
-        -- 日志  
-        local msg = sgs.LogMessage()  
-        msg.type = "#LumangEffect"  
-        msg.from = ask_who  
-        msg.to:append(player)  
-        msg.arg = self:objectName()  
-        msg.arg2 = use.card:objectName()  
-        room:sendLog(msg)  
-        --return true --终止杀结算
 
         -- 视为来源对自己使用决斗  
         local duel = sgs.Sanguosha:cloneCard("duel")  
@@ -6093,33 +6084,28 @@ Lumang = sgs.CreateTriggerSkill{
 
         local use = sgs.CardUseStruct()  
         use.from = from  
-        use.to:append(ask_who)   
+        use.to:append(player)   
         use.card = duel  
         room:useCard(use) 
         duel:deleteLater()
         return false  
     end  
 }
-
-Yongchuang = sgs.CreateViewAsSkill{  
+Yongchuang = sgs.CreateOneCardViewAsSkill{  
     name = "yongchuang",  
-    n = 1,  
-    view_filter = function(self, selected, to_select)  
-        return #selected == 0  
-    end,  
-    view_as = function(self, cards)  
-        if #cards == 1 then  
-            local slash = sgs.Sanguosha:cloneCard("slash")  
-            slash:addSubcard(cards[1])  
-            slash:setSkillName(self:objectName())  
-            return slash  
-        end  
+    filter_pattern = ".",
+    view_as = function(self, card)  
+        local slash = sgs.Sanguosha:cloneCard("slash")  
+        slash:addSubcard(card)  
+        slash:setSkillName(self:objectName())
+        slash:setShowSkill(self:objectName())  
+        return slash
     end,  
     enabled_at_play = function(self, player)  
         return false  
     end,  
     enabled_at_response = function(self, player, pattern)    
-        return pattern == "slash"  
+        return pattern == "slash" and not player:isNude()
     end  
 }  
 lizicheng:addSkill(Lumang)
@@ -6133,7 +6119,7 @@ sgs.LoadTranslationTable{
     ["lumang"] = "鲁莽",  
     [":lumang"] = "当你成为非延时性锦囊的唯一目标时，你可以取消该锦囊，视为来源对你使用一张【决斗】。",  
     ["yongchuang"] = "勇闯",   
-    [":yongchuang"] = "响应【决斗】【南蛮入侵】时，你的任何一张牌都可以当【杀】打出。"  
+    [":yongchuang"] = "你的牌可以当作【杀】打出。"  
 }
 
 luban = sgs.General(extension, "luban", "wu", 3)
@@ -6165,7 +6151,7 @@ GuifuCard = sgs.CreateSkillCard{
 }  
   
 -- 创建鬼斧视为技  
-GuifuViewAsSkill = sgs.CreateZeroCardViewAsSkill{  
+Guifu = sgs.CreateZeroCardViewAsSkill{  
     name = "guifu",  
       
     view_as = function(self)  
@@ -6178,66 +6164,6 @@ GuifuViewAsSkill = sgs.CreateZeroCardViewAsSkill{
         return not player:hasUsed("#guifuCard")  
     end  
 }  
-  
--- 创建鬼斧技能  
-Guifu = sgs.CreateTriggerSkill{  
-    name = "guifu",  
-    view_as_skill = GuifuViewAsSkill,  
-    events = {},  -- 没有触发事件，纯视为技  
-}  
-
--- 创建神工技能卡  
-ShengongCard = sgs.CreateSkillCard{  
-    name = "shengongCard",  
-    target_fixed = false,  
-    will_throw = true,  
-    filter = function(self, targets, to_select)  
-        return #targets == 0 and not to_select:getEquips():isEmpty()
-    end,  
-      
-    on_use = function(self, room, source, targets)  
-        local target = targets[1]  
-          
-        -- 通知技能被触发  
-        room:notifySkillInvoked(source, "shengong")  
-          
-        -- 播放技能配音  
-        room:broadcastSkillInvoke("shengong")  
-          
-        -- 获取目标角色的装备区装备  
-        local card_id=room:askForCardChosen(source, target, "e", "shengong")
-
-        -- 创建对应的装备牌  
-        --local equip = sgs.Sanguosha:cloneCard(sgs.Sanguosha:getCard(card_id):objectName(), sgs.Card_NoSuit, 0)  
-        --equip:addSubcard(self:getSubcards():first())  
-        --equip:setSkillName("shengong")  
-        
-        local shengong_target = room:askForPlayerChosen(source,  room:getAlivePlayers(), "shengong")
-        -- 使用装备  
-        --room:useCard(equip, shengong_target)  
-        --room:useCard(sgs.CardUseStruct(equip, source, source))  
-        room:moveCardTo(sgs.Sanguosha:getCard(card_id), shengong_target, sgs.Player_PlaceEquip, true)  
-
-    end  
-}  
-  
--- 创建神工视为技  
-ShengongViewAsSkill = sgs.CreateOneCardViewAsSkill{  
-    name = "shengong",  
-    filter_pattern = ".",  
-      
-    view_as = function(self, card)  
-        local sc = ShengongCard:clone()
-        sc:addSubcard(card)  
-        sc:setShowSkill(self:objectName())  
-        return sc  
-    end,  
-      
-    enabled_at_play = function(self, player)  
-        return not player:hasUsed("#shengongCard") and not player:isKongcheng()  
-    end  
-}  
-
 --[[
 shengongCard = sgs.CreateSkillCard{  
     name = "shengongCard",  
@@ -6286,47 +6212,55 @@ shengongCard = sgs.CreateSkillCard{
             sgs.Player_PlaceEquip,  
             sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT,   
                 source:objectName(), "shengong", ""))  
-          
-        -- 发送日志  
-        local log = sgs.LogMessage()  
-        log.type = "#shengong"  
-        log.from = source  
-        log.to = {to_player}  
-        log.card_str = tostring(hand_card_id)  
-        log.arg = equip_card:objectName()  
-        room:sendLog(log)  
-    end  
-}  
-  
--- 视为技定义  
-ShengongViewAsSkill = sgs.CreateViewAsSkill{  
-    name = "shengong",  
-    n = 1,  
-    view_filter = function(self, selected, to_select)  
-        return #selected == 0 and not to_select:isEquipped()
-    end,  
-      
-    view_as = function(self, cards)  
-        if #cards ~= 1 then return nil end  
-          
-        local card = shengongCard:clone()  
-        card:addSubcard(cards[1])  
-        card:setSkillName(self:objectName())  
-        card:setShowSkill(self:objectName())
-        return card  
-    end,  
-      
-    enabled_at_play = function(self, player)  
-        -- 出牌阶段限一次  
-        return not player:hasUsed("#shengongCard") and not player:isKongcheng()
     end  
 }  
 ]]
--- 创建神工技能  
-Shengong = sgs.CreateTriggerSkill{  
+-- 创建神工技能卡  
+ShengongCard = sgs.CreateSkillCard{  
+    name = "shengongCard",  
+    target_fixed = false,  
+    will_throw = true,  
+    filter = function(self, targets, to_select)  
+        return #targets == 0 and not to_select:getEquips():isEmpty()
+    end,  
+      
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+          
+        -- 通知技能被触发  
+        room:notifySkillInvoked(source, "shengong")  
+          
+        -- 播放技能配音  
+        room:broadcastSkillInvoke("shengong")  
+          
+        -- 获取目标角色的装备区装备  
+        local card_id=room:askForCardChosen(source, target, "e", "shengong")        
+        local shengong_target = room:askForPlayerChosen(source,  room:getAlivePlayers(), "shengong")
+        --room:moveCardTo(sgs.Sanguosha:getCard(card_id), shengong_target, sgs.Player_PlaceEquip, true)  
+        room:obtainCard(shengong_target,card_id,true)
+        local use = sgs.CardUseStruct()  
+        use.card = sgs.Sanguosha:getCard(card_id)  
+        use.from = shengong_target  
+        use.to:append(shengong_target)  
+        room:useCard(use)  
+    end  
+}  
+  
+-- 创建神工视为技  
+Shengong = sgs.CreateOneCardViewAsSkill{  
     name = "shengong",  
-    view_as_skill = ShengongViewAsSkill,  
-    events = {},  -- 没有触发事件，纯视为技  
+    filter_pattern = ".",  
+      
+    view_as = function(self, card)  
+        local sc = ShengongCard:clone()
+        sc:addSubcard(card)  
+        sc:setShowSkill(self:objectName())  
+        return sc  
+    end,  
+      
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#shengongCard") and not player:isKongcheng()  
+    end  
 }  
 
 luban:addSkill(Guifu)  
@@ -6341,7 +6275,7 @@ sgs.LoadTranslationTable{
     ["guifu"] = "鬼斧",  
     [":guifu"] = "出牌阶段限1次，你可以弃置任意一名角色装备区的一张装备，然后你与其各摸一张牌。",  
     ["shengong"] = "神工",  
-    [":shengong"] = "出牌阶段限1次，你可以弃置一张手牌，将任意一名角色装备区的一张装备，置入一名角色的装备区。",  
+    [":shengong"] = "出牌阶段限1次，你可以弃置一张手牌，然后选择任意一名角色装备区的一张装备，令一名角色获得并使用之。",  
       
     ["guifuCard"] = "鬼斧",  
     ["shengongCard"] = "神工",  
