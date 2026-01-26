@@ -1608,7 +1608,7 @@ sgs.LoadTranslationTable{
     ["1r1b"] = "1黑1红"
 }
 liubian = sgs.General(extension, "liubian", "qun", 3)  -- 吴国，4血，男性  
-shiyuan_skill = sgs.CreateTriggerSkill{  
+shiyuan = sgs.CreateTriggerSkill{  
     name = "shiyuan",  
     events = {sgs.TargetConfirmed},  
     frequency = sgs.Skill_Frequent,  
@@ -1648,20 +1648,20 @@ shiyuan_skill = sgs.CreateTriggerSkill{
         end
         ]]
         if source and source:objectName() ~= shiyuan_player:objectName() then  
-        -- 其他角色使用牌指定技能拥有者  
-        for _, target in sgs.qlist(use.to) do  
-            if target:objectName() == shiyuan_player:objectName() then  
-                is_involved = true  
-                other_player = source  
-                break  
-            end  
-        end  
+            -- 其他角色使用牌指定技能拥有者  
+            for _, target in sgs.qlist(use.to) do  
+                if target:objectName() == shiyuan_player:objectName() then  
+                    is_involved = true  
+                    other_player = source  
+                    break  
+                end  
+            end
+        end
         if is_involved then
             return self:objectName(), shiyuan_player:objectName()
         end
         return ""
-          
-    end,  
+    end,
       
     on_cost = function(self, event, room, player, data, ask_who)  
         if ask_who:askForSkillInvoke(self:objectName(), data) then  
@@ -1710,7 +1710,52 @@ shiyuan_skill = sgs.CreateTriggerSkill{
         return false  
     end  
 }  
-liubian:addSkill(shiyuan_skill)
+
+shiyuan = sgs.CreateTriggerSkill{  
+    name = "shiyuan",  
+    events = {sgs.TargetConfirmed},  
+    frequency = sgs.Skill_Frequent,  
+      
+    can_trigger = function(self, event, room, player, data)    
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+        if player:hasFlag("shiyuan_used") then return "" end
+
+        local use = data:toCardUse()
+        if use.card:getTypeId()==sgs.Card_TypeSkill then return "" end --不能是技能卡
+        if use.from ~= player and use.to:contains(player) then return self:objectName() end
+        return ""
+    end,
+      
+    on_cost = function(self, event, room, player, data)
+        if player:askForSkillInvoke(self:objectName(), data) then
+            room:broadcastSkillInvoke(self:objectName())
+            room:setPlayerFlag(player, "shiyuan_used")
+            return true
+        end
+        return false
+    end,
+      
+    on_effect = function(self, event, room, player, data)
+        local use = data:toCardUse()
+        if use.from then
+            local my_hp = player:getHp()
+            local other_hp = use.from:getHp()
+            local draw_num = 0
+
+            if other_hp > my_hp then
+                draw_num = 2  -- 对方体力大于自己
+            elseif other_hp <= my_hp then
+                draw_num = 1  -- 对方体力小于等于自己
+            end
+
+            if draw_num > 0 then
+                player:drawCards(draw_num, self:objectName())
+            end
+        end
+        return false  
+    end  
+}
+liubian:addSkill(shiyuan)
 
 -- 翻译表  
 sgs.LoadTranslationTable{
@@ -2015,6 +2060,105 @@ sgs.LoadTranslationTable{
     [":tairan"] = "出牌阶段限一次。你可以失去任意点体力并弃置至多X张牌（X为已失去的体力值），回合结束时，你恢复因此失去的体力值，并摸因此弃置的牌数",
     ["@tairan-losehp"] = "要失去的体力值",
     ["@tairan-discard"] = "要弃的牌数"
+}
+-- 创建武将：
+sunru_xianxia = sgs.General(extension, "sunru_xianxia", "wu", 3, false)  
+
+xiecui = sgs.CreateTriggerSkill{  
+    name = "xiecui",  
+    events = {sgs.DamageComplete},
+    --frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        local current = room:getCurrent()
+        local damage = data:toDamage()  
+        -- 检查是否是杀造成的伤害  
+        if damage.from == current and damage.card and damage.card:isKindOf("Slash") then
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if owner and owner:isAlive() and owner:hasSkill(self:objectName()) and not owner:hasFlag("xiecui_used") then
+                room:setPlayerFlag(owner, "xiecui_used")--首次。不管发不发动，都加标记
+                return self:objectName(), owner:objectName()
+            end
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName(), ask_who)  
+            return true  
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local damage = data:toDamage()  
+        damage.from:obtainCard(damage.card)
+        if ask_who:isFriendWith(damage.from) then
+            room:setPlayerFlag(damage.from, "xiecui_maxcards_plus")
+        end
+        return false  
+    end  
+}
+xiecuiMaxCards = sgs.CreateMaxCardsSkill{  
+    name = "#xiecui-maxcards",  
+    extra_func = function(self, target)  
+        if target:hasFlag("xiecui_maxcards_plus") then  
+            return 1
+        end  
+        return 0  
+    end  
+}
+
+fuxu = sgs.CreateTriggerSkill{  
+    name = "fuxu",  
+    events = {sgs.EventPhaseEnd},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:getPhase()==sgs.Player_Finish and player:getHandcardNum() > player:getHp() then
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if owner and owner:isAlive() and owner:hasSkill(self:objectName()) then
+                return self:objectName(), owner:objectName()
+            end
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName(), ask_who)  
+            return true  
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local card_id = room:askForCardChosen(ask_who, player, "h", self:objectName())
+        if card_id then
+            room:showCard(player, card_id)
+            local target = room:askForPlayerChosen(ask_who, room:getOtherPlayers(player), self:objectName())
+            if target then
+                room:obtainCard(target, card_id)
+                local is_min_hp = true
+                for _,p in sgs.qlist(room:getOtherPlayers(target)) do
+                    if target:getHp() > p:getHp() then
+                        is_min_hp = false
+                        break
+                    end
+                end
+                if is_min_hp then
+                    target:drawCards(1,self:objectName())
+                end
+            end
+        end
+        return false  
+    end  
+}
+extension:insertRelatedSkills("xiecui","#xiecui-maxcards")
+sunru_xianxia:addSkill(xiecui)
+sunru_xianxia:addSkill(xiecuiMaxCards)
+sunru_xianxia:addSkill(fuxu)
+sgs.LoadTranslationTable{
+    ["sunru_xianxia"] = "孙茹",
+    ["xiecui"] = "撷翠",
+    [":xiecui"] = "一名角色在自己回合内首次使用杀造成伤害结算后，你可以令其获得此牌；若其与你势力相同，其本回合手牌上限+1",
+    ["fuxu"] = "抚恤",
+    [":fuxu"] = "一名角色回合结束时，若其手牌数大于体力值，你可以展示其一张手牌并交给另一名角色。若获得牌的角色体力值最小，其摸一张牌",
 }
 wangyun = sgs.General(extension, "wangyun", "qun", 3) -- 蜀势力，4血，男性（默认）  
 
