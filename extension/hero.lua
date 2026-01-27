@@ -8072,10 +8072,10 @@ zhiba = sgs.CreateZeroCardViewAsSkill{
 baye = sgs.CreateTriggerSkill{  
     name = "baye",  
     events = {sgs.Pindian},  
-    frequency = sgs.Skill_Compulsory,  
+    frequency = sgs.Skill_Frequent,  
       
     can_trigger = function(self, event, room, player, data)  
-        if not player or not player:hasSkill(self:objectName()) then  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
             return false  
         end  
           
@@ -8088,46 +8088,32 @@ baye = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data)  
-        return true  -- 强制技能，无需询问  
+        return player:askForSkillInvoke(self:objectName(),data)
     end,  
       
     on_effect = function(self, event, room, player, data)  
         local pindian = data:toPindian()  
-        local winner, loser  
+        local card = nil
           
         -- 确定赢家和输家  
-        if pindian.from_number == pindian.to_number then  
-            return false
-        end
         if pindian.from_number > pindian.to_number then  
-            winner = pindian.from  
-            loser = pindian.to  
-        else  
-            winner = pindian.to  
-            loser = pindian.from  
+            card = pindian.from_card
+        elseif pindian.from_number < pindian.to_number then
+            card = pindian.to_card
         end  
-          
-        -- 如果玩家是拼点的参与者，获得点数大的牌  
-        if winner:objectName() == player:objectName() or loser:objectName() == player:objectName() then  
-            local card = (winner:objectName() == pindian.from:objectName()) and pindian.from_card or pindian.to_card
               
-            room:sendCompulsoryTriggerLog(player, self:objectName())  
-            room:broadcastSkillInvoke(self:objectName(), player)  
-              
-            -- 获得点数大的牌  
-            if room:getCardPlace(card:getEffectiveId()) == sgs.Player_PlaceTable then  
-                player:obtainCard(card)  
-                  
-                -- 显示获得牌的提示  
-                local msg = sgs.LogMessage()  
-                msg.type = "#BayeObtain"  
-                msg.from = player  
-                msg.arg = card:getNumber()  
-                msg.arg2 = self:objectName()  
-                room:sendLog(msg)  
-            end  
-        end  
-          
+        -- 获得点数大的牌  
+        if card and room:getCardPlace(card:getEffectiveId()) == sgs.Player_PlaceTable then  
+            player:obtainCard(card)  
+                
+            -- 显示获得牌的提示  
+            local msg = sgs.LogMessage()  
+            msg.type = "#BayeObtain"  
+            msg.from = player  
+            msg.arg = card:getNumber()  
+            msg.arg2 = self:objectName()  
+            room:sendLog(msg)  
+        end
         return false  
     end  
 }  
@@ -8159,7 +8145,7 @@ sgs.LoadTranslationTable{
     ["#ZhibaSuccess"] = "%from 的【%arg2】技能被触发，手牌上限+%arg",  
       
     ["baye"] = "霸业",  
-    [":baye"] = "锁定技，当你的拼点结算后，你获得点数大的牌。",  
+    [":baye"] = "当你的拼点结算后，你获得点数大的牌。",  
     ["#BayeObtain"] = "%from 发动了【%arg2】，获得了点数为 %arg 的拼点牌",  
       
     ["~qihuangong"] = "寡人竟败于此，悔不该骄傲自满！"  
