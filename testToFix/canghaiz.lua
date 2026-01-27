@@ -3324,6 +3324,7 @@ luadingpanMark = sgs.CreateTriggerSkill{
     name = "#luadingpanMark",
     events = {sgs.EventPhaseEnd},
     priority = -1,
+    frequency = sgs.Skill_Compulsory,
     on_record = function(self, event, room, player, data)
         if skillTriggerable(player, "luadingpan") and player:getPhase() == sgs.Player_Play then
             if player:getMark("luadingpanTimes") > 0 then
@@ -3339,6 +3340,8 @@ luadingpanMark = sgs.CreateTriggerSkill{
 
 luabuzhi:addSkill(luahongde)
 luabuzhi:addSkill(luadingpan)
+luabuzhi:addSkill(luadingpanMark)
+canghaiz:insertRelatedSkills("luadingpan", "#luadingpanMark")
 
 sgs.LoadTranslationTable{
     ["luabuzhi"] = "步骘",
