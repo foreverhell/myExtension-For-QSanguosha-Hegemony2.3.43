@@ -3122,5 +3122,320 @@ sgs.LoadTranslationTable{
     ["huaman3"] = "技能3",  
     [":huaman3"] = "出牌阶段限一次。你可以将所有手牌当作【南蛮入侵】使用",      
 }
+dongcheng = sgs.General(extension, "dongcheng", "qun", 4)  
+dongcheng1 = sgs.CreateTriggerSkill{  
+    name = "dongcheng1",  
+    events = {sgs.CardsMoveOneTime, sgs.EventPhaseEnd, sgs.Pindian},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.CardsMoveOneTime then
+            if skillTriggerable(player, self:objectName()) then
+                local current = room:getCurrent()
+                if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+                    local move_datas = data:toList()
+                    for _, move_data in sgs.qlist(move_datas) do
+                        local move = move_data:toMoveOneTime()
+                        if move.to_place == sgs.Player_PlaceHand then
+                            if move.to and move.to:isAlive() and player:objectName()==move.to:objectName() then
+                                if move.card_ids:length() >= 2 then
+                                    room:setPlayerFlag(player,"dongcheng1_active")
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        elseif event == sgs.EventPhaseEnd and player:getPhase()==sgs.Player_Finish then
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if owner and owner:isAlive() and owner:hasSkill(self:objectName()) and owner:hasFlag("dongcheng1_active") then
+                return self:objectName(), owner:objectName()
+            end
+        elseif event == sgs.Pindian then
+            local pindian = data:toPindian()
+            if pindian.reason == self:objectName() then
+                return self:objectName()
+            end
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseEnd and player:getPhase()==sgs.Player_Finish and ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName(), ask_who)  
+            return true
+        elseif event == sgs.Pindian then
+            return true
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseEnd and player:getPhase()==sgs.Player_Finish then
+            local targets = sgs.SPlayerList()
+            for _,p in sgs.qlist(room:getOtherPlayers(ask_who)) do
+                if not p:isKongcheng() then
+                    targets:append(p)
+                end
+            end
+            if targets:isEmpty() then return false end
+            local target = room:askForPlayerChosen(ask_who, targets, self:objectName())
+            if target then
+                ask_who:pindian(target, self:objectName())
+            end
+        elseif event == sgs.Pindian then
+            local pindian = data:toPindian()
+            local winner = nil
+            local loser = nil
+            if pindian.from_number == pindian.to_number then
+                return false
+            end
+            if pindian.from_number > pindian.to_number then
+                winner = pindian.from
+                loser = pindian.to
+            elseif pindian.from_number < pindian.to_number then
+                winner = pindian.to
+                loser = pindian.from
+            end
+            local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
+            slash:setSkillName(self:objectName())  
+            local use = sgs.CardUseStruct()  
+            use.card = slash  
+            use.from = winner  
+            use.to:append(loser)  
+            room:useCard(use) 
+            slash:deleteLater()
+        end
+        return false  
+    end  
+}
+dongcheng:addSkill(dongcheng1)
+sgs.LoadTranslationTable{
+    ["dongcheng"] = "董承",
+    ["dongcheng1"] = "技能1",
+    [":dongcheng1"] = "你一次性获得过至少2张牌的回合结束时，你可以与一名其他角色拼点，赢的角色视为对输的角色使用杀",
+}
+
+
+fuhuanghou = sgs.General(extension, "fuhuanghou", "qun", 3, false)
+fuhuanghou1Lose = sgs.CreateOneCardViewAsSkill{
+    name = "fuhuanghou1Lose",
+    response_pattern = "@@fuhuanghou1Lose",
+    filter_pattern = ".|.|.|fuhuanghou1",
+    expand_pile = "fuhuanghou1",
+	view_as = function(self, card)
+        return card
+    end,
+}
+
+fuhuanghou1 = sgs.CreateTriggerSkill{  
+    name = "fuhuanghou1",  
+    events = {sgs.EventPhaseStart, sgs.Pindian},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_Play 
+        and not player:hasSkill(self:objectName()) and not player:isKongcheng() then
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if owner and owner:isAlive() and owner:hasSkill(self:objectName()) and not owner:isKongcheng() then
+                return self:objectName(), owner:objectName()
+            end
+        elseif event == sgs.Pindian then
+            local pindian = data:toPindian()
+            if pindian.reason == self:objectName() then
+                return self:objectName()
+            end
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_Play and ask_who:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName(), ask_who)  
+            return true
+        elseif event == sgs.Pindian then
+            return true
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data, ask_who)  
+        if event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_Play then
+            ask_who:pindian(player, self:objectName())
+        elseif event == sgs.Pindian then
+            local pindian = data:toPindian()
+            local winner = nil
+            local card = nil
+            if pindian.from_number == pindian.to_number then
+                return false
+            end
+            if pindian.from_number > pindian.to_number then
+                winner = pindian.from
+                card = pindian.to_card
+            elseif pindian.from_number < pindian.to_number then
+                winner = pindian.to
+                card = pindian.from_card
+            end
+            winner:addToPile("fuhuanghou1", card, false)  
+            room:askForUseCard(winner, "@@fuhuanghou1Lose", "@fuhuanghou1Ask")
+            winner:clearOnePrivatePile("fuhuanghou1")
+        end
+        return false  
+    end  
+}
+
+
+fuhuanghou2 = sgs.CreateTriggerSkill{  
+    name = "fuhuanghou2",  
+    events = {sgs.TargetConfirming},  
+    frequency = sgs.Skill_NotFrequent,  
+      
+    can_trigger = function(self, event, room, player, data)  
+        if not player:hasSkill("fuhuanghou2") then return "" end  
+          
+        local use = data:toCardUse()  
+        -- 检查是否是杀且当前角色是目标之一  
+        if use.card:isKindOf("Slash") and use.to:contains(player) then  
+            -- 检查是否还有其他可选目标  
+            local others = room:getOtherPlayers(player)  
+            for _, p in sgs.qlist(others) do  
+                if not use.to:contains(p) and use.from:canSlash(p, use.card, false) then --第二个条件可以不要 
+                    return self:objectName()  
+                end  
+            end  
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        local use = data:toCardUse()  
+        local others = room:getOtherPlayers(player)  
+        local targets = sgs.SPlayerList()  
+          
+        -- 收集可选目标  
+        for _, p in sgs.qlist(others) do  
+            if not use.to:contains(p) and use.from:canSlash(p, use.card, false) then  
+                targets:append(p)  
+            end  
+        end  
+          
+        if targets:isEmpty() then return false end  
+          
+        local target = room:askForPlayerChosen(player, targets, "fuhuanghou2", "@fuhuanghou2-choose", true)  
+        if target then  
+            player:setTag("fuhuanghou2_target", sgs.QVariant(target:objectName()))  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local use = data:toCardUse()  
+        local target_name = player:getTag("fuhuanghou2_target"):toString()  
+        player:removeTag("fuhuanghou2_target")  
+          
+        local target = room:findPlayer(target_name)  
+        if target then
+            local card = room:askForCard(target, "Jink", "@fuhuanghou2-give:" .. player:objectName(), data, sgs.Card_MethodNone)
+            if card then
+                player:obtainCard(card)
+            else
+                -- 将新目标添加到杀的目标列表中  
+                use.to:append(target)  
+                room:sortByActionOrder(use.to)  
+                data:setValue(use)  
+                
+                -- 触发新目标的TargetConfirming事件  
+                room:getThread():trigger(sgs.TargetConfirming, room, target, data)
+            end
+        end  
+          
+        return false  
+    end  
+}
+if not sgs.Sanguosha:getSkill("fuhuanghou1Lose") then skills:append(fuhuanghou1Lose) end
+fuhuanghou:addSkill(fuhuanghou1)
+fuhuanghou:addSkill(fuhuanghou2)
+sgs.LoadTranslationTable{
+    ["fuhuanghou"] = "伏皇后",
+    ["fuhuanghou1"] = "技能1",
+    [":fuhuanghou1"] = "其他角色的出牌阶段开始时，你可以与其拼点，赢的角色可以使用输的角色的拼点牌",--这个技能有问题，不能使用
+    ["@fuhuanghou1Ask"] = "你可以使用输的拼点牌",
+    ["fuhuanghou2"] = "技能2",
+    [":fuhuanghou2"] = "当你成为杀的目标时，你可以选择一名其他角色，其选择交给你一张闪或者也成为此杀的目标",
+}
+sunyao = sgs.General(extension, "sunyao", "qun", 4)  -- 群雄，4血  
+sunyao1Card = sgs.CreateSkillCard{  
+    name = "sunyao1",  
+    target_fixed = false,  
+    will_throw = false,  
+    filter = function(self, targets, to_select)  
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName() and not to_select:isKongcheng()  
+    end,  
+
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+        -- 进行拼点  
+        local success = source:pindian(target, "sunyao1")
+    end  
+}  
+  
+sunyao1VS = sgs.CreateZeroCardViewAsSkill{  
+    name = "sunyao1",
+    view_as = function(self)
+        local card = sunyao1Card:clone()
+        card:setSkillName(self:objectName())
+        return card  
+    end,
+    enabled_at_play = function(self, player)
+        return not player:hasUsed("#sunyao1") and not player:isKongcheng()
+    end
+}
+
+sunyao1 = sgs.CreateTriggerSkill{  
+    name = "sunyao1",  
+    events = {sgs.Pindian, sgs.DamageCaused},
+    frequency = sgs.Skill_Frequent,
+    view_as_skill = sunyao1VS,
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.Pindian then
+            local pindian = data:toPindian()
+            if pindian.reason == self:objectName() then
+                return self:objectName()
+            end
+        elseif event == sgs.DamageCaused then
+            local damage = data:toDamage()
+            if damage.card and damage.card:isKindOf("Slash") and damage.from and damage.from:hasFlag("sunyao1_add") then
+                damage.damage = damage.damage + 1
+                data:setValue(damage)
+                room:setPlayerFlag(damage.from,"-sunyao1_add")
+            end
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if event == sgs.Pindian then
+            return true
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data, ask_who)  
+        if event == sgs.Pindian then
+            local pindian = data:toPindian()
+            local winner = nil
+            if pindian.from_number == pindian.to_number then
+                return false
+            end
+            if pindian.from_number > pindian.to_number then
+                winner = pindian.from
+            elseif pindian.from_number < pindian.to_number then
+                winner = pindian.to
+            end
+            room:setPlayerFlag(winner,"sunyao1_add")
+        end
+        return false  
+    end  
+}
+sunyao:addSkill(sunyao1)
+sgs.LoadTranslationTable{
+    ["sunyao"] = "孙繇",
+    ["sunyao1"] = "技能1",
+    [":sunyao1"] = "出牌阶段限一次。你可以与一名其他角色拼点，赢的角色本回合下次杀的伤害+1",
+}
+
 sgs.Sanguosha:addSkills(skills)
 return {extension}
