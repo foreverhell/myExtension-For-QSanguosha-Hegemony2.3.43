@@ -8027,45 +8027,34 @@ zhibaCard = sgs.CreateSkillCard{
     end,  
       
     on_use = function(self, room, source, targets)  
-        local target = targets[1]  
-          
-        -- 显示技能发动效果  
-        room:notifySkillInvoked(source, "zhiba")  
-          
+        local target = targets[1]
         -- 进行拼点  
-        local success = source:pindian(target, "zhiba")  
-          
+        local success = source:pindian(target, "zhiba")
         -- 如果拼点成功，增加手牌上限  
-        if success then  
-            --room:setPlayerMark(source, "@zhiba_win", 1)  
-            room:setPlayerFlag(source, "zhiba_win")  
-              
-            -- 显示增加手牌上限的提示  
-            local msg = sgs.LogMessage()  
-            msg.type = "#ZhibaSuccess"  
-            msg.from = source  
-            msg.arg = 2  
-            msg.arg2 = "zhiba"  
-            room:sendLog(msg)  
-        else
-            --room:setPlayerMark(source, "@zhiba_win", 0)
-            room:setPlayerFlag(source, ".")  --自动清除？
+        if success then
+            room:setPlayerFlag(source, "zhiba_win")
+            -- 显示增加手牌上限的提示
+            local msg = sgs.LogMessage()
+            msg.type = "#ZhibaSuccess"
+            msg.from = source
+            msg.arg = 2
+            msg.arg2 = "zhiba"
+            room:sendLog(msg)
         end  
     end  
 }  
   
 zhiba = sgs.CreateZeroCardViewAsSkill{  
-    name = "zhiba",  
-      
-    view_as = function(self)  
-        local card = zhibaCard:clone()  
-        card:setSkillName(self:objectName())  
-        return card  
-    end,  
-      
-    enabled_at_play = function(self, player)  
-        return not player:hasUsed("#zhiba") and not player:isKongcheng()  
-    end  
+    name = "zhiba",
+    view_as = function(self)
+        local card = zhibaCard:clone()
+        card:setSkillName(self:objectName())
+        card:setShowSkill(self:objectName())
+        return card
+    end,
+    enabled_at_play = function(self, player)
+        return not player:hasUsed("#zhiba") and not player:isKongcheng()
+    end
 }  
 
 -- 技能2：霸业 - 当你的拼点结算后，你获得点数大的牌  
