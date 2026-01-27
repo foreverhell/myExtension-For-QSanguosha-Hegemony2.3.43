@@ -903,6 +903,7 @@ juetu = sgs.CreateTriggerSkill{
             room:setTag("BattleRoyalMode", sgs.QVariant(true))  
             for _,p in sgs.qlist(room:getAlivePlayers()) do
                 room:setPlayerMark(p,"GlobalBattleRoyalMode",1)
+                room:acquireSkill(p, "aozhan_fuqian")
             end
             --room:doBroadcastNotify(sgs.CommandType.S_COMMAND_BATTLE_START, "")
             -- 广播进入鏖战状态的消息  
@@ -931,11 +932,36 @@ juetu = sgs.CreateTriggerSkill{
         return false  
     end  
 }
+aozhan = sgs.CreateOneCardViewAsSkill{
+    name = "aozhan_fuqian",
+    response_or_use = true,
+    filter_pattern = "Peach",
+    view_as = function(self, card)  
+        local card_name = sgs.Self:getTag(self:objectName()):toString()
+		if card_name ~= "" then
+			local view_as_card = sgs.Sanguosha:cloneCard(card_name)
+			view_as_card:setCanRecast(false)
+            view_as_card:addSubcard(card:getId())
+			view_as_card:setSkillName(self:objectName())
+			view_as_card:setShowSkill(self:objectName())
+			return view_as_card
+		end
+    end,  
+    vs_card_names = function(self, selected)
+		if #selected == 1 then
+			return "slash+jink"
+		end
+		return ""
+	end,
+}
+
 fuqian:addSkill(juetu)
+if not sgs.Sanguosha:getSkill("aozhan_fuqian") then skills:append(aozhan) end
 sgs.LoadTranslationTable{
     ["fuqian"] = "傅佥",
     ["juetu"] = "绝途",
     [":juetu"] = "锁定技。结束阶段，若没有进入鏖战状态，你摸牌至体力上限，然后进入鏖战状态；若已经进入鏖战状态，且你未移除副将，则你移除副将；若已经进入鏖战状态，且你已经移除副将，则你视为使用一张决斗",
+    ["aozhan_fuqian"] = "鏖战"
 }
 gaoshun = sgs.General(extension, "gaoshun", "qun", 4)  
 xunji = sgs.CreateTriggerSkill{
@@ -2516,7 +2542,7 @@ pianan = sgs.CreateTriggerSkill{
             pattern = ".|black"
         end
         room:setPlayerCardLimitation(player, "use,response", pattern, true)
-        if target then
+        if target then --这里有问题。获得不到响应的目标
             room:setPlayerCardLimitation(target, "use,response", pattern, true) 
         end
         return false  
@@ -3990,9 +4016,9 @@ jianhuiCard = sgs.CreateSkillCard{
     will_throw = true,  
     filter = function(self, targets, to_select)  
         if #targets == 0 and not to_select:isKongcheng() then  
-            return true --to_select:objectName() ~= sgs.Self:objectName()  
+            return true
         elseif #targets == 1 then  
-            return to_select:objectName() ~= targets[1]:objectName() and not to_select:isKongcheng()--and to_select:objectName() ~= sgs.Self:objectName()  
+            return to_select:objectName() ~= targets[1]:objectName() and not to_select:isKongcheng()
         else  
             return false  
         end  
@@ -4286,7 +4312,7 @@ YanzhuCard = sgs.CreateSkillCard{
     target_fixed = false,  
     will_throw = false,  
     filter = function(self, targets, to_select)  
-        return #targets == 0  
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()
     end,  
     on_effect = function(self, effect)  
         local room = effect.to:getRoom()  
@@ -4352,7 +4378,7 @@ xingxue = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_NotFrequent,  
     events = {sgs.EventPhaseStart},  
     can_trigger = function(self, event, room, player, data) 
-        if not (player and player:hasSkill(self:objectName())) then
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then
             return ""
         end
         if player:getPhase() == sgs.Player_Finish then
@@ -4374,9 +4400,8 @@ xingxue = sgs.CreateTriggerSkill{
           
         -- 依次将一张牌置于牌堆顶  
         for _, target in sgs.qlist(targets) do  
-            if target:getCardCount(true) > 0 then  
+            if target:getCardCount(true) > 0 and target:getHandcardNum() > target:getHp() then  
                 local card_id = room:askForCardChosen(target, target, "he", "xingxue")
-                --local card_id = room:askForCard(target, ".!", "@xingxue-put", sgs.QVariant(), sgs.Card_MethodNone)  
                 if card_id then  
                     room:moveCardTo(sgs.Sanguosha:getCard(card_id), nil, sgs.Player_DrawPile, true)  
                 end  
@@ -4394,9 +4419,9 @@ sgs.LoadTranslationTable{
     ["canghai"] = "沧海",  
     ["sunxiu"] = "孙休",  
     ["yanzhu"] = "宴诛",  
-    [":yanzhu"] = "出牌阶段限一次，你可以令一名角色摸一张牌，然后其选择：1.交给其上下家各一张牌；2.视为你对其使用一张【杀】。",  
+    [":yanzhu"] = "出牌阶段限一次，你可以令一名其他角色摸一张牌，然后其选择：1.交给其上下家各一张牌；2.视为你对其使用一张【杀】。",  
     ["xingxue"] = "兴学",   
-    [":xingxue"] = "结束阶段，你可以令至多X名角色各摸一张牌，然后依次将一张牌置于牌堆顶（X为你的体力值）。",  
+    [":xingxue"] = "结束阶段，你可以令至多X名角色各摸一张牌，然后其中手牌数大于体力值的角色依次将一张牌置于牌堆顶（X为你的体力值）。",  
     ["@yanzhu"] = "宴诛：选择一名角色",  
     ["@yanzhu-give"] = "宴诛：选择两张牌分别交给上下家",  
     ["@xingxue"] = "兴学：选择至多%arg名角色",  
