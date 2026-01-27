@@ -476,6 +476,8 @@ jiediaodu = sgs.CreateTriggerSkill{
 							player:showGeneral(false, true, false)
 						end
 					end]]
+					if not (room:getCardOwner(card_id):objectName() == player:objectName() and room:getCardPlace(card_id) == 
+					sgs.Player_PlaceHand) then return false end --没有得到该装备牌则退出
 					local target_to = sgs.SPlayerList() --获取除选择目标的其他角色
 					for _, p in sgs.qlist(room:getOtherPlayers(target)) do
 						target_to:append(p)
@@ -2286,18 +2288,13 @@ jiechengshang = sgs.CreateTriggerSkill{
 	name = "jiechengshang",
 	events = {sgs.CardFinished, sgs.Damage, sgs.CardUsed},
 	on_record = function(self, event, room, player, data)
-		if player and event == sgs.Damage then
-			local skill_owners = room:findPlayersBySkillName(self:objectName())
-            if skill_owners:isEmpty() then return false end
+		if skillTriggerable(player, self:objectName()) and event == sgs.Damage then
 			local damage = data:toDamage()
-			for _, skill_owner in sgs.qlist(skill_owners) do
-				local card_id = skill_owner:getMark("jiechengshangCardId") - 1
-				if damage.damage > 0 and damage.card and damage.card:getId() == card_id then
-					local card = damage.card
-					if not card:hasFlag("jiechengshangDamaged") then
-						card:setFlags("jiechengshangDamaged")
-					end
-					break
+			local card_id = player:getMark("jiechengshangCardId") - 1
+			if damage.damage > 0 and damage.card and damage.card:getId() == card_id then
+				local card = damage.card
+				if not card:hasFlag("jiechengshangDamaged") then
+					card:setFlags("jiechengshangDamaged")
 				end
 			end
 		elseif player and event == sgs.CardUsed then
@@ -2334,6 +2331,22 @@ jiechengshang = sgs.CreateTriggerSkill{
 
 	on_cost = function(self, event, room, player, data)
 		if player:askForSkillInvoke(self:objectName(), data) then
+			local use = data:toCardUse()
+			local targets = sgs.SPlayerList()
+			for _, p in sgs.qlist(use.to) do
+				if not p:isNude() and not player:isFriendWith(p) then
+					targets:append(p)
+				end
+			end
+			local target 
+			if targets:length() > 1 then
+				target= room:askForPlayerChosen(player, targets, self:objectName(), "@luachengshang-choose", false, true)
+			else
+				target = targets:at(0)
+			end
+			local d = sgs.QVariant()
+			d:setValue(target)
+			player:setTag("luachengshangTarget", d)
 			room:broadcastSkillInvoke("chengshang", player)
 			return true
 		end
@@ -2342,13 +2355,8 @@ jiechengshang = sgs.CreateTriggerSkill{
 
 	on_effect = function(self, event, room, player, data)
 		local use = data:toCardUse()
-		local targets = sgs.SPlayerList()
-		for _, p in sgs.qlist(use.to) do
-			if not p:isNude() and not player:isFriendWith(p) then
-				targets:append(p)
-			end
-		end
-		local target = room:askForPlayerChosen(player, targets, self:objectName(), "@luachengshang-choose", false, true)
+		local target = player:getTag("luachengshangTarget"):toPlayer()
+		player:removeTag("luachengshangTarget")
 		if target then
 			room:setPlayerFlag(player, "luachengshangUsed")
 			local card_id = room:askForExchange(target, self:objectName(), 1, 1, "@luachengshang-give::" .. player:objectName())
