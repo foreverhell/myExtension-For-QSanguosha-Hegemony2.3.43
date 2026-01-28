@@ -2926,8 +2926,11 @@ luaqiangzhi = sgs.CreateTriggerSkill{
             local skill_list = {}
             local name_list = {}
             for _, skill_owner in sgs.qlist(skill_owners) do
-                if current:objectName() ~= skill_owner:objectName() and skill_owner:getTag("luaqiangzhiStCard") and not
-                skill_owner:isKongcheng() then
+                if current:objectName() ~= skill_owner:objectName() and skill_owner:getTag("luaqiangzhiStCard") then
+                    if skill_owner:isKongcheng() then
+                        skill_owner:removeTag("luaqiangzhiStCard")
+                        continue
+                    end
                     local use = skill_owner:getTag("luaqiangzhiStCard"):toCardUse()
                     local card
                     if use and use.card then card = use.card end
@@ -3293,37 +3296,67 @@ luadingpanCard = sgs.CreateSkillCard{
             damage.damage = 1
             damage.reason = "luadingpan"
             room:damage(damage)  
-        elseif choice == "luadingpanDiscard" then
+        --elseif choice == "luadingpanDiscard" then
+        else --超时未选择等原因则默认弃牌
             local card_id = room:askForCardChosen(source, target, "e", "luadingpan")  
             room:throwCard(card_id, target, source)
         end
+        room:addPlayerMark(getServerPlayer(room, source:objectName()), "luadingpanTimes")
     end
 }
 
-luadingpan = sgs.CreateZeroCardViewAsSkill{  
-    name = "luadingpan",  
-    view_as = function(self)  
+luadingpan = sgs.CreateZeroCardViewAsSkill{
+    name = "luadingpan",
+    view_as = function(self)
         local dingpanCard = luadingpanCard:clone()
-        dingpanCard:setSkillName(self:objectName())  
-        dingpanCard:setShowSkill(self:objectName())  
+        dingpanCard:setSkillName(self:objectName())
+        dingpanCard:setShowSkill(self:objectName())
         return dingpanCard
-    end,  
+    end,
       
-    enabled_at_play = function(self, player)  
-        return not player:hasUsed("#luadingpanCard")  
+    enabled_at_play = function(self, player)
+        local x = getKingdoms(player, false) - 1 --不包含自己的势力
+        return player:getMark("luadingpanTimes") < x
     end
-}  
+}
+
+luadingpanMark = sgs.CreateTriggerSkill{
+    name = "#luadingpanMark",
+    events = {sgs.EventPhaseEnd},
+    priority = -1,
+    frequency = sgs.Skill_Compulsory,
+    on_record = function(self, event, room, player, data)
+        if skillTriggerable(player, "luadingpan") and player:getPhase() == sgs.Player_Play then
+            if player:getMark("luadingpanTimes") > 0 then
+                room:setPlayerMark(player, "luadingpanTimes", 0)
+            end
+        end
+    end,
+
+    can_trigger = function(self, event, room, player, data)
+        return false
+    end
+}
+
 luabuzhi:addSkill(luahongde)
 luabuzhi:addSkill(luadingpan)
+luabuzhi:addSkill(luadingpanMark)
+canghaiz:insertRelatedSkills("luadingpan", "#luadingpanMark")
 
 sgs.LoadTranslationTable{
     ["luabuzhi"] = "步骘",
     ["luahongde"] = "弘德",
-    [":luahongde"] = "每阶段限一次，你一次性获得或失去至少2张手牌后，你可以令一名其他角色摸1张牌。",
+    [":luahongde"] = "每阶段限一次，当你一次性获得或失去至少两张手牌后，你可以令一名其他角色摸一张牌。",
     ["luadingpan"] = "定叛",
-    [":luadingpan"] = "出牌阶段限一次，你可以选择一名装备区有牌的角色，令其摸1张牌，然后其选择（1）获得其装备区所有牌，你对其造成1点伤害；（2）你弃置其装备区一张牌。",
+    [":luadingpan"] = "出牌阶段限X次（X为与你不同的势力数），你可以令一名装备区有牌的角色摸1张牌，其选择一项：" ..
+    "1.获得其装备区的所有牌，你对其造成1点伤害；\n2.你弃置其装备区一张牌。",
     ["luadingpanGet"] = "获得装备区所有牌",
     ["luadingpanDiscard"] = "其弃置你装备区的一张牌",
+    ["$luahongde1"] = "弘文尚德，雍容泰定。",
+	["$luahongde2"] = "树德立人，弘毅宽厚。",
+    ["$luadingpan1"] = "平定叛乱，乃为臣之职。",
+	["$luadingpan2"] = "武陵百越蠢蠢欲动，骘定当平定其乱。",
+    ["~luabuzhi"] = "交州叛军尚存，望陛下留心。",
 }
 
 jieduoshi = sgs.CreatePhaseChangeSkill{
@@ -3389,12 +3422,15 @@ jieqianxun = sgs.CreateTriggerSkill{
             for _, skill_owner in sgs.qlist(skill_owners) do
 				local pile = skill_owner:getPile("qianxun")
 				if pile:length() > 0 then
-					local dummy = sgs.DummyCard() 
-					for _, card in sgs.qlist(pile) do
-						dummy:addSubcard(card:getId())
-					end
+					local dummy = sgs.DummyCard(pile) 
 					room:obtainCard(skill_owner, dummy)
 					dummy:deleteLater()
+                    -- 显示获得牌的提示  
+                    local msg = sgs.LogMessage()
+                    msg.type = "#jieqianxunObtain"
+                    msg.from = player
+                    msg.arg = pile:length()
+                    room:sendLog(msg)
 				end
 			end
         end
@@ -3404,16 +3440,16 @@ jieqianxun = sgs.CreateTriggerSkill{
     on_cost = function(self, event, room, player, data)  
         if player:askForSkillInvoke(self:objectName(), data) then
 			local effect = data:toCardEffect() 
-            local handcards = effect.to:getHandcards()  
+            local handcards = player:getHandcards()
             if handcards:length() > 0 then
 				local card_ids = sgs.IntList()
                 for _, card in sgs.qlist(handcards) do
 					card_ids:append(card:getId())
                 end
-				effect.to:addToPile("qianxun", card_ids, false)
-                room:broadcastSkillInvoke("duoshi", player)
+				player:addToPile("qianxun", card_ids, false)
+                room:broadcastSkillInvoke("qianxun", player)
                 local prompt = "谦逊：请选择至多" .. handcards:length() .. "名玩家摸一张牌"
-                local chosen_players = room:askForPlayersChosen(effect.to, room:getAlivePlayers(), self:objectName(), 0, handcards:length(), prompt, false)
+                local chosen_players = room:askForPlayersChosen(player, room:getAlivePlayers(), self:objectName(), 0, handcards:length(), prompt, false)
                 if chosen_players and not chosen_players:isEmpty() then
                     room:drawCards(chosen_players, 1)  
                 end
@@ -3443,6 +3479,7 @@ sgs.LoadTranslationTable{
     ["jieqianxun"] = "谦逊",
 	[":jieqianxun"] = "当一张延时锦囊牌或者其他角色使用的普通锦囊牌对你生效时，若你是此牌的唯一目标，则你可以将所有手牌扣置于" ..
     "武将牌上（此回合结束时，你获得这些牌），令至多等量名角色各摸一张牌。",
+    ["#jieqianxunObtain"] = "%from获得了自己武将牌上的%arg 张牌",
 }
 
 sgs.Sanguosha:addSkills(skills)
