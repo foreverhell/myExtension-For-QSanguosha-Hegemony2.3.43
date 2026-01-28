@@ -5132,8 +5132,6 @@ wanbiCard = sgs.CreateSkillCard{
     end,  
     on_use = function(self, room, source, targets)  
         local target = targets[1]  
-        --source
-        --local card_ids = source:gethandcards()
         local source_handcards = source:handCards()  
         if not source_handcards:isEmpty() then  
             local move1 = sgs.CardsMoveStruct()  
@@ -5234,7 +5232,7 @@ sgs.LoadTranslationTable{
     ["linxiangru"] = "蔺相如",  
       
     ["wanbi"] = "完璧",   
-    [":wanbi"] = "出牌阶段限一次，你可以将全部手牌交给一名其他角色，令其展示任意数量的手牌，你选获得展示的或未展示的",
+    [":wanbi"] = "出牌阶段限一次，你可以将全部手牌交给一名其他角色，令其展示任意数量的手牌（至少1张），你选择获得展示的或未展示的",
     ["jianghe"] = "将和",
     [":jianghe"] = "你获得锦囊牌后，你可以令一名势力相同的其他角色摸一张牌"
 }
