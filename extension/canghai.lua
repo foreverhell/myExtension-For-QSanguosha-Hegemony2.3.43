@@ -4256,7 +4256,7 @@ kuanshi = sgs.CreateTriggerSkill{
         end
         return false
     end,  
-    on_effect = function(self, event, room, player, data)  
+    on_effect = function(self, event, room, player, data, ask_who)  
         local damage = data:toDamage()
         if ask_who:pindian(damage.from, self:objectName()) then
             damage.damage = 0
