@@ -967,7 +967,7 @@ gaoshun = sgs.General(extension, "gaoshun", "qun", 4)
 xunji = sgs.CreateTriggerSkill{
 	name = "xunji",
 	events = {sgs.GeneralShowed},
-	frequency = sgs.Skill_Compulsory,
+	frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         local owner = room:findPlayerBySkillName(self:objectName())
         if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
@@ -4808,7 +4808,8 @@ sgs.LoadTranslationTable{
 tangzi_canghai = sgs.General(extension, "tangzi_canghai", "wu", 4)  
 fuhai = sgs.CreateTriggerSkill{  
     name = "fuhai",  
-    events = {sgs.Damaged, sgs.CardFinished},  -- 监听受到伤害和造成伤害事件  
+    events = {sgs.Damaged, sgs.CardFinished},  -- 监听受到伤害和造成伤害事件
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
         if event == sgs.Damaged then  
