@@ -2078,7 +2078,7 @@ jiepolu = sgs.CreateTriggerSkill{
 			local death = data:toDeath()
 			local skill_list = {}
 			local name_list = {}
-			local skill_owners = room:findPlayersBySkillName(self:objectName()) 
+			local skill_owners = room:findPlayersBySkillName(self:objectName())
 			for _, skill_owner in sgs.qlist(skill_owners) do
 				if death.who:objectName() == skill_owner:objectName() or (death.damage and death.damage.from and 
 				death.damage.from == skill_owner) then
@@ -2312,8 +2312,7 @@ jiechengshang = sgs.CreateTriggerSkill{
 	end,
 
 	can_trigger = function(self, event, room, player, data)
-		if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Play and not 
-		player:hasFlag("luachengshangUsed") and event == sgs.CardFinished then
+		if skillTriggerable(player, self:objectName()) and not player:hasFlag("luachengshangUsed") and event == sgs.CardFinished then
 			local use = data:toCardUse()
 			if use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill and not use.card:isKindOf("DelayedTrick") then
 				if use.card:hasFlag("jiechengshangDamaged") then
