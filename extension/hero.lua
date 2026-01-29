@@ -5239,79 +5239,6 @@ sgs.LoadTranslationTable{
 
 -- 创建武将：李清照  
 liqingzhao = sgs.General(extension, "liqingzhao", "wu", 3, false)
--- 创建技能：词赋  
-shangli = sgs.CreateTriggerSkill{  
-    name = "shangli",  
-    frequency = sgs.Skill_Frequent,  
-    events = {sgs.CardsMoveOneTime, sgs.CardResponded, sgs.CardUsed},  
-      
-    can_trigger = function(self, event, room, player, data)  
-        if not player or not player:hasSkill(self:objectName()) then  --不是该角色，或者该角色无该技能
-            return false  
-        end  
-          
-        if player:getPhase() ~= sgs.Player_NotActive then  --非回合外，不发动
-            return false  
-        end  
-        
-        local trigger_times = 0
-        if event == sgs.CardResponded or event == sgs.CardUsed then  
-            local card = nil  
-            if event == sgs.CardResponded then  
-                card = data:toCardResponse().m_card  
-            else  
-                card = data:toCardUse().card  
-            end  
-              
-            if card and card:isRed() then
-                return self:objectName()  
-                --trigger_times = 1 
-            end  
-        elseif event == sgs.CardsMoveOneTime then  
-            local move = data:toMoveOneTime()                  
-            -- 检查是否有红色牌被移走  
-            for i = 1, move.card_ids:length() do  
-                local card_id = move.card_ids:at(i)  
-                local card = sgs.Sanguosha:getCard(card_id)  
-                if card:isRed() then  
-                    return self:objectName()
-                    --trigger_times = trigger_times + 1 
-                end  
-                --[[
-                local place = move.from_places:at(i)  
-                if place == sgs.Player_PlaceHand then  
-                    local card = sgs.Sanguosha:getCard(card_id)  
-                    if card:isRed() then  
-                        return self:objectName()
-                        --trigger_times = trigger_times + 1 
-                    end  
-                end  
-                ]]
-            end  
-        end
-        if trigger_times > 0 then  
-            -- 返回多次技能名，用加号连接  
-            local result = ""  
-            for i = 1, trigger_times do  
-                if i > 1 then  
-                    result = result .. "+"  
-                end  
-                result = result .. self:objectName()  
-            end  
-            return result  
-        end
-        return false  
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(),data)
-    end,  
-      
-    on_effect = function(self, event, room, player, data)  
-        player:drawCards(1)  
-        return false  
-    end  
-}  
 shangli = sgs.CreateTriggerSkill{
 	name = "shangli",
 	events = {sgs.CardsMoveOneTime},
@@ -5339,7 +5266,7 @@ shangli = sgs.CreateTriggerSkill{
 		return ""
 	end,
     on_cost = function(self, event, room, player, data)
-		return player:askForSkillInvoke(self:objectName(),data) --player:hasShownSkill(self:objectName())
+		return player:askForSkillInvoke(self:objectName(),data)
 	end,
     on_effect = function(self, event, room, player, data)
 		--player:drawCards(1)
@@ -5370,6 +5297,7 @@ yuci = sgs.CreateZeroCardViewAsSkill{
         view_as = function(self)  
             local card = yuci_card:clone()
             card:setSkillName("yuci")  
+            card:setShowSkill("yuci")  
             return card  
         end,  
           
@@ -5393,13 +5321,10 @@ yuci_card = sgs.CreateSkillCard{
         local target = targets[1]  
         local handcards = target:getHandcards()  
         if handcards:isEmpty() then return end  
-          
+        
         local card_id = room:askForCardChosen(source, target, "h", "yuci")  
         local card = sgs.Sanguosha:getCard(card_id)  
-          
-        --room:showCard(target, card_id)  
         room:throwCard(card_id, target, target, self:objectName())
-          
         if card:isKindOf("BasicCard") and not source:isNude() then  
             -- 红色牌，获得该牌  
             room:askForDiscard(source, self:objectName(), 1, 1, false, true)
@@ -5418,7 +5343,7 @@ sgs.LoadTranslationTable{
     ["liqingzhao"] = "李清照",  
     ["#liqingzhao"] = "第一女词人",   
     ["shangli"] = "伤离",  
-    [":shangli"] = "你的回合外，你每使用、打出、失去一张红色牌，你可以摸一张牌。",  
+    [":shangli"] = "你的回合外，你每失去一张红色牌，你可以摸一张牌。",  
 
     ["yuci"] = "玉词",  
     [":yuci"] = "出牌阶段限一次。你可以弃置一名角色一张手牌，若此牌为基础牌，你弃置一张牌，无牌则不弃",        
