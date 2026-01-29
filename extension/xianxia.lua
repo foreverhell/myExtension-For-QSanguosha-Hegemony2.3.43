@@ -184,162 +184,7 @@ sgs.LoadTranslationTable{
     ["@xianzhou-damage"] = "献州：请选择攻击范围内的一名角色造成1点伤害",
 }
 
-caozhi_xianxia = sgs.General(extension, "caozhi_xianxia", "wei", 3) -- 蜀势力，4血，男性（默认）  
-
-linlang = sgs.CreateTriggerSkill{  
-    name = "linlang",  
-    events = {sgs.FinishJudge},  
-    frequency = sgs.Skill_Frequent,  
-    can_trigger = function(self, event, room, player, data)  
-        local judge = data:toJudge()  
-        local caozhi_xianxia = room:findPlayerBySkillName(self:objectName())  
-          
-        if caozhi_xianxia and caozhi_xianxia:isAlive() and judge.card:isKindOf("TrickCard") then  
-            --if room:getCardPlace(judge.card:getEffectiveId()) == sgs.Player_PlaceJudge then  
-                return self:objectName(), caozhi_xianxia:objectName()
-            --end  
-        end  
-        return ""  
-    end,  
-      
-    on_cost = function(self, event, room, player, data, ask_who)  
-        local caozhi_xianxia = room:findPlayerBySkillName(self:objectName())  
-        if ask_who:askForSkillInvoke(self:objectName(), data) then  
-            room:broadcastSkillInvoke(self:objectName(), ask_who)  
-            return true  
-        end  
-        return false  
-    end,  
-      
-    on_effect = function(self, event, room, player, data, ask_who)  
-        local caozhi_xianxia = ask_who--room:findPlayerBySkillName(self:objectName())  
-        local judge = data:toJudge()  
-
-        local targets = sgs.SPlayerList()
-        -- 查找场上所有与判定牌颜色相同的牌  
-        for _, p in sgs.qlist(room:getAlivePlayers()) do  
-            for i = 0, 4 do  
-                local equip = p:getEquip(i)  
-                if equip and (equip:isRed()==judge.card:isRed()) then  
-                    targets:append(p)
-                    break
-                end  
-            end  
-            
-            -- 检查判定区的牌  
-            for _, card in sgs.qlist(p:getJudgingArea()) do  
-                if (card:isRed()==judge.card:isRed()) then  
-                    targets:append(p)
-                    break
-                end  
-            end  
-        end  
-        local choices = "ontainCard"
-        if not targets:isEmpty() then
-            choices = "obtainCard+move"
-        end
-        local choice = room:askForChoice(caozhi_xianxia, "linlang", choices)  
-        if choice == "obtainCard" then
-            -- 获得判定牌  
-            caozhi_xianxia:obtainCard(judge.card)  
-        elseif choice == "move" then
-            -- 移动场上一张与此牌颜色相同的牌  
-            local from_player = room:askForPlayerChosen(caozhi_xianxia, targets, self:objectName(), "@linlang-move-from")  
-            if not from_player then return false end
-            local to_player = room:askForPlayerChosen(caozhi_xianxia, room:getOtherPlayers(from_player), self:objectName(), "@linlang-move-to")  
-            if from_player and to_player then
-                local card_id = room:askForCardChosen(caozhi_xianxia,from_player,"ej",self:objectName())
-                local card = sgs.Sanguosha:getCard(card_id)
-                if card:isRed()~=judge.card:isRed() then 
-                    caozhi_xianxia:obtainCard(judge.card) 
-                    return false 
-                end
-                if card:isKindOf("EquipCard") then
-                    -- 移动装备牌  
-                    room:moveCardTo(card, to_player, sgs.Player_PlaceEquip)  
-                else  
-                    -- 移动判定区的牌  
-                    room:moveCardTo(card, to_player, sgs.Player_PlaceDelayedTrick)  
-                end  
-            else
-                caozhi_xianxia:obtainCard(judge.card) 
-            end
-        end
-        return false  
-    end,  
-}
-
-luoyingTurn = sgs.CreateTriggerSkill{  
-    name = "luoyingTurn",  
-    events = {sgs.Damaged, sgs.TurnedOver},  
-    frequency = sgs.Skill_Frequent,  
-    can_trigger = function(self, event, room, player, data)  
-        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  return "" end
-        if event == sgs.Damaged then
-            return self:objectName()  
-        elseif event == sgs.TurnedOver and  player:faceUp() then
-            return self:objectName()
-        end
-        return ""  
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        if player:askForSkillInvoke(self:objectName(), data) then  
-            room:broadcastSkillInvoke(self:objectName(), player)  
-            return true  
-        end  
-        return false  
-    end,  
-      
-    on_effect = function(self, event, room, player, data)
-        if event == sgs.Damaged then  
-            local lost_hp = player:getLostHp()  
-            if lost_hp > 0 then  
-                -- 摸X张牌  
-                player:drawCards(lost_hp, self:objectName())  
-                
-                -- 叠置  
-                player:turnOver()  
-            end  
-        elseif event == sgs.TurnedOver then
-            local judge = sgs.JudgeStruct()  
-            judge.pattern = ".|club"  
-            judge.good = true  
-            judge.reason = "luoyingTurn"  
-            judge.who = player  
-            
-            room:judge(judge)  
-            
-            -- 若判定牌为梅花，获得一个出牌阶段  
-            if judge.card:getSuit() == sgs.Card_Club then  
-                local phases = sgs.PhaseList()
-                phases:append(sgs.Player_Play)
-                phases:append(sgs.Player_NotActive)
-                player:play(phases)  
-                room:broadcastProperty(player, "phase")  
-            end  
-        end
-        return false  
-    end,  
-}  
-
--- 关联技能  
-caozhi_xianxia:addSkill(linlang)  
-caozhi_xianxia:addSkill(luoyingTurn)
-
-sgs.LoadTranslationTable{
-["xianxia"] = "线下",
-["#caozhi_xianxia"] = "八斗之才",  
-["caozhi_xianxia"] = "曹植",   
-["illustrator:caozhi_xianxia"] = "插画师名称",  
-["linlang"] = "琳琅",  
-[":linlang"] = "当一名角色的判定牌生效后，若判定牌为锦囊牌，你可以选择（1）获得该判定牌（2）移动场上一张与此牌颜色相同的牌。",  
-["luoyingTurn"] = "落英",  
-[":luoyingTurn"] = "当你受到伤害后，你可以摸X张牌并叠置，X为你已失去的体力值。当你从叠置状态恢复时，你可以进行一次判定，若判定牌为梅花，你立即获得一个出牌阶段。",
-["@linlang-move-from"] = "移动来源",
-["@linlang-move-to"] = "移动目标"
-}
-
+--[[
 chenqun = sgs.General(extension, "chenqun", "wei", 3)
 
 pindiCard = sgs.CreateSkillCard{
@@ -488,7 +333,7 @@ sgs.LoadTranslationTable{
     ["$faen2"] = "法理有度，恩威并施。",
     ["~chenqun"] = "吾身虽陨，典律昭昭。",
 }
-
+]]
 cuifei = sgs.General(extension, "cuifei", "wei", 3, false) -- 蜀势力，4血，男性（默认）  
 
 yiyong = sgs.CreateTriggerSkill{
@@ -749,7 +594,7 @@ sgs.LoadTranslationTable{
 ["lianzhu_discard"] = "弃置两张牌",  
 ["@lianzhu-card"] = "连诛：选择要交给目标角色的牌"
 }
-
+--[[
 fuhuanghou = sgs.General(extension, "fuhuanghou", "qun", 3, false)
 zhuikongUse = sgs.CreateZeroCardViewAsSkill{
     name = "zhuikongUse",
@@ -968,6 +813,7 @@ sgs.LoadTranslationTable{
     ["jieshushen"] = "淑慎",
     [":jieshushen"] = "当你回复1点体力/一次性失去至少2张牌后，你可以选择一名其他角色，令你与其各摸一张牌，若其没有手牌，其摸2张牌"
 }
+]]
 guanluo = sgs.General(extension, "guanluo", "wei", 3)
 
 luatuiyanCard = sgs.CreateSkillCard{
