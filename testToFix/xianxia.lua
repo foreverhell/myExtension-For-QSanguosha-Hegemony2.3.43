@@ -315,6 +315,7 @@ luoyingTurn = sgs.CreateTriggerSkill{
             if change.to == sgs.Player_NotActive then
                 for _, p in sgs.qlist(room:getAlivePlayers()) do
                     if p:hasFlag("luoyingTurnget") then
+                        room:setPlayerFlag(p, "-luoyingTurnget")
                         local phases = sgs.PhaseList()
                         phases:append(sgs.Player_Play)
                         phases:append(sgs.Player_NotActive)
