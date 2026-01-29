@@ -36,6 +36,8 @@ jiejiangwei:setDeputyMaxHpAdjustedValue(-1)
 jiejiangwei:addCompanion("zhugeliang")
 jiejiangwei:addCompanion("xiahouba")
 jiezongyu = sgs.General(testToFix, "zongyux", "shu", 3, true, false, true)
+jieganfuren = sgs.General(testToFix, "ganfuren", "shu", 3, false, false, true)
+jieganfuren:addCompanion("liubei")
 
 --吴势力
 jielvfan = sgs.General(testToFix, "lvfan", "wu", 3, true, false, true)
@@ -2387,6 +2389,72 @@ sgs.LoadTranslationTable{
 	"并交给你一张牌，若其交给你的牌与你使用的牌花色且点数相同，你失去此技能。",
 	["@luachengshang-choose"] = "承赏：选择一名目标角色",
 	["@luachengshang-give"] = "承赏：交给%dest一张牌（若与其使用的牌花色与点数均相同则其失去此技能）",
+}
+
+jieshushen = sgs.CreateTriggerSkill{  
+    name = "jieshushen",
+    events = {sgs.HpRecover, sgs.CardsMoveOneTime},
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) then
+			if event == sgs.HpRecover then
+				local recover = data:toRecover()
+				local trigger_list = {}
+				for i = 1, recover.recover do
+					table.insert(trigger_list, self:objectName())
+				end
+				return table.concat(trigger_list, ",")
+			else
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					if move.from_places:contains(sgs.Player_PlaceHand) or move.from_places:contains(sgs.Player_PlaceEquip) then
+						if move.from and move.from:isAlive() and player:objectName() == move.from:objectName() then
+                            if move.card_ids:length() >= 2 then
+                                return self:objectName()
+                            end
+						end
+					end
+				end
+			end
+        end
+        return false
+    end,
+
+    on_cost = function(self, event, room, player, data)
+		local targets = room:getOtherPlayers(player)
+		local target = room:askForPlayerChosen(player, targets, self:objectName(), "shushen-invoke", true, true)
+		if target then
+			local d = sgs.QVariant()
+			d:setValue(target)
+			player:setTag("jieshushenTarget", d)
+			return true
+		end
+		return false
+    end,
+
+    on_effect = function(self, event, room, player, data)
+		local target = player:getTag("jieshushenTarget"):toPlayer()
+		player:removeTag("jieshushenTarget")
+		if target then
+			room:broadcastSkillInvoke("shushen", player)
+			player:drawCards(1, self:objectName())
+			if target:isKongcheng() then
+				target:drawCards(2, self:objectName())
+			else
+				target:drawCards(1, self:objectName())
+			end
+		end
+        return false
+    end
+}
+
+jieganfuren:addSkill(jieshushen)
+jieganfuren:addSkill("shenzhi")
+
+sgs.LoadTranslationTable{
+    ["jieganfuren"] = "甘夫人",
+    ["jieshushen"] = "淑慎",
+	[":jieshushen"] = "当你回复1点体力或一次性失去至少两张牌后，你可以选择一名其他角色，令你与其各摸一张牌，若其没有手牌，其改为摸两张牌",
 }
 
 sgs.Sanguosha:addSkills(skills)
