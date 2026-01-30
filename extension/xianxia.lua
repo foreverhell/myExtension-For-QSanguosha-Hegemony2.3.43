@@ -168,6 +168,7 @@ caifuren:addSkill(qietingX)
 caifuren:addSkill(xianzhou)  
 
 sgs.LoadTranslationTable{
+    ["xianxia"] = "线下",
     ["caifuren"] = "蔡夫人",  
     ["#caifuren"] = "荆州的妇人",  
     ["&caifuren"] = "蔡夫人",  
