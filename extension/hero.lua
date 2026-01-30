@@ -807,7 +807,7 @@ shitu = sgs.CreateTriggerSkill{
     end  
 }
 shitu_prohibit = sgs.CreateProhibitSkill{  
-    name = "#shitu_prohibit",  
+    name = "#shitu-prohibit",  
     is_prohibited = function(self, from, to, card)  
         if from and from:hasFlag("shitu_target") and to and to:hasSkill("shitu") and card then  
             local shitu_card_id = to:property("shitu_card_id"):toString()
@@ -819,6 +819,7 @@ shitu_prohibit = sgs.CreateProhibitSkill{
         return false  
     end  
 }
+extension:insertRelatedSkills("shitu","#shitu-prohibit")
 chairong:addSkill(shenwu)
 chairong:addSkill(shitu)
 chairong:addSkill(shitu_prohibit)
@@ -2847,7 +2848,115 @@ sgs.LoadTranslationTable{
 [":qing2guo"] = "结束阶段开始时，若你于此回合内未使用过基本牌或未使用过锦囊牌，你摸一张牌。",
 }  
 
+hairui = sgs.General(extension, "hairui", "wu", 3)  
+sutan = sgs.CreateTriggerSkill{
+	name = "sutan",
+	events = {sgs.CardsMoveOneTime, sgs.TurnStart},
+    frequency = sgs.Skill_Frequent,  
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.CardsMoveOneTime then
+            if skillTriggerable(player, self:objectName()) then
+                local current = room:getCurrent()
+                if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+                    local move_datas = data:toList()
+                    for _, move_data in sgs.qlist(move_datas) do
+                        local move = move_data:toMoveOneTime()
+                        if move.to_place == sgs.Player_PlaceHand then
+                            if move.to and move.to:isAlive() and not move.to:hasSkill(self:objectName()) and move.to ~= current then
+                                room:addPlayerMark(getServerPlayer(room, move.to:objectName()), "@tan", move.card_ids:length())
+                            end
+                        end
+                    end
+                end
+            end
+        elseif event == sgs.TurnStart and player:getMark("@tan") > 0 then
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+            if not owner:willBeFriendWith(player) then
+                return self:objectName(), owner:objectName()
+            end
+        end
+		return ""
+	end,
+    on_cost = function(self, event, room, player, data, ask_who)
+		return ask_who:askForSkillInvoke(self:objectName(),data)
+	end,
+    on_effect = function(self, event, room, player, data, ask_who)
+        if event == sgs.TurnStart and player:getMark("@tan") > 0 then
+            local num = player:getMark("@tan")
+            room:setPlayerMark(player, "@tan", 0)
+            if player:getHandcardNum() >= num then
+                local choice = room:askForChoice(player, self:objectName(), "discard+losehp")
+                if choice == "discard" then
+                    room:askForDiscard(player, self:objectName(), num, num, false, false)
+                else
+                    room:loseHp(player,1)
+                end
+            else
+                player:throwAllHandCards()
+                room:loseHp(player,1)
+            end
+        end
+        return false
+	end
+}
 
+zhiqingCard = sgs.CreateSkillCard{  
+    name = "zhiqingCard",  
+    target_fixed = false,  
+    will_throw = false,  
+    filter = function(self, targets, to_select)  
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName() and not to_select:isKongcheng()
+    end,  
+      
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]
+
+        local source_cards = sgs.IntList()
+        for _, card in sgs.qlist(source:getHandcards()) do
+            if card:isBlack() then
+                source_cards:append(card:getId())
+            end
+        end
+        local dummy = sgs.DummyCard(source_cards)
+        room:throwCard(dummy, source, source)
+        dummy:deleteLater()
+        source:drawCards(source_cards:length(),self:objectName())
+
+        local target_cards = sgs.IntList()
+        for _, card in sgs.qlist(target:getHandcards()) do
+            if card:isBlack() then
+                target_cards:append(card:getId())
+            end
+        end
+        local dummy = sgs.DummyCard(target_cards)
+        room:throwCard(dummy, target, target)
+        dummy:deleteLater()
+        target:drawCards(target_cards:length(),self:objectName())        
+    end  
+}  
+  
+-- 匡合技能  
+zhiqing = sgs.CreateZeroCardViewAsSkill{  
+    name = "zhiqing",  
+    view_as = function(self)  
+        local card = zhiqingCard:clone()  
+        card:setShowSkill(self:objectName())  
+        return card  
+    end,  
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#zhiqingCard") and not player:isKongcheng()
+    end  
+}
+hairui:addSkill(sutan)  
+hairui:addSkill(zhiqing)
+sgs.LoadTranslationTable{
+    ["hairui"] = "海瑞",  
+    ["sutan"] = "肃贪",  
+    [":sutan"] = "其他角色回合外获得手牌时，其获得X个“贪”标记，X为本次获得的手牌数。其回合开始时，若其势力与你不同，你可以令其移除所有“贪”标记，其选择（1）弃置等量手牌（2）失去1点体力；若其手牌数小于标记数，则两项都执行",--削弱/加强方向：你可以弃置所有手牌，令其两项都执行
+    ["zhiqing"] = "至清",  
+    [":zhiqing"] = "出牌阶段限一次。你可以选择一名其他角色，你与该角色弃置所有黑色手牌，然后摸等量牌",  
+}
 hanfeizi = sgs.General(extension, "hanfeizi", "qun", 3)  -- 吴国，4血，男性  
 
 -- 拒绝谏言技能卡  
@@ -11266,7 +11375,7 @@ yuefa = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)
 		if event == sgs.TargetChoosing and player and player:isAlive() then
 			local use = data:toCardUse()
-			if use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill and use.card:isKindOf("TrickCard") and use.to:length() >= room:getAlivePlayers():length()-1 then--room:alivePlayerCount(false)-1
+			if use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill and use.card:isKindOf("TrickCard") and use.to:length() >= player:aliveCount(false)-1 then--player:aliveCount(false)-1 --room:getAlivePlayers():length()-1
 				local skill_list = {}
 				local name_list = {}
 				local skill_owners = room:findPlayersBySkillName(self:objectName())
