@@ -2862,7 +2862,7 @@ sutan = sgs.CreateTriggerSkill{
                     for _, move_data in sgs.qlist(move_datas) do
                         local move = move_data:toMoveOneTime()
                         if move.to_place == sgs.Player_PlaceHand then
-                            if move.to and move.to:isAlive() and not move.to:hasSkill(self:objectName()) and move.to ~= current then
+                            if move.to and move.to:isAlive() and not move.to:hasSkill(self:objectName()) and move.to:objectName() ~= current:objectName() then
                                 room:addPlayerMark(getServerPlayer(room, move.to:objectName()), "@tan", move.card_ids:length())
                             end
                         end
@@ -5028,7 +5028,7 @@ junshen = sgs.CreateZeroCardViewAsSkill{
 bingshi = sgs.CreateTriggerSkill{  
     name = "bingshi",  
     events = {sgs.TurnStart},
-    frequency = sgs.Skill_Frequent,  
+    --frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive()  then  
             if player:hasSkill(self:objectName()) and not player:hasFlag("bingshi_used") then  --自己回合
@@ -6005,7 +6005,7 @@ lishimin = sgs.General(extension, "lishimin", "wu", 4)  --wu,jin
 kongju = sgs.CreateProhibitSkill{  --不能指定为目标，不是取消目标
     name = "kongju",  
     is_prohibited = function(self, from, to, card)  
-        if to:hasShownSkill(self:objectName()) and (card:isKindOf("Snatch") or card:isKindOf("dismantlement") or card:isKindOf("DelayedTrick")) then  
+        if to:hasShownSkill(self:objectName()) and (card:isKindOf("Snatch") or card:isKindOf("Dismantlement") or card:isKindOf("DelayedTrick")) then  
             return true  
         end  
         return false  
@@ -14024,8 +14024,7 @@ caoshu = sgs.CreateTriggerSkill{
                     card = response.m_card  
                 end  
                   
-                if card and card:isBlack() then  
-                    -- 检查手牌区  
+                if card and card:isBlack() and use.card:getTypeId() ~= sgs.Card_TypeSkill then  
                     return self:objectName()  
                 end  
             end  
