@@ -1037,7 +1037,7 @@ kuangzhanshiSkill = sgs.CreateTriggerSkill{
         if player and player:isAlive() then  
             local damage = data:toDamage()  
             -- 只有当玩家可以失去体力时才触发  
-            if player:getHp() > 1 then  
+            if player:getHp() > 1 and not player:isFriendWith(damage.to) then  
                 return self:objectName()  
             end  
         end  
@@ -1419,7 +1419,7 @@ sanchaji = sgs.CreateWeapon{
 sanchajiSkill = sgs.CreateTriggerSkill{  
     name = "sanchaji",  
     events = {sgs.CardUsed},  
-    frequency = sgs.Skill_Frequent,
+    --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         if player and player:isAlive() and player:hasSkill(self:objectName()) then  
             local weapon = player:getWeapon()
@@ -1571,7 +1571,7 @@ sgs.LoadTranslationTable{
     ["#FantanJia"] = "%from 的【反弹甲】效果被触发，将 %arg 点伤害分摊，对 %to 造成 %arg2 点伤害",
 
     ["kuangzhanshi"] = "狂战士",  
-    [":kuangzhanshi"] = "装备牌·武器\n\n攻击范围：4\n技能：当你造成伤害时，若你的体力值大于1，你可以失去1点体力，令此伤害+1。",  
+    [":kuangzhanshi"] = "装备牌·武器\n\n攻击范围：4\n技能：当你对其他势力角色造成伤害时，若你的体力值大于1，你可以失去1点体力，令此伤害+1。",  
     ["#WeaponDamageBuff"] = "%from 的【%arg】效果被触发，对 %to 的伤害+%arg2",  
     ["@kuangzhanshi"] = "你可以失去1点体力，令此伤害+1",
 
