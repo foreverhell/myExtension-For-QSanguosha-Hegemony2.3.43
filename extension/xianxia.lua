@@ -36,7 +36,7 @@ qietingX = sgs.CreateTriggerSkill{
         if not current or current:isDead() or current:getPhase() ~= sgs.Player_Finish then  return ""  end      
           
         -- 检查该角色本回合是否对除其外的角色使用过牌  
-        if current:hasFlag("qietingX_used_card_to_others") and current:hasFlag("qietingX_damage") then  
+        if current:hasFlag("qietingX_used_card_to_others") and (current:hasFlag("qietingX_damage") or current:getEquips():isEmpty()) then  
             return ""  
         end  
         local owner = room:findPlayerBySkillName(self:objectName())
@@ -64,7 +64,7 @@ qietingX = sgs.CreateTriggerSkill{
             -- 检查目标是否有装备牌  
             local equips = current:getEquips()  
             local has_equips = not equips:isEmpty()  
-            if has_equips then  
+            if has_equips and ask_who:askForSkillInvoke("@qieting-move", data) then  
                 -- 移动装备区1张牌到自己的装备区  
                 local card_id = room:askForCardChosen(ask_who, current, "e", self:objectName())  
                 local card = sgs.Sanguosha:getCard(card_id)  
@@ -177,7 +177,7 @@ sgs.LoadTranslationTable{
     ["qietingX"] = "窃听",  
     [":qietingX"] = "其他角色的结束阶段：若其本回合未对除其外的角色使用牌，你可以摸1张牌；若其本回合未造成伤害，你可以将其装备区1张牌移动到你的装备区。",  
     ["qietingX:draw"] = "摸1张牌",  
-    ["qietingX:move"] = "移动其1张装备牌",  
+    ["@qieting-move"] = "是否移动其1张装备牌",  
 
     ["xianzhou"] = "献州",  
     [":xianzhou"] = "限定技，出牌阶段，你可以将装备区所有牌交给一名其他角色，其对攻击范围内至多等量角色造成1点伤害，然后你恢复等量体力。",  
@@ -1292,7 +1292,7 @@ sgs.LoadTranslationTable{
 }
 
 guanyinping = sgs.General(extension, "guanyinping", "shu", 4, false)
-guansuo_xianxia:setDeputyMaxHpAdjustedValue(-1)
+guanyinping:setDeputyMaxHpAdjustedValue(-1)
 
 xuehen = sgs.CreateTriggerSkill{  
     name = "xuehen",  
