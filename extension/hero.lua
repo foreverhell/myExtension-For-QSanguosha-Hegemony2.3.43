@@ -4347,7 +4347,6 @@ cike = sgs.CreateTriggerSkill{
             room:throwCard(card_id, skill_target, player)  
         elseif judge.card:isRed() then
             room:obtainCard(player,judge.card)
-            data:setValue(use)
         end  
     end
 }
@@ -11464,7 +11463,7 @@ xiaohe:addSkill(yunliang)
 sgs.LoadTranslationTable{
     ["xiaohe"] = "萧何",
     ["yuefa"] = "约法",
-    [":yuefa"] = "当群体锦囊指定目标时，你可以减少一个目标",
+    [":yuefa"] = "当锦囊指定X或X-1个目标（X为在场角色数）时，你可以减少一个目标",
 
     ["yunliang"] = "运粮",
     [":yunliang"] = "出牌阶段限一次。你可以弃置2张牌，令一名角色摸2张牌",
@@ -11504,12 +11503,12 @@ tianxiangSkip = sgs.CreateTriggerSkill{
       
     on_effect = function(self, event, room, player, data, ask_who)  
         -- 跳过判定阶段
-        local choice = room:askForChoice(ask_who, self:objectName(),"start+judge+both+cancel")
+        local choice = room:askForChoice(ask_who, self:objectName(),"start+judge+StartJudge+cancel")
         if choice=="start" then
             player:skip(sgs.Player_Start)   
         elseif choice=="judge" then
             player:skip(sgs.Player_Judge)
-        elseif choice=="both" then
+        elseif choice=="StartJudge" then
             player:skip(sgs.Player_Start)   
             player:skip(sgs.Player_Judge)
         end
@@ -11524,6 +11523,8 @@ sgs.LoadTranslationTable{
     ["tianxiangSkip"] = "天香-跳",  
     [":tianxiangSkip"] = "任意角色的准备阶段，你可以令其跳过准备阶段或判定阶段。",  
     ["@tianxiangSkip-invoke"] = "天香：你可以令 %src 跳过判定阶段",
+    ["start"] = "准备",
+    ["StartJudge"] = "准备和判定",
 }
 
 xiaozhuangtaihou = sgs.General(extension, "xiaozhuangtaihou", "qun", 3, false)  
