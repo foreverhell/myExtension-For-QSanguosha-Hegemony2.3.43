@@ -2278,7 +2278,7 @@ lige = sgs.CreateTriggerSkill{
         local card_id = room:askForAG(ask_who, cards, false, self:objectName())  
         room:clearAG(ask_who)  
           
-        if card_id ~= -1 then  
+        if card_id then  
             -- 选择目标角色  
             local targets = sgs.SPlayerList()  
             for _, p in sgs.qlist(room:getAlivePlayers()) do  
