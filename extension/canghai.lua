@@ -2551,6 +2551,93 @@ sgs.LoadTranslationTable{
     ["pianan"] = "偏安",
     [":pianan"] = "你可以将一张牌当【闪】使用或打出，然后你与该【闪】响应牌的使用者本回合不能使用或打出与该【闪】颜色相同的牌"
 }
+
+liufeng = sgs.General(extension, "liufeng", "shu", 4)
+
+xiansi = sgs.CreateTriggerSkill{  
+    name = "xiansi",  
+    events = {sgs.EventPhaseStart},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start then
+            return self:objectName()
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)
+        return player:askForSkillInvoke(self:objectName(), data)
+    end,
+      
+    on_effect = function(self, event, room, player, data)
+        local targets = room:askForPlayersChosen(player, room:getOtherPlayers(player), self:objectName(), 0, 2, "@xiansi-choose")
+        for _, target in sgs.qlist(targets) do
+            if not target:isAllNude() then
+                local card_id = room:askForCardChosen(player, target, "hej", self:objectName())
+                player:addToPile("ni", card_id)
+            end
+        end
+        for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+            if not p:hasSkill("xiansiSlash") then
+                room:handleAcquireDetachSkills(p, "xiansiSlash")
+            end
+        end
+        return false  
+    end  
+}
+
+
+xiansiSlashCard = sgs.CreateSkillCard{  
+    name = "xiansiSlashCard",  
+    target_fixed = true,  
+    will_throw = false,        
+    on_use = function(self, room, source)  
+        local target = room:findPlayer("liufeng")
+        if target and target:isAlive() and source:inMyAttackRange(target) then
+            local slash = sgs.Sanguosha:cloneCard("Slash")
+            for _, card_id in sgs.qlist(self:getSubcards()) do
+                slash:addSubcard(card_id)
+            end
+            slash:deleteLater()
+            local use = sgs.CardUseStruct()  
+            use.card = slash
+            use.from = source 
+            use.to:append(target)
+            room:useCard(use, true)--计入次数
+        end
+    end  
+}  
+xiansiSlash = sgs.CreateViewAsSkill{
+    name = "xiansiSlash",
+    filter_pattern = ".|.|.|%ni",
+    expand_pile = "%ni",
+    view_filter = function(self, selected, to_select)
+        return #selected < 2
+    end,
+    view_as = function(self, cards)
+        if #cards == 2 then
+            local slash = xiansiSlashCard:clone()
+            slash:addSubcard(cards[1])
+            slash:addSubcard(cards[2])
+            slash:setSkillName("xiansi")
+            return slash
+        end
+        return nil
+    end,
+
+    enabled_at_play = function(self, player)
+        return sgs.Slash_IsAvailable(player)
+    end
+}
+liufeng:addSkill(xiansi)
+if not sgs.Sanguosha:getSkill("xiansiSlash") then skills:append(xiansiSlash) end
+sgs.LoadTranslationTable{
+    ["liufeng"] = "刘封",  
+    ["xiansi"] = "陷嗣",  
+    [":xiansi"] = "准备阶段，你可以将至多2名角色区域内各1张牌，置于“逆”牌堆；其他角色需要对你使用杀时，其可以移除“逆”牌堆2张牌，视为对你使用计入次数、有距离限制的杀",
+    ["xiansiSlash"] = "陷嗣-杀",
+    [":xiansiSlash"] = "你可以将“逆”牌堆的2张牌当杀对刘封使用"
+}
 -- 创建刘协武将  
 liuxie = sgs.General(extension, "liuxie", "qun", 3) 
 
