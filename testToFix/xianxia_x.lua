@@ -110,6 +110,9 @@ zhuikong = sgs.CreateTriggerSkill{
                 card = pindian.from_card
 				card_id = pindian.from_card:getId()
             end
+            if card:isKindOf("Jink") or card:isKindOf("Nullification") or card:isKindOf("ThreatenEmperor") then
+                return false
+            end
 			room:setPlayerMark(winner, "zhuikongCardid", card_id + 1)
 			local prompt = "惴恐：你可以使用拼点输的牌（【"
 			room:askForUseCard(winner, "@@zhuikongUse", prompt .. card:getName() .. "】）")
@@ -198,11 +201,11 @@ sgs.LoadTranslationTable{
     [":qiuyuan"] = "当你成为杀的目标时，你可以选择另一名其他角色，其选择交给你一张闪或者也成为此杀的目标。",
     ["@qiuyuan-choose"] = "求援：请选择一名其他角色",
     ["@qiuyuan-give"] = "求援：请交给%dest一张【闪】，否则也成为该【杀】的目标",
-    ["$zhuikong1"] = "虎豹骁骑，甲兵自当冠宇天下。",
-    ["$zhuikong2"] = "非虎贲难入我营，唯坚铠方配锐士。",
-    ["$qiuyuan1"] = "虎豹骁骑，甲兵自当冠宇天下。",
-    ["$qiuyuan2"] = "非虎贲难入我营，唯坚铠方配锐士。",
-    ["~luacaochun"] = "三属之下，竟也护不住我性命…",
+    ["$zhuikong1"] = "曹贼！你怎可如此不尊汉室！",
+    ["$zhuikong2"] = "密信之事，不可被曹贼知晓。",
+    ["$qiuyuan1"] = "陛下，我不想离开。",
+    ["$qiuyuan2"] = "将军此事，可有希望。",
+    ["~fuhuanghou"] = "这幽禁之地，好冷……",
 }
 
 linlang = sgs.CreateTriggerSkill{
@@ -305,26 +308,38 @@ linlang = sgs.CreateTriggerSkill{
 luoyingTurn = sgs.CreateTriggerSkill{
     name = "luoyingTurn",
     events = {sgs.Damaged, sgs.TurnedOver, sgs.EventPhaseChanging},
+    on_record = function (self, event, room, player, data)
+        if event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            if change.to == sgs.Player_RoundStart then
+                for _, p in sgs.qlist(room:getAlivePlayers()) do
+                    if p:getMark("luoyingTurnget") > 0 then
+                        room:removePlayerMark(p, "luoyingTurnget")
+                        local phases = sgs.PhaseList()
+                        phases:append(sgs.Player_Play)
+                        p:play(phases)
+                        room:broadcastProperty(p, "phase")
+                    end
+                end
+            elseif change.from == sgs.Player_Play then
+                local current = room:getCurrent()
+                if current:getMark("getNewTurn") > 0 then
+                    room:setPlayerMark(current, "getNewTurn", 0)
+                    current:gainAnExtraTurn()
+                end
+            elseif skillTriggerable(player, self:objectName()) and change.to == sgs.Player_NotActive then
+                if player:getMark("ThreatenEmperorExtraTurn") > 0 then --挟天子特殊处理，不然会被直接吞掉
+                    room:setPlayerMark(player, "getNewTurn", 1)
+                end
+            end
+        end
+    end,
+
     can_trigger = function(self, event, room, player, data)  
         if event == sgs.Damaged and skillTriggerable(player, self:objectName()) then
             return self:objectName()
         elseif skillTriggerable(player, self:objectName()) and event == sgs.TurnedOver and player:faceUp() then
             return self:objectName()
-        elseif event == sgs.EventPhaseChanging then
-            local change = data:toPhaseChange()
-            if change.to == sgs.Player_NotActive then
-                for _, p in sgs.qlist(room:getAlivePlayers()) do
-                    if p:hasFlag("luoyingTurnget") then
-                        room:setPlayerFlag(p, "-luoyingTurnget")
-                        local phases = sgs.PhaseList()
-                        phases:append(sgs.Player_Play)
-                        phases:append(sgs.Player_NotActive)
-                        p:play(phases)
-                        room:broadcastProperty(p, "phase")
-                    end
-                end
-                
-            end
         end
         return false
     end,  
@@ -357,9 +372,9 @@ luoyingTurn = sgs.CreateTriggerSkill{
             room:judge(judge)  
             
             -- 若判定牌为梅花，获得一个出牌阶段  
-            if judge.card:getSuit() == sgs.Card_Club then  
-                room:setPlayerFlag(player, "luoyingTurnget")
-            end  
+            if judge.card:getSuit() == sgs.Card_Club then
+                room:addPlayerMark(player, "luoyingTurnget", 1)
+            end
         end
         return false  
     end,  
@@ -372,13 +387,18 @@ sgs.LoadTranslationTable{
     ["#caozhi_xianxia"] = "八斗之才",  
     ["caozhi_xianxia"] = "曹植",   
     ["linlang"] = "琳琅",  
-    [":linlang"] = "当一名角色的判定牌生效后，若判定牌为锦囊牌，你可以选择（1）获得该判定牌（2）移动场上一张与此牌颜色相同的牌。",  
+    [":linlang"] = "当一名角色的判定牌生效后，若判定牌为锦囊牌，你可以选择一项：1.获得该判定牌；\n2.移动场上一张与此牌颜色相同的牌。",  
     ["luoyingTurn"] = "落英",  
-    [":luoyingTurn"] = "当你受到伤害后，你可以摸X张牌并叠置（X为你已失去的体力值）。当你从叠置状态恢复时，你可以进行一次判定，若判定牌为梅花，此回合结束后你获得一个出牌阶段。",
+    [":luoyingTurn"] = "当你受到伤害后，你可以摸X张牌并叠置（X为你已失去的体力值）。当你从叠置状态恢复时，你可以进行一次判定，若判定牌为梅花，此回合结束后你获得一个额外的出牌阶段。",
     ["@linlang-move-from"] = "落英：请选择要移动的角色",
     ["@linlang-move-to"] = "落英：请选择要移动至装备区/判定区的角色",
     ["linlang_obtainCard"] = "获得该锦囊牌",
     ["linlang_move"] = "移动场上一张牌",
+    ["$linlang1"] = "心愤无所表，下笔即成篇。",
+    ["$linlang2"] = "弃忧但求醉，醒后寻复来。",
+    ["$luoyingTurn1"] = "花落断情伤，心碎斩痴妄。",
+    ["$luoyingTurn2"] = "流水不言恨，落英难解愁。",
+    ["~caozhi_xianxia"] = "一生轻松待来生。",
 }
 
 sgs.Sanguosha:addSkills(skills)
