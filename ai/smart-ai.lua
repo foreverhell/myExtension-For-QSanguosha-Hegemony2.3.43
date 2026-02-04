@@ -3061,7 +3061,8 @@ function SmartAI:askForDiscard(reason, discard_num, min_num, optional, include_e
 					end
 				end
 				if need_extra_discard > 1 then
-					if erzhang and erzhang:isAlive() and not self.player:willBeFriendWith(erzhang) then
+					if erzhang and erzhang:isAlive() and not self.player:willBeFriendWith(erzhang) and
+					erzhang:objectName() ~= self.player:objectName() then
 						PeaceSpell_loss = PeaceSpell_loss + (need_extra_discard - 1)*2
 					else
 						PeaceSpell_loss = PeaceSpell_loss + need_extra_discard
