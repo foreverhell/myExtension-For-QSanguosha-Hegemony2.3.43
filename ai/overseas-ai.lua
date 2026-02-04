@@ -949,16 +949,20 @@ end
 
 sgs.ai_skill_invoke.jilei = function(self, data)
 	local damage = data:toDamage()
-	return not self:isFriend(damage.from) or not self.player:willBeFriendWith(damage.from)
+	if damage.from and (self:isFriend(damage.from) or self.player:willBeFriendWith(damage.from)) then
+		return false
+	end
+	return true
 end
 
 sgs.ai_skill_choice.jilei = function(self, choices, data)
 	local dfrom = data:toDamage().from
-	local stringMark = dfrom.getStringMark("@jilei-turn")
+	local room = self.player:getRoom()
+	--local stringMark = dfrom.getStringMark("@jilei-turn")
 
     --[[local b_limited = dfrom:getMark("##jilei+BasicCard") > 0
     local t_limited = dfrom:getMark("##jilei+TrickCard") > 0
-    local e_limited = dfrom:getMark("##jilei+EquipCard") > 0]]
+    local e_limited = dfrom:getMark("##jilei+EquipCard") > 0
 	local b_limited = table.contains(stringMark, "log_BasicCard")
     local t_limited = table.contains(stringMark, "log_TrickCard")
     local e_limited = table.contains(stringMark, "log_EquipCard")
@@ -972,15 +976,23 @@ sgs.ai_skill_choice.jilei = function(self, choices, data)
 		return "BasicCard"
 	elseif b_limited then
 		return "TrickCard"
-    end
-    --[[if self:slashIsAvailable(dfrom) and not b_limited then
+    end]]
+	if dfrom and dfrom:getPhase() == sgs.Player_NotActive and not dfrom:hasFlag("jileiBasic") then
+		room:setPlayerFlag(dfrom, "jileiBasic")
+		return "BasicCard"
+	end
+    if (dfrom:getSlashCount() <= 0 or dfrom:hasShownSkills("paoxiao|kuangcai|paoxiao_xh")) and dfrom:getHandcardNum() > 1 then
         for _, p in ipairs(self.friends) do
             if dfrom:inMyAttackRange(p) then
+				room:setPlayerFlag(dfrom, "jileiBasic")
                 return "BasicCard"
             end
         end
-    end]]--优先鸡肋锦囊
-    if (dfrom:getHp() < 2 and getCardsNum("Peach", dfrom, self.player) > 0 and not b_limited) then
+	elseif dfrom:hasFlag("jileiBasic") then
+		return "TrickCard"
+    end
+    if (dfrom:getHp() < 2 and getCardsNum("Peach", dfrom, self.player) > 0) and not dfrom:hasFlag("jileiBasic") then --and not b_limited) then
+		room:setPlayerFlag(dfrom, "jileiBasic")
 		return "BasicCard"
 	else
 		return "TrickCard"
@@ -1251,7 +1263,7 @@ sgs.ai_skill_use["@@jiansu"] = function(self, prompt, method)
     local money_cards = {}
     local str_ids = self.player:property("jiansu_record"):toString():split("+")
     for _, str_id in ipairs(str_ids) do
-      	table.insert(money_cards, sgs.Sanguosha:getCard(tonumber(str_id)))
+      	table.insert(money_cards, sgs.Sanguosha:getCard(tonumber(str_id))) --tonumber返回空
     end
     self:sortByUseValue(money_cards, true)
 
@@ -1670,6 +1682,15 @@ end
 --刘夫人
 sgs.ai_skill_invoke.zhuidu = function(self, data)
 	local target = data:toPlayer()
+	if target:hasArmorEffect("SilverLion") or (target:hasArmorEffect("BreastPlate") and target:getHp() == 1) then
+        return false
+    end
+    if target:hasShownSkill("gongqing") and self:getAttackRange() < 3 then
+        return false
+    end
+	if target:hasShownSkill("tianxiang") and target:getHandcardNum() > 1 then
+		return false
+	end
     return not self:isFriend(target)
 end
 
@@ -2311,6 +2332,7 @@ sgs.ai_skill_invoke.lifu_view = function(self, data)
 	local card = data:toCard()
 	if card then
 		Global_room:writeToConsole("lifu_view:"..tostring(card:getClassName()))
+		self.room:setPlayerFlag(self.player, "lifu_viewSuit_" .. card:getSuitString())
 	end
 	
 	--[[local flag = string.format("%s_%s_%s", "visible", self.player:objectName(), target2:objectName())
@@ -2360,10 +2382,10 @@ sgs.ai_skill_playerchosen.yanzhong = function(self, targets)
 	end
 	for _, enemy in ipairs(targets) do
 		if self:isEnemy(enemy) and not enemy:isKongcheng() and not self:doNotDiscard(enemy, "h") then
-			known_suit[1] = getKnownCard(enemy, self.player, "spade", true, "h") + known_suit[1]
-			known_suit[2] = getKnownCard(enemy, self.player, "club", true, "h") + known_suit[2]
-			known_suit[3] = getKnownCard(enemy, self.player, "heart", true, "h") + known_suit[3]
-			known_suit[4] = getKnownCard(enemy, self.player, "diamond", true, "h") + known_suit[4]
+			known_suit[1] = getKnownCard(enemy, self.player, "spade", true, "h")
+			known_suit[2] = getKnownCard(enemy, self.player, "club", true, "h")
+			known_suit[3] = getKnownCard(enemy, self.player, "heart", true, "h")
+			known_suit[4] = getKnownCard(enemy, self.player, "diamond", true, "h")
 			for _, suit in ipairs(known_suit) do
 				if suit == enemy:getHandcardNum() then--如果已知花色等于手牌数
 					self.yanzhong_suit = table.indexOf(known_suit, suit) - 1
