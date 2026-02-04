@@ -188,7 +188,7 @@ sgs.ai_skill_use["@@jieyue"] = function(self, prompt, method)
   end
 	self:sort(targets, "defense", true)
   for _, p in ipairs(targets) do
-    if not self:isFriend(p) and not p:hasSkills("jijiu|tianxiang") then
+    if not self:isFriend(p) and not p:hasShownSkills("jijiu|tianxiang|liuli|kanpo|fudi|zhendu") then
       visibleflag = string.format("%s_%s_%s", "visible", self.player:objectName(), p:objectName())
       if not card:hasFlag("visible") then card:setFlags(visibleflag) end
       return "@JieyueCard=" .. card:getEffectiveId() .. "->" .. p:objectName()
