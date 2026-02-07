@@ -13877,8 +13877,8 @@ xiaoyaoTurned = sgs.CreateTriggerSkill{
 }
 -- 组合技能  
 zhuangzhou:addSkill(mengdie)
---zhuangzhou:addSkill(xiaoyaoMaxCards)
---zhuangzhou:addSkill(xiaoyaoTargetMod)
+zhuangzhou:addSkill(xiaoyaoMaxCards)
+zhuangzhou:addSkill(xiaoyaoTargetMod)
 zhuangzhou:addSkill(xiaoyaoTurned)
 sgs.LoadTranslationTable{
 ["#zhuangzhou"] = "逍遥游者",  
