@@ -8739,17 +8739,15 @@ wudaoDeath = sgs.CreateTriggerSkill{
         player:drawCards(count,self:objectName())
     end
 }
-sgs.LoadTranslationTable{
-    ["wudaoDeath"] = "无道",
-    [":wudaoDeath"] = "你杀死目标时，你将手牌摸至5"
-}
 shangzhou:addSkill(wudaoDeath)
 shangzhou:addSkill(zhongpan)
 sgs.LoadTranslationTable{
     ["shangzhou"] = "商纣",  
 
     ["zhongpan"] = "众叛",   
-    [":zhongpan"] = "出牌阶段限一次，你可以使用一张红桃手牌视为使用一张【万箭齐发】。"  
+    [":zhongpan"] = "出牌阶段限一次，你可以使用一张红桃手牌视为使用一张【万箭齐发】。",
+    ["wudaoDeath"] = "无道",
+    [":wudaoDeath"] = "你杀死目标时，你将手牌摸至5"
 }
 
 -- 创建武将：时迁  
@@ -13879,8 +13877,8 @@ xiaoyaoTurned = sgs.CreateTriggerSkill{
 }
 -- 组合技能  
 zhuangzhou:addSkill(mengdie)
-zhuangzhou:addSkill(xiaoyaoMaxCards)
-zhuangzhou:addSkill(xiaoyaoTargetMod)
+--zhuangzhou:addSkill(xiaoyaoMaxCards)
+--zhuangzhou:addSkill(xiaoyaoTargetMod)
 zhuangzhou:addSkill(xiaoyaoTurned)
 sgs.LoadTranslationTable{
 ["#zhuangzhou"] = "逍遥游者",  
