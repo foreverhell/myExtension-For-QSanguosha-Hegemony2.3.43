@@ -1348,18 +1348,27 @@ xuehen = sgs.CreateTriggerSkill{
 
 wuji = sgs.CreateTriggerSkill{  
     name = "wuji",  
-    events = {sgs.GameStart}, 
+    events = {sgs.EventLoseSkill, sgs.GeneralShown, sgs.GeneralHidden, sgs.DFDebut, sgs.TurnStart},
+    -- sgs.GameStart, sgs.GeneralTransformed, sgs.TurnStart
     relate_to_place = "deputy",
     frequency = sgs.Skill_Compulsory,  
-    can_trigger = function(self, event, room, player, data)  
-        local owner = room:findPlayerBySkillName(self:objectName())
-        if owner and owner:isAlive() and owner:hasSkill(self:objectName()) then
-            if owner:hasSkill("wusheng") then
-                room:handleAcquireDetachSkills(owner, "wushengExtraSlash")
-                --room:handleAcquireDetachSkills(owner, "wushengExtraSlashMod")
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.TurnStart then
+            player = room:findPlayerBySkillName(self:objectName())
+            if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+        end
+        if player:hasShownSkill(self:objectName()) then
+            if player:inHeadSkills("wusheng") then
+                room:handleAcquireDetachSkills(player, "wushengExtraSlash!")
             else
-                room:handleAcquireDetachSkills(owner, "wusheng")
+                room:handleAcquireDetachSkills(player, "wusheng!")
             end
+        else
+            if player:inHeadSkills("wusheng") then
+                room:handleAcquireDetachSkills(player, "-wushengExtraSlash!")
+            else
+                room:handleAcquireDetachSkills(player, "-wusheng!")
+            end            
         end
         return ""
     end,  
