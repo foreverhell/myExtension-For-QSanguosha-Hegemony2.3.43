@@ -2136,7 +2136,7 @@ sgs.LoadTranslationTable{
 
 jieyizhi = sgs.CreateTriggerSkill{
 	name = "jieyizhi",
-	events = {sgs.EventLoseSkill, sgs.GeneralShown, sgs.GeneralHidden},
+	events = {sgs.EventLoseSkill, sgs.GeneralShown, sgs.GeneralHidden, sgs.DFDebut},
 	frequency = sgs.Skill_Compulsory,
 	relate_to_place = "deputy",
 	can_trigger = function(self, event, room, player, data)
