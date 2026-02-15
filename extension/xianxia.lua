@@ -1358,13 +1358,13 @@ wuji = sgs.CreateTriggerSkill{
             if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
         end
         if player:hasShownSkill(self:objectName()) then
-            if player:inHeadSkills("wusheng") then
+            if player:inHeadSkills("wusheng") and player:hasShownSkill("wusheng") then
                 room:handleAcquireDetachSkills(player, "wushengExtraSlash!")
             else
                 room:handleAcquireDetachSkills(player, "wusheng!")
             end
         else
-            if player:inHeadSkills("wusheng") then
+            if player:inHeadSkills("wusheng") and player:hasShownSkill("wusheng") then
                 room:handleAcquireDetachSkills(player, "-wushengExtraSlash!")
             else
                 room:handleAcquireDetachSkills(player, "-wusheng!")
