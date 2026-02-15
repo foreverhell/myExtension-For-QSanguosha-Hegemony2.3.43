@@ -102,7 +102,7 @@ sgs.LoadTranslationTable{
     ["jianmie"] = "歼灭",  
     [":jianmie"] = "你对其他势力角色造成伤害后，你可令其获得一个'歼灭'标记，则其下个摸牌阶段摸牌数-X，X为'歼灭'的数量。",  
     ["zhuiji"] = "追击",  
-    [":zhuiji"] = "锁定技，你对角色使用【杀】时，若其手牌数小于2，其回闪量+1。"  
+    [":zhuiji"] = "锁定技，你对角色使用【杀】时，若其手牌数小于2，其响应此杀需要闪的数量+1。"  
 }  
   
 
@@ -887,9 +887,11 @@ lingyao = sgs.CreateTriggerSkill{
     events = {sgs.HpRecover},  
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
-        change = room:findPlayerBySkillName(self:objectName())
+        local change = room:findPlayerBySkillName(self:objectName())
+        if not (change and change:isAlive()) then return "" end
         local recover = data:toRecover()  
-        if change and change:isAlive() and recover.card and recover.card:isKindOf("Peach") and recover.who and recover.who:objectName()==change:objectName() then  
+        if recover.card and recover.card:isKindOf("Peach") and recover.card:getSkillName() == ""
+        and recover.who and recover.who:objectName()==change:objectName() then  
             -- 可以直接判断recover.who:hasSkill(self:objectName())  
             return self:objectName(), change:objectName()
         end  
@@ -926,7 +928,7 @@ sgs.LoadTranslationTable{
     ["yaoyin"] = "药引",  
     [":yaoyin"] = "你可以将红桃牌视为桃。",  
     ["lingyao"] = "灵药",  
-    [":lingyao"] = "你使用桃后为任意角色恢复体力后，你可以摸两张牌。",  
+    [":lingyao"] = "你使用非转化桃为任意角色恢复体力后，你可以摸两张牌。",  
 
     -- 技能台词
     ["$benyue1"] = "明月几时有，把酒问青天。",
@@ -4920,6 +4922,45 @@ sgs.LoadTranslationTable{
     ["~libai"] = "仰天大笑出门去，我辈岂是蓬蒿人！"  
 }  
 
+lichunfeng = sgs.General(extension, "lichunfeng", "wu", 4)--wu,qun
+
+mingque = sgs.CreateTriggerSkill{  
+    name = "mingque",  
+    events = {sgs.EventPhaseStart},  
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)  
+        if not player or player:isDead() or not player:hasSkill(self:objectName()) then return "" end  
+        if player:getPhase() == sgs.Player_Start and not player:isWounded() then  
+            return self:objectName()
+        elseif player:getPhase() == sgs.Player_Finish and player:isWounded() then
+            return self:objectName()
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName()) then
+            if player:getPhase() == sgs.Player_Start and not player:isWounded() then
+                room:loseHp(player,1)
+            end
+            return true
+        end
+        return false
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        local top_cards=room:getNCards(player:getLostHp())
+        room:askForGuanxing(player, top_cards, sgs.Room_GuanxingBothSides)-- GuanxingUpOnly, GuanxingBothSides, GuanxingDownOnly
+    end
+}
+lichunfeng:addSkill("aocai")
+lichunfeng:addSkill(mingque)
+sgs.LoadTranslationTable{  
+    ["lichunfeng"] = "李淳风",
+    ["mingque"] = "命缺",
+    [":mingque"] = "锁定技。你的准备阶段，若你没有受伤，你失去1点体力，观星X；你的回合结束时，若你已受伤，观星X。X为你失去的体力值"
+}
+
 liji = sgs.General(extension, "liji", "shu", 4, false)  
 
 dihui = sgs.CreateTriggerSkill{  
@@ -5457,7 +5498,149 @@ sgs.LoadTranslationTable{
     [":yuci"] = "出牌阶段限一次。你可以弃置一名角色一张手牌，若此牌为基础牌，你弃置一张牌，无牌则不弃",        
     ["~liqingzhao"] = "生当作人杰，死亦为鬼雄。"  
 }  
+lishizhen = sgs.General(extension, "lishizhen", "qun", 3)
 
+yaoshengCard = sgs.CreateSkillCard{  
+    name = "yaoshengCard",  
+    skill_name = "yaosheng",  
+    target_fixed = false,  
+    will_throw = true,
+    filter = function(self, targets, to_select)  
+        return #targets == 0 and to_select:isWounded()
+    end,  
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]
+        -- 恢复体力  
+        local recover = sgs.RecoverStruct()  
+        recover.who = target  
+        recover.recover = 1  
+        room:recover(target, recover)  
+          
+        -- 摸两张牌  
+        target:drawCards(1, self:objectName())
+        if target ~= source then
+            local card_ids = room:askForExchange(target, self:objectName(), 1, 1)
+            for _,card_id in sgs.qlist(card_ids) do
+                room:obtainCard(source, card_id, false)  
+            end
+        end
+    end  
+}  
+  
+yaosheng = sgs.CreateViewAsSkill{  
+    name = "yaosheng",  
+    n = 1,  
+    view_filter = function(self, selected, to_select)  
+        return to_select:isKindOf("Peach") and not to_select:isEquipped()  
+    end,  
+    view_as = function(self, cards)  
+        if #cards == 1 then  
+            local card = yaoshengCard:clone()  
+            card:addSubcard(cards[1])  
+            card:setShowSkill(self:objectName())  
+            return card  
+        end  
+    end,  
+    enabled_at_play = function(self, player)  
+        return not player:isKongcheng()  
+    end  
+}
+yaoshengMaxCards = sgs.CreateMaxCardsSkill{  
+    name = "#yaosheng_maxcards",  
+    extra_func = function(self, player)
+        if not player:hasShownSkill("yaosheng") then
+            return 0
+        end
+        local handcards = player:getHandcards()  
+        local count = 0  
+          
+        -- 计算点数大于等于10的手牌数量
+        -- 满足条件的卡不计入卡牌上限，即每有一张满足条件的卡，卡牌上限加1
+        for _, card in sgs.qlist(handcards) do  
+            if card:isKindOf("Peach") then  
+                count = count + 1  
+            end  
+        end  
+          
+        return count  
+    end  
+}  
+baicao = sgs.CreatePhaseChangeSkill{  
+    name = "baicao", -- 技能名称  
+    frequency = sgs.Skill_Frequent, -- 设置为常规技能  
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start then  
+            return self:objectName()
+        end  
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data)
+        return player:askForSkillInvoke(self:objectName(),data)
+    end,
+    -- 在阶段变化时触发的函数  
+    on_phasechange = function(self, player)  
+        -- 获取房间对象  
+        local room = player:getRoom()              
+        -- 创建判定结构  
+        local judge = sgs.JudgeStruct()  
+        judge.pattern = ".|red"  --第一个点表示任意类型，第二个点表示任意花色
+        judge.good = true -- 判定成功对玩家有利  
+        judge.reason = self:objectName()  
+        judge.who = player  
+            
+        -- 执行判定  
+        room:judge(judge)  
+            
+        -- 判断判定结果  
+        if judge:isGood() then  
+            local slash_ids = sgs.IntList()  
+            for _, id in sgs.qlist(room:getDrawPile()) do  
+                local card = sgs.Sanguosha:getCard(id)  
+                if card:isKindOf("Peach") then  
+                    slash_ids:append(id)  
+                end  
+            end  
+            
+            if not slash_ids:isEmpty() then  
+                -- 随机选择一张杀  
+                local index = math.random(0, slash_ids:length() - 1)  
+                local id = slash_ids:at(index)  
+                
+                -- 将杀移动给目标角色  
+                local card = sgs.Sanguosha:getCard(id)  
+                room:obtainCard(player, card, true)  
+            end  
+        else
+            local targets = sgs.SPlayerList()
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+                if not player:isFriendWith(p) then
+                    targets:append(p)
+                end
+            end
+            if targets:isEmpty() then return false end
+            local target = room:askForPlayerChosen(player, targets, self:objectName(), "@baicao-choose", false)
+            if target then
+                if target:isWounded() then
+                    room:loseMaxHp(target,1)
+                else
+                    room:loseHp(target,1)
+                end
+            end
+        end            
+        return false  
+    end,  
+}
+
+lishizhen:addSkill(yaosheng)
+lishizhen:addSkill(yaoshengMaxCards)
+lishizhen:addSkill(baicao)
+sgs.LoadTranslationTable{  
+    ["lishizhen"] = "李时珍",
+    ["yaosheng"] = "药圣",
+    [":yaosheng"] = "出牌阶段，你可以弃置1张桃，令任意1名角色回复1点体力，然后令其摸1张牌并交给你1张牌；你的桃不计入手牌上限；",
+    ["baicao"] = "百草",
+    [":baicao"] = "准备阶段，你可以进行1次判定，若判定牌为：红色，你从摸牌堆获得1张桃；黑色，你选择一名其他角色，若其已受伤，其失去1点体力上限，若其未受伤，其失去1点体力",
+}  
 
 liubei_hero = sgs.General(extension, "liubei_hero", "shu", 3)  
 liubei_hero_duan = sgs.General(extension, "liubei_hero_duan", "shu", 3)  
@@ -7848,7 +8031,55 @@ sgs.LoadTranslationTable{
     ["@feigongSlash-give"] = "你可以交给 %src 一张手牌"  
 }
 
-murong = sgs.General(extension, "murong", "wei", 4)
+muguiying = sgs.General(extension, "muguiying", "wei", 3, false)
+yinglie = sgs.CreateTriggerSkill{  
+    name = "yinglie",  
+    events = {sgs.Damaged},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data) 
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+        if player:hasFlag("yinglie_used") then return "" end
+        return self:objectName()
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(),data) then
+            room:setPlayerFlag(player,"yinglie_used")
+            return true
+        end
+        return false
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        local room = player:getRoom()              
+        -- 创建判定结构  
+        local judge = sgs.JudgeStruct()  
+        judge.pattern = ".|red"  --第一个点表示任意类型，第二个点表示任意花色
+        judge.good = true -- 判定成功对玩家有利  
+        judge.reason = self:objectName()  
+        judge.who = player  
+            
+        -- 执行判定  
+        room:judge(judge)  
+            
+        -- 判断判定结果  
+        if judge:isGood() then
+            local recover = sgs.RecoverStruct()  
+            recover.who = player  
+            -- 执行回复  
+            room:recover(player, recover)
+        end
+    end
+}
+muguiying:addSkill("tiaoxin")
+muguiying:addSkill(yinglie)
+sgs.LoadTranslationTable{  
+    ["muguiying"] = "穆桂英",
+    ["yinglie"] = "英烈",
+    [":yinglie"] = "每回合限一次。你受到伤害后可以进行一次判定，若判定牌为红色，你回复1点体力"
+}
+
+murong = sgs.General(extension, "murong", "wu", 4, false)
 
 diehun = sgs.CreateTriggerSkill{  
     name = "diehun",  
@@ -8434,7 +8665,7 @@ fanji = sgs.CreateTriggerSkill{
         return player:askForSkillInvoke(self:objectName(),data)  
     end,  
       
-    on_effect = function(self, event, room, player, data, ask_who)  
+    on_effect = function(self, event, room, player, data)  
         local damage = data:toDamage()  
         local source = damage.from  
 
@@ -8548,7 +8779,78 @@ sgs.LoadTranslationTable{
     ["menshen"] = "门神",
     [":menshen"] = "每轮限一次。任意角色出牌阶段开始时，你可以指定一名角色获得“门神”标记，则直到你的下回合开始前，其成为杀或决斗的目标时，目标改为你。"
 }
+quyuan = sgs.General(extension, "quyuan", "qun", 3)
 
+beifu = sgs.CreatePhaseChangeSkill{  
+    name = "beifu", -- 技能名称
+    frequency = sgs.Skill_Frequent, -- 设置为常规技能  
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Finish then  
+            return self:objectName()
+        end  
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data)
+        return player:askForSkillInvoke(self:objectName(),data)
+    end,
+    -- 在阶段变化时触发的函数  
+    on_phasechange = function(self, player)  
+        -- 获取房间对象  
+        local room = player:getRoom()              
+        -- 创建判定结构  
+        local judge = sgs.JudgeStruct()  
+        judge.pattern = ".|.|1~6"  -- 判定牌点数小于7。第一个点表示任意类型，第二个点表示任意花色
+        judge.good = true -- 判定成功对玩家有利  
+        judge.reason = self:objectName()  
+        judge.who = player  
+            
+        -- 执行判定  
+        room:judge(judge)  
+            
+        -- 判断判定结果  
+        if judge:isGood() then
+            local targets = sgs.SPlayerList()  
+            -- 收集可选目标  
+            for _, p in sgs.qlist(room:getAlivePlayers()) do  
+                if p:isWounded() and player:isFriendWith(p) then  
+                    targets:append(p)            
+                end  
+            end
+            if targets:isEmpty() then return false end
+            local target = room:askForPlayerChosen(player, targets, self:objectName())
+            if target then
+                -- 创建回复结构  
+                local recover = sgs.RecoverStruct()  
+                recover.who = target  
+                -- 执行回复  
+                room:recover(target, recover)
+            end
+        else
+            local choice = room:askForChoice(player, self:objectName(), "top+to_discard")  
+            if choice == "top" then  
+                room:moveCardTo(judge.card, nil, sgs.Player_DrawPile, true)   
+            else
+                room:moveCardTo(judge.card, nil, sgs.Player_DiscardPile)   
+            end              
+        end            
+        return false  
+    end,  
+}
+quyuan:addSkill("zhenlie")
+quyuan:addSkill(beifu)
+sgs.LoadTranslationTable{  
+    ["quyuan"] = "屈原",
+    ["beifu"] = "悲赋",
+    [":beifu"] = "回合结束时，你可以进行一次判定，若判定牌小于7，你可以令一名相同势力角色回复一点体力，否则你可以将此牌置于牌堆顶或弃牌堆"
+}
+
+
+renhuanzhi = sgs.General(extension, "renhuanzhi", "wu", 4)  
+renhuanzhi:addSkill("tianyi")
+renhuanzhi:addSkill("yingyang")
+sgs.LoadTranslationTable{  
+    ["renhuanzhi"] = "任桓之",
+}
 shangguanwaner = sgs.General(extension, "shangguanwaner", "qun", 3, false)  
 
 nvxiang = sgs.CreateTriggerSkill{  
@@ -14455,6 +14757,7 @@ lvzhi:addCompanion("lvbuwei")
 change:addCompanion("houyi")
 guiguzi:addCompanion("suqin")
 huoqubing:addCompanion("weizifu")
+murong:addCompanion("renhuanzhi")
 --诸子百家
 kongzi:addCompanion("mozi")
 kongzi:addCompanion("xunzi")
