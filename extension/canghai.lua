@@ -7190,7 +7190,7 @@ kuangzhi = sgs.CreateTriggerSkill{
 			room:exchangeHeadAndDeputyGeneral(ask_who)
 			local max_num = ask_who:getHandcardNum()
 			for _,p in sgs.qlist(room:getAlivePlayers()) do
-				if p:getHandcardNum() > num then
+				if p:getHandcardNum() > max_num then
 					max_num = p:getHandcardNum()
 				end
 			end
