@@ -5268,7 +5268,6 @@ qiangshi = sgs.CreateTriggerSkill{
     name = "qiangshi",  
     events = {sgs.EventPhaseStart, sgs.CardUsed},  
     frequency = sgs.Skill_Frequent,  
-    limit_mark = "@qiangshi",
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then
             return ""
