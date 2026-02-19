@@ -2136,7 +2136,7 @@ sgs.LoadTranslationTable{
 
 jieyizhi = sgs.CreateTriggerSkill{
 	name = "jieyizhi",
-	events = {sgs.EventLoseSkill, sgs.GeneralShown, sgs.GeneralHidden, sgs.DFDebut},
+	events = {sgs.EventLoseSkill, sgs.GeneralShown, sgs.GeneralHidden, sgs.DFDebut, sgs.TurnStart},
 	frequency = sgs.Skill_Compulsory,
 	relate_to_place = "deputy",
 	can_trigger = function(self, event, room, player, data)
@@ -2421,7 +2421,7 @@ jieshushen = sgs.CreateTriggerSkill{
 
     on_cost = function(self, event, room, player, data)
 		local targets = room:getOtherPlayers(player)
-		local target = room:askForPlayerChosen(player, targets, self:objectName(), "shushen-invoke", true, true)
+		local target = room:askForPlayerChosen(player, targets, "shushen", "shushen-invoke", true, true)
 		if target then
 			local d = sgs.QVariant()
 			d:setValue(target)
