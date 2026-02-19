@@ -2589,7 +2589,7 @@ fenchengCard = sgs.CreateSkillCard{
                 if choice == "discard" then  
                     -- 选择弃牌  
                     local to_discard = discard_num + 1
-                    if player:getHandcardNum()<to_discard then --手牌不够弃，直接造成伤害
+                    if player:getHandcardNum() < to_discard then --手牌不够弃，直接造成伤害
                         room:damage(sgs.DamageStruct("fencheng", source, player, 1, sgs.DamageStruct_Fire))
                         discard_num = 0
                     else 
@@ -5978,13 +5978,13 @@ sgs.LoadTranslationTable{
 wuyi = sgs.General(extension, "wuyi", "shu", 4) -- 吴苋，蜀势力，3血，女性
 benxi = sgs.CreateTriggerSkill{  
     name = "benxi",  
-    events = {sgs.CardUsed, sgs.EventPhaseEnd},  
+    events = {sgs.CardFinished, sgs.EventPhaseEnd},  
     frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
             return ""  
         end
-        if event == sgs.CardUsed and player:getPhase()~=sgs.Player_NotActive then
+        if event == sgs.CardFinished and player:getPhase()~=sgs.Player_NotActive then
             local use = data:toCardUse()  
             if player ~= use.from then return "" end
             room:addPlayerMark(player,"@benxi",1)
@@ -7167,7 +7167,7 @@ kuangzhi = sgs.CreateTriggerSkill{
 			end
 		elseif event == sgs.QuitDying then
 			local dying = data:toDying()
-			if dying.who:hasSkill(self:objectName()) then
+			if dying.who and dying.who:isAlive() and dying.who:hasSkill(self:objectName()) then
 				return self:objectName(), dying.who:objectName()
 			end
 		end
