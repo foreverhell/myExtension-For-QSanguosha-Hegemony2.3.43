@@ -514,31 +514,7 @@ yinleijian = sgs.CreateWeapon{
     end  
 }  
   
--- 引雷剑技能实现  
---[[
-yinleijianSkill = sgs.CreateOneCardViewAsSkill{  
-    name = "YinLeiJian",  
-    filter_pattern = "%slash",  
-    response_or_use = true,  
-      
-    enabled_at_play = function(self, player)  
-        return sgs.Slash_IsAvailable(player) and player:getMark("Equips_Nullified_to_Yourself") == 0  
-    end,  
-      
-    enabled_at_response = function(self, player, pattern)  
-        return sgs.Sanguosha:getCurrentCardUseReason() == sgs.CardUseStruct_CARD_USE_REASON_RESPONSE_USE  
-            and pattern == "slash" and player:getMark("Equips_Nullified_to_Yourself") == 0  
-    end,  
-      
-    view_as = function(self, originalCard)  
-        local thunder_slash = sgs.Sanguosha:cloneCard("thunder_slash", originalCard:getSuit(), originalCard:getNumber())  
-        thunder_slash:addSubcard(originalCard:getId())  
-        thunder_slash:setSkillName("YinLeiJian")  
-        return thunder_slash  
-    end  
-}  
-]]
-
+-- 引雷剑技能实现
 yinleijianSkill = sgs.CreateTriggerSkill{  
     name = "YinLeiJian",  
     events = {sgs.CardUsed, sgs.DamageCaused},  
@@ -580,6 +556,27 @@ yinleijianSkill = sgs.CreateTriggerSkill{
     end  
 }  
 
+yinleijianSkill = sgs.CreateOneCardViewAsSkill{  
+    name = "YinLeiJian",  
+    filter_pattern = "%slash",  
+    response_or_use = true,  
+      
+    view_as = function(self, originalCard)  
+        local thunder_slash = sgs.Sanguosha:cloneCard("thunder_slash", originalCard:getSuit(), originalCard:getNumber())  
+        thunder_slash:addSubcard(originalCard:getId())  
+        thunder_slash:setSkillName("YinLeiJian")  
+        return thunder_slash  
+    end,
+
+    enabled_at_play = function(self, player)  
+        return sgs.Slash_IsAvailable(player)  
+    end,  
+      
+    enabled_at_response = function(self, player, pattern)
+        return pattern == "slash" and
+            sgs.Sanguosha:getCurrentCardUseReason() == sgs.CardUseStruct_CARD_USE_REASON_RESPONSE_USE 
+    end
+}
 baiBaoXiang = sgs.CreateTreasure{  
     name = "baiBaoXiang",  
     class_name = "baiBaoXiang",  
@@ -956,7 +953,7 @@ fantanjiaSkill = sgs.CreateTriggerSkill{
         if player and player:isAlive() and player:hasArmorEffect(self:objectName()) then  
             local damage = data:toDamage()  
             -- 只有当有伤害来源且伤害来源不是自己时才触发  
-            if damage.from and damage.from ~= player and damage.from:isAlive() then  
+            if damage.from and damage.from ~= player and damage.from:isAlive() and damage.damage >= 2 then  
                 return self:objectName()  
             end  
         end  
@@ -982,8 +979,8 @@ fantanjiaSkill = sgs.CreateTriggerSkill{
         
         if remaining_damage > 0 then --否则会触发卖血技
             -- 对伤害来源造成另一半伤害  
-            local reflect_damage = sgs.DamageStruct()  
-            reflect_damage.from = player  --这里可以考虑改为 damage.from 或 nil
+            local reflect_damage = sgs.DamageStruct()
+            reflect_damage.from = damage.from  --这里可以考虑改为 damage.from 或 nil
             reflect_damage.to = damage.from  
             reflect_damage.damage = remaining_damage --half_damage  
             reflect_damage.nature = damage.nature  
@@ -1567,7 +1564,7 @@ sgs.LoadTranslationTable{
     ["#ArmorRecover"] = "%from 的【%arg】效果被触发，回复了%arg2点体力",
 
     ["fantanjia"] = "反弹甲",  
-    [":fantanjia"] = "装备牌·防具\n\n技能：锁定技，当你受到伤害时，你和伤害来源各承担一半伤害（你受到的伤害向上取整）。",  
+    [":fantanjia"] = "装备牌·防具\n\n技能：锁定技，当你受到伤害时，你和伤害来源各承担一半伤害来源的伤害（你受到的伤害向上取整）。",  
     ["#FantanJia"] = "%from 的【反弹甲】效果被触发，将 %arg 点伤害分摊，对 %to 造成 %arg2 点伤害",
 
     ["kuangzhanshi"] = "狂战士",  
