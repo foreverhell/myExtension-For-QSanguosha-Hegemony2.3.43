@@ -1996,7 +1996,7 @@ sgs.LoadTranslationTable{
 huangquan = sgs.General(extension, "huangquan", "shu", 3)  
 dianhu = sgs.CreateTriggerSkill{
 	name = "dianhu",
-	events = {sgs.GeneralShowed, sgs.Damage},
+	events = {sgs.GeneralShowed, sgs.Damage, sgs.Death},
 	frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)
 		if event == sgs.GeneralShowed and player:cheakSkillLocation("dianhu", data) then
@@ -2008,6 +2008,18 @@ dianhu = sgs.CreateTriggerSkill{
                 if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
                 if damage.from and owner:isFriendWith(damage.from) then
                     return self:objectName()
+                end
+            end
+        elseif event == sgs.Death then
+            local death = data:toDeath()
+            if death.who:getMark("dianhu_target") > 0 then
+                local owner = room:findPlayerBySkillName(self:objectName())
+                if owner and owner:isAlive() and owner:hasSkill(self:objectName()) then
+                    if owner:inHeadSkills(self:objectName()) then
+                        owner:hideGeneral(true)
+                    else
+                        owner:hideGeneral(false)
+                    end
                 end
             end
 		end
@@ -2065,7 +2077,7 @@ huangquan:addSkill(dianhu)
 huangquan:addSkill(jianji)
 sgs.LoadTranslationTable{
     ["dianhu"] = "点虎",
-    [":dianhu"] = "锁定技。你明置此武将时，你选择一名其他角色，与你势力相同的角色对其造成伤害后，伤害源摸一张牌",
+    [":dianhu"] = "锁定技。你明置此武将时，你选择一名其他角色，与你势力相同的角色对其造成伤害后，伤害源摸一张牌",--；该角色死亡后，你暗置此武将",
     ["jianji"] = "谏计",
     [":jianji"] = "出牌阶段限一次。你可以令一名角色摸一张牌，然后其可以使用之"
 }
@@ -3320,7 +3332,7 @@ lukang_canghai = sgs.General(extension, "lukang_canghai", "wu", 3)
 qianjie = sgs.CreateTriggerSkill{
     name = "qianjie",
     events = {sgs.TargetConfirming},
-    frequency = sgs.Skill_Frequent,
+    --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         if skillTriggerable(player, self:objectName()) then
             local use = data:toCardUse()
@@ -4010,7 +4022,7 @@ yuce = sgs.CreateTriggerSkill{
         --伤害源有手牌，且有有效牌，弃置该牌
         local card_id = nil
         local card = nil
-        if not damage.from:isKongcheng() and valid_cards:length() > 0 then              
+        if valid_cards:length() > 0 then              
             room:fillAG(valid_cards, damage.from)
             card_id = room:askForAG(damage.from, valid_cards, true, self:objectName())
             room:clearAG(damage.from)
@@ -4022,7 +4034,7 @@ yuce = sgs.CreateTriggerSkill{
             end
         end
         --伤害源没有手牌，或没有有效牌，或弃置的牌类别相同，伤害-1
-        if damage.from:isKongcheng() or valid_cards:isEmpty() or card_id==nil or card==nil or (card and card:getTypeId() == shown_card:getTypeId()) then
+        if valid_cards:isEmpty() or card_id==nil or card==nil or (card and card:getTypeId() == shown_card:getTypeId()) then
             -- 没有不同类别的手牌，伤害-1  
             damage.damage = damage.damage - 1  
             data:setValue(damage)  
