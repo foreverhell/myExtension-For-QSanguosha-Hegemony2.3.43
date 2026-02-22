@@ -2103,7 +2103,7 @@ tairan = sgs.CreateTriggerSkill{
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(), data)  
+        return true--player:askForSkillInvoke(self:objectName(), data)  
     end,  
     on_effect = function(self, event, room, player, data)
         local hp_mark = player:getMark("@tairan_hp")
