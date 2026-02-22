@@ -5495,7 +5495,7 @@ sgs.LoadTranslationTable{
     [":yuci"] = "出牌阶段限一次。你可以弃置一名角色一张手牌，若此牌为基础牌，你弃置一张牌，无牌则不弃",        
     ["~liqingzhao"] = "生当作人杰，死亦为鬼雄。"  
 }  
-lishizhen = sgs.General(extension, "lishizhen", "qun", 3)
+lishizhen = sgs.General(extension, "lishizhen", "qun", 3)--wei,qun
 
 yaoshengCard = sgs.CreateSkillCard{  
     name = "yaoshengCard",  
@@ -6625,8 +6625,6 @@ sgs.LoadTranslationTable{
     ["kuangchan"] = "狂禅",
     [":kuangchan"] = "准备阶段，若你的体力值不小于2，你可以对自己造成1点伤害",
 }  
-
-
 
 lvbuwei = sgs.General(extension, "lvbuwei", "shu", 3)--shu,qun
 
@@ -8877,7 +8875,7 @@ sgs.LoadTranslationTable{
     ["menshen"] = "门神",
     [":menshen"] = "每轮限一次。任意角色出牌阶段开始时，你可以指定一名角色获得“门神”标记，则直到你的下回合开始前，其成为杀或决斗的目标时，目标改为你。"
 }
-quyuan = sgs.General(extension, "quyuan", "qun", 3)
+quyuan = sgs.General(extension, "quyuan", "wei", 3)
 
 beifu = sgs.CreatePhaseChangeSkill{  
     name = "beifu", -- 技能名称
@@ -10149,7 +10147,7 @@ sgs.LoadTranslationTable{
     ["@wangji-invoke"] = "亡计：你可以选择一名角色，对其造成1点伤害，并将一张牌当作乐不思蜀置于其判定区",  
 }
 
-taipinggongzhu = sgs.General(extension, "taipinggongzhu", "qun", 3, false)  --shu, wei
+taipinggongzhu = sgs.General(extension, "taipinggongzhu", "qun", 3, false)  --wei
 yuzhu = sgs.CreateTriggerSkill{  
     name = "yuzhu",  
     events = {sgs.EventPhaseStart},  
@@ -11141,7 +11139,7 @@ sgs.LoadTranslationTable{
     [":heqin"] = "出牌阶段限一次，你可以与一名男性角色交换手牌，然后令手牌数较少的一方摸两张牌。",  
 
     ["luoyan"] = "落雁",  
-    [":luoyan"] = "当你受到伤害时，若伤害来源有武器，你可以令其失去武器。",
+    [":luoyan"] = "当你受到伤害后，若伤害来源有武器，你可以令其失去武器。",
 
     ["~wangzhaojun"] = "汉使断肠对河梦，胡笳一曲向天愁。"  
 }
@@ -12870,15 +12868,13 @@ fengyan = sgs.CreateTriggerSkill{
     events = {sgs.FinishJudge},  
     frequency = sgs.Skill_Frequent,
       
-    can_trigger = function(self, event, room, player, data)  
-        if not player then  
-            return false  
-        end  
-          
+    can_trigger = function(self, event, room, player, data)            
         local judge = data:toJudge() 
-        local owner = room:findPlayerBySkillName(self:objectName()) 
-        if judge.who:isMale() and judge.card:isBlack() and room:getCardPlace(judge.card:getId()) == sgs.Player_DiscardPile then  
-            return self:objectName(), owner:objectName()
+        if judge.who:hasShownOneGeneral() and judge.who:isMale() and judge.card:isBlack() and room:getCardPlace(judge.card:getId()) ~= sgs.Player_PlaceHand then  
+            local owner = room:findPlayerBySkillName(self:objectName()) 
+            if owner and owner:isAlive() and owner:hasSkill(self:objectName()) then
+                return self:objectName(), owner:objectName()
+            end
         end  
           
         return false  
@@ -12894,9 +12890,7 @@ fengyan = sgs.CreateTriggerSkill{
       
     on_effect = function(self, event, room, player, data, ask_who)  
         local judge = data:toJudge()
-        if room:getCardPlace(judge.card:getId()) == sgs.Player_DiscardPile then
-            room:obtainCard(ask_who,judge.card:getId())            
-        end
+        room:obtainCard(ask_who,judge.card:getId())            
         return false  
     end  
 }  
@@ -12911,7 +12905,7 @@ sgs.LoadTranslationTable{
     ["xiuhua"] = "羞花",  
     [":xiuhua"] = "锁定技，当你的手牌数小于失去的体力时，你摸一张牌。",
     ["fengyan"] = "丰艳",  
-    [":fengyan"] = "男性角色判定牌进入弃牌堆后，若判定牌为黑色，你可以获得判定牌",
+    [":fengyan"] = "男性角色判定牌若为黑色，你可以获得判定牌",
 }  
 
 yuanshitianzun = sgs.General(extension, "yuanshitianzun", "wei", 3)  --wei,jin
@@ -12985,7 +12979,6 @@ sgs.LoadTranslationTable{
     ["yuanshiCard"] = "元始",  
     ["tianzunCard"] = "天尊"  
 }
-
 
 yuanshoucheng = sgs.General(extension, "yuanshoucheng", "qun", 3)  
 
@@ -14240,7 +14233,7 @@ zhaoyong = sgs.General(extension, "zhaoyong", "shu", 3)--shu,wu
 hufu = sgs.CreateTriggerSkill{  
     name = "hufu",  
     events = {sgs.DrawNCards},  
-    frequency = sgs.Skill_Compulsory,
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) and not player:getArmor() then     
             return self:objectName()  
@@ -14248,7 +14241,7 @@ hufu = sgs.CreateTriggerSkill{
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
-        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
+        return player:askForSkillInvoke(self:objectName(),data)
     end,  
     on_effect = function(self, event, room, player, data)
         local n = data:toInt()
@@ -14266,7 +14259,7 @@ hufuMaxCards = sgs.CreateMaxCardsSkill{
 hanbei = sgs.CreateTriggerSkill{
 	name = "hanbei",
 	events = {sgs.CardUsed},
-    frequency = sgs.Skill_Compulsory,
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
 		if skillTriggerable(player, self:objectName()) and event == sgs.CardUsed then
 			local use = data:toCardUse()
@@ -14278,7 +14271,7 @@ hanbei = sgs.CreateTriggerSkill{
 	end,
 
 	on_cost = function(self, event, room, skill_target, data, player)
-		if player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data) then
+		if player:askForSkillInvoke(self:objectName(), data) then
 			room:broadcastSkillInvoke(self:objectName(), player)
 			return true
 		end
@@ -14296,9 +14289,9 @@ zhaoyong:addSkill(hanbei)
 sgs.LoadTranslationTable{
     ["zhaoyong"] = "赵雍",
     ["hufu"] = "胡服",  
-    [":hufu"] = "锁定技。你装备防具时，手牌上限+4；没有装备防具时，摸牌数+1",
+    [":hufu"] = "你装备防具时，手牌上限+4；没有装备防具时，摸牌数+1",
     ["hanbei"] = "捍北",  
-    [":hanbei"] = "锁定技。你装备武器时，你的杀不可闪避",
+    [":hanbei"] = "你装备武器时，你的杀不可闪避",
 }
 zhouchu_hero = sgs.General(extension, "zhouchu_hero", "qun", 4)  
   
@@ -15335,11 +15328,12 @@ fanzeng:addCompanion("xiangyu")
 gaojianli:addCompanion("jingke")
 hanxin:addCompanion("xiaohe")
 lianpo:addCompanion("linxiangru")
-liuche:addCompanion("huoqubing")
+--liuche:addCompanion("huoqubing")
 liuche:addCompanion("weizifu")
 moxi:addCompanion("xiajie")
 qinqiong:addCompanion("yuchigong")
 shangguanwaner:addCompanion("wuzetian")
 simaxiangru:addCompanion("zhuowenjun")
+weiqing:addCompanion("weizifu")
 sgs.Sanguosha:addSkills(skills)
 return {extension}
