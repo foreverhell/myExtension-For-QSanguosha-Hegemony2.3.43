@@ -140,7 +140,7 @@ fujian = sgs.CreateTriggerSkill{
     events = {sgs.EventPhaseEnd, sgs.Damaged},  
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
-        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then 
+        if not (player and player:isAlive() and player:hasSkill(self:objectName()) and not player:isNude()) then 
             return false
         end  
 
