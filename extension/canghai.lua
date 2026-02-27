@@ -2055,6 +2055,9 @@ jianjiCard = sgs.CreateSkillCard{
         target:drawCards(1,self:objectName())
         local card_id = target:handCards():last()
         local card = sgs.Sanguosha:getCard(card_id)
+        if card:isKindOf("Jink") or card:isKindOf("Nullification") or card:isKindOf("ThreatenEmperor") then
+            return false
+        end
         room:setPlayerMark(target, "zhuikongCardid", card_id + 1)
         local prompt = "你可以使用这张牌（【"
         room:askForUseCard(target, "@@zhuikongUse", prompt .. card:getName() .. "】）")
@@ -5057,7 +5060,8 @@ fuhai = sgs.CreateTriggerSkill{
         local move_targets = sgs.SPlayerList()
         move_targets:append(target1)
         move_targets:append(target2)
-        room:askForQiaobian(player, move_targets, self:objectName(), "@fuhai-move", true, true)--后2个参数代表是否包含装备区、判定区
+        --room:askForQiaobian(player, move_targets, self:objectName(), "@fuhai-move", true, true)--后2个参数代表是否包含装备区、判定区
+        room:askForTransferFieldCards(player, move_targets, self:objectName(), true, true)
     end
 }
 tangzi_canghai:addSkill(fuhai)
@@ -5961,7 +5965,10 @@ guixiang = sgs.CreateTriggerSkill{
             local judge_card = judge.card  
             if judge_card then                                  
                 if judge_card:getSuit() == sgs.Card_Heart or judge_card:getTypeId() == sgs.Card_TypeBasic or   
-                    (judge_card:getTypeId() == sgs.Card_TypeTrick and not judge_card:isKindOf("DelayedTrick")) then  
+                    (judge_card:getTypeId() == sgs.Card_TypeTrick and not judge_card:isKindOf("DelayedTrick")) then
+                    if card:isKindOf("Jink") or card:isKindOf("Nullification") or card:isKindOf("ThreatenEmperor") then
+                        return false
+                    end
                     room:setPlayerMark(target, "guixiangCardid", judge_card:getId() + 1)
                     local prompt = "贵相：你可以使用判定牌（【" .. judge_card:getName() .. "】。若为红桃，你可以视为使用桃）"
                     room:askForUseCard(target, "@@guixiangUse", prompt)
