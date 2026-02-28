@@ -964,11 +964,11 @@ liguCard = sgs.CreateSkillCard{
     will_throw = false,  
     on_use = function(self, room, source, targets)
         local sum = 0
-        repeat
+        for i = 1, 3 do
             local card_id = room:getDrawPile():last()
             local card = sgs.Sanguosha:getCard(card_id)
             if card:isKindOf("Jink") or card:isKindOf("Nullification") or card:isKindOf("ThreatenEmperor") then
-                return false
+                break
             end
 			room:setPlayerMark(source, "liguCardid", card_id + 1)
 			local prompt = "立孤：你可以使用牌堆底的牌（【"
@@ -976,7 +976,8 @@ liguCard = sgs.CreateSkillCard{
 			room:setPlayerMark(source, "liguCardid", 0)
 
             sum = sum + card:getNumber()
-        until not isused or sum >= 20
+            if not isused or sum >= 13 then break end
+        end
     end  
 }  
   
@@ -1012,7 +1013,7 @@ sgs.LoadTranslationTable{
     ["mouni"] = "谋匿",
     [":mouni"] = "回合开始或你受到伤害后，你可以将1张牌置于牌堆底并摸1张牌",
     ["ligu"] = "立孤",
-    [":ligu"] = "出牌阶段限一次。你可以依次展示牌堆底的牌并使用之，直到你未使用或展示牌点数和大于等于20",
+    [":ligu"] = "出牌阶段限一次。你可以依次展示牌堆底的牌并使用之，直到你未使用或展示牌点数和大于等于13，至多3张",
 }
 daji = sgs.General(extension, "daji", "qun", 3, false)  -- 吴国，4血，男性  
 
@@ -4405,13 +4406,14 @@ TaofaViewAsSkill = sgs.CreateViewAsSkill{
       
     view_filter = function(self, selected, to_select)  
         -- 只能选择一张手牌  
-        return not to_select:isEquipped() and #selected < 1  
+        return #selected == 0 and not to_select:isEquipped()
     end,  
       
     view_as = function(self, cards)  
         if #cards == 1 then  
             local card = TaofaCard:clone()  
-            card:addSubcard(cards[1])  
+            card:addSubcard(cards[1])
+            card:setShowSkill(self:objectName())
             return card  
         end  
         return nil  
@@ -6342,7 +6344,7 @@ zhengfaViewAsSkill = sgs.CreateViewAsSkill{
     name = "zhengfa",  
       
     view_filter = function(self, selected, to_select)  
-        return not to_select:isEquipped() and #selected == 0  
+        return #selected == 0 and not to_select:isEquipped()
     end,  
       
     view_as = function(self, cards)  
@@ -7360,7 +7362,8 @@ zongheng = sgs.CreateViewAsSkill{
     view_as = function(self, cards)
         if #cards == 2 then
             local skillcard = zongheng_card:clone()
-            skillcard:setSkillName("zongheng")
+            skillcard:setSkillName(self:objectName())
+            skillcard:setShowSkill(self:objectName())
             for i = 1, #cards do
                 skillcard:addSubcard(cards[i]:getId())
             end
@@ -9657,10 +9660,10 @@ zhuolue = sgs.CreateViewAsSkill{
     n = 999,  
     view_filter = function(self, selected, to_select)  
         if #selected == 0 then  
-            return not to_select:hasFlag("using")  
+            return not to_select:isEquipped() 
         else  
             local first_color = selected[1]:isRed()  
-            return to_select:isRed() == first_color and not to_select:hasFlag("using")  
+            return to_select:isRed() == first_color and not to_select:isEquipped()  
         end  
     end,  
     view_as = function(self, cards)  
@@ -10091,7 +10094,8 @@ qijiViewAsSkill = sgs.CreateViewAsSkill{
             local card = qijiCard:clone()  
             for _, c in ipairs(cards) do  
                 card:addSubcard(c)  
-            end  
+            end
+            card:setShowSkill(self:objectName())
             return card  
         end  
         return nil  
@@ -13012,7 +13016,7 @@ JujueJianyanViewAsSkill = sgs.CreateViewAsSkill{
     name = "jujuejianyan",  
       
     view_filter = function(self, selected, to_select)  
-        return not to_select:isEquipped() and #selected == 0  
+        return #selected == 0 and not to_select:isEquipped()   
     end,  
       
     view_as = function(self, cards)  
