@@ -3345,7 +3345,7 @@ hengjiangCard = sgs.CreateSkillCard{
     on_use = function(self, room, source, targets)
         local target = targets[1]
         room:addPlayerMark(target,"@jiang")
-        if target:getEquips() then
+        if target:getEquips() and room:askForChoice(source,"@hengjiang-choose","yes+no")=="yes" then
             local card_id = room:askForCardChosen(source, target, "e", self:objectName())
             room:obtainCard(source, card_id, true)
             target:drawCards(1,self:objectName())
@@ -9132,7 +9132,7 @@ beifu = sgs.CreatePhaseChangeSkill{
                 room:recover(target, recover)
             end
         else
-            local choice = room:askForChoice(player, self:objectName(), "top+to_discard")  
+            local choice = room:askForChoice(player, self:objectName(), "top+bottom")  
             if choice == "top" then  
                 room:moveCardTo(judge.card, nil, sgs.Player_DrawPile, true)   
             else
