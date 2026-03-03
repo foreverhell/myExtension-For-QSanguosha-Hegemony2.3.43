@@ -7828,7 +7828,7 @@ lieboCard = sgs.CreateSkillCard{
     end
 }
 
-liebo = sgs.CreateZeroCardViewAsSkill{
+lieboVS = sgs.CreateZeroCardViewAsSkill{
     name = "liebo",  
     view_as = function(self)  
         local card = lieboCard:clone()
@@ -7839,8 +7839,21 @@ liebo = sgs.CreateZeroCardViewAsSkill{
     enabled_at_play = function(self, player)  
         return player:getMaxCards() > 0
     end  
-}     
+}
 
+liebo = sgs.CreateTriggerSkill{  
+    name = "liebo",  
+    view_as_skill = lieboVS,
+    events = {sgs.EventPhaseStart},  
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then
+            return ""
+        end
+        if player:getPhase() == sgs.Player_Start and player:getMark("@liebo") > 0  then  
+            room:setPlayerMark(player,"@liebo",0)
+        end
+    end
+}
 -- 添加手牌上限修改效果  
 lieboMaxCards = sgs.CreateMaxCardsSkill{  
     name = "#liebo_maxcards",  
@@ -7858,9 +7871,7 @@ yaoji = sgs.CreateTriggerSkill{
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then
             return ""
         end
-        if player:getPhase() == sgs.Player_Play and  player:getMark("@liebo") > 0  then  
-            room:setPlayerMark(player,"@liebo",0)
-        elseif player:getPhase() == sgs.Player_Finish and player:getHandcardNum() <= 2 then  
+        if player:getPhase() == sgs.Player_Finish and player:getHandcardNum() <= 2 then  
             return self:objectName()  
         end  
         return ""  
