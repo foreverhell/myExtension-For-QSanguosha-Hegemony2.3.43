@@ -5321,51 +5321,6 @@ sgs.LoadTranslationTable{
     [":qiangshi"] = "出牌阶段开始时，你可以展示其他角色一张手牌，本回合你使用与此相同类型的牌时，你摸1张牌",
 }
 
-zhangtao = sgs.General(extension, "zhangtao", "wu", 4)  -- 吴国，4血，男性  
-
--- 创建鬼斧技能卡  
-wangluCard = sgs.CreateSkillCard{  
-    name = "wangluCard",  
-    filter = function(self, targets, to_select)  
-        return #targets == 0 and not to_select:getEquips():isEmpty()  
-    end,  
-      
-    on_use = function(self, room, source, targets)  
-        local target = targets[1]  
-        local range = target:getAttackRange()
-        -- 选择并弃置目标角色的一张装备  
-        local equip_id = room:askForCardChosen(source, target, "e", "wanglu")  
-        room:throwCard(equip_id, target, source)
-
-        local equip = sgs.Sanguosha:getCard(equip_id)
-        if equip:isKindOf("Weapon") then --是武器的攻击范围，不是角色的攻击范围，角色的攻击范围可能通过其他方式修改
-            target:drawCards(range,self:objectName())
-        end 
-    end  
-}  
-  
--- 创建鬼斧视为技  
-wanglu = sgs.CreateZeroCardViewAsSkill{  
-    name = "wanglu",  
-      
-    view_as = function(self)  
-        local card = wangluCard:clone()  
-        card:setShowSkill(self:objectName())  
-        return card  
-    end,  
-      
-    enabled_at_play = function(self, player)  
-        return not player:hasUsed("#wangluCard")  
-    end  
-}  
-
-zhangtao:addSkill(wanglu)
-sgs.LoadTranslationTable{
-    ["zhangtao"] = "张套",
-    ["wanglu"] = "望橹",
-    [":wanglu"] = "出牌阶段限一次。你可以弃置场上一张装备牌；若为武器牌，失去该牌的角色摸X张牌，X为该角色失去该牌前的攻击范围"
-}
-
 zhangxingcai = sgs.General(extension, "zhangxingcai", "shu", 3, false)  
 qiangwu = sgs.CreateTriggerSkill{  
     name = "qiangwu",  
