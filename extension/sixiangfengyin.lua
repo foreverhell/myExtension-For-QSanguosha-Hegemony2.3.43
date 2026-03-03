@@ -1,6 +1,8 @@
 extension = sgs.Package("sixiangfengyin",sgs.Package_GeneralPack)  
 local skills = sgs.SkillList()
-
+sgs.LoadTranslationTable{
+    ["sixiangfengyin"] = "四象封印"
+}
 caojinyu_feng = sgs.General(extension, "caojinyu_feng", "wei", 3, false)
 
 yuqi = sgs.CreateTriggerSkill{  
