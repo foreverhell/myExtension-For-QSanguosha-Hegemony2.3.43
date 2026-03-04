@@ -617,7 +617,7 @@ zaoli = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
-        if event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_Start and not player:isNude() then
+        if event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_Start then
             return self:objectName()
         end
         return ""
@@ -631,6 +631,9 @@ zaoli = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data)
+        if player:getHp() > 1 then
+            room:loseHp(player,1)
+        end
         choices = {}
         if not player:isKongcheng() then
             table.insert(choices,"hand")
@@ -649,16 +652,13 @@ zaoli = sgs.CreateTriggerSkill{
         end
         n = n + player:getLostHp()
         player:drawCards(n,self:objectName())
-        if player:getHp() > 1 then
-            room:loseHp(player,1)
-        end
     end
 }
 sunyi_feng:addSkill(zaoli)
 sgs.LoadTranslationTable{
     ["sunyi_feng"] = "孙翊",
     ["zaoli"] = "躁厉",
-    [":zaoli"] = "锁定技。准备阶段，你弃置你手牌/装备区所有牌，并摸等量+已失去体力数张牌，然后若你的体力值大于1，你失去1点体力",
+    [":zaoli"] = "锁定技。准备阶段，若你的体力值大于1，你失去1点体力，然后你弃置你手牌/装备区所有牌，并摸等量+已失去体力数张牌",
 }
 
 tainfeng_feng = sgs.General(extension, "tainfeng_feng", "qun", 3)
