@@ -2,7 +2,7 @@
 extension = sgs.Package("hero", sgs.Package_GeneralPack)  
 local skills = sgs.SkillList()
 
-baiqi = sgs.General(extension, "baiqi", "wei", 4)
+baiqi = sgs.General(extension, "baiqi", "wu", 4)
 
 -- 技能1：歼灭  
 jianmie = sgs.CreateTriggerSkill{  
@@ -11232,7 +11232,7 @@ sgs.LoadTranslationTable{
     ["wangjian"] = "王翦",  
     ["hengsao"] = "横扫",
     [":hengsao"] = "出牌阶段限一次。你可以将所有手牌当作【万箭齐发】使用，若此牌未造成伤害，你摸等量牌",
-    ["qingshang"] = "横扫",
+    ["qingshang"] = "请赏",
     [":qingshang"] = "出牌阶段限一次。若你本回合造成过伤害，你可以选择1名角色，令其摸1张牌并交给你1张手牌",
 }  
 -- 创建武将：唐伯虎  
