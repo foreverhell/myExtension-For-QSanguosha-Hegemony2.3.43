@@ -56,7 +56,7 @@ jinxiuzhengpao_skill = sgs.CreateTriggerSkill{
         if event == sgs.TargetConfirmed and player:hasArmorEffect("jinxiuzhengpao") then
             local use = data:toCardUse()
             local armor = player:getArmor()
-            if armor and armor:isKindOf("jinxiuzhengpao") and use.card and use.card:getSuit() < sgs.Card_NoSuit and
+            if armor and armor:isKindOf("jinxiuzhengpao") and use.card and use.card:getSuit() <= sgs.Card_Heart and
             use.to:contains(player) and use.from:objectName() ~= player:objectName() then
                 --检查是否是伤害牌
                 if not isDamageCard(use.card) then return false end
@@ -727,16 +727,22 @@ luaxtfcz_extra = sgs.CreateTriggerSkill{
 luaxtfcz_maxcard = sgs.CreateMaxCardsSkill{
     name = "#luaxtfcz_maxcard",
     extra_func = function(self, target)
-        return (target:getMark("@companion") > 0 and target:getSeemingKingdom() == "shu" and target:getMark("luayanxiHas") > 0) 
-        and 1 or 0
+        if target:getMark("@companion") > 0 and target:getSeemingKingdom() == "shu" and target:getMark("luayanxiHas") > 0 then
+            return 1
+        else
+            return 0
+        end
     end
 }
 
 luaxtfcz_range = sgs.CreateAttackRangeSkill{
     name = "#luaxtfcz_range",
     extra_func = function(self, target)
-        return (target:getMark("@companion") < 1 and target:getSeemingKingdom() == "shu" and target:getMark("luayanxiHas") > 0) 
-        and 1 or 0
+        if target:getMark("@companion") < 1 and target:getSeemingKingdom() == "shu" and target:getMark("luayanxiHas") > 0 then
+            return 1
+        else
+            return 0
+        end
     end
 }
 
@@ -1356,10 +1362,9 @@ luachenyinCard = sgs.CreateSkillCard{
             room:acquireSkill(source, "fangzhu_lordcaopi", true, true)
         else
             source:drawCards(2)
-            if targets[1]:canRecover() and targets[1]:hasFlag(suit_spade) and targets[1]:hasFlag(suit_club) and 
-            targets[1]:hasFlag(suit_diamond) and targets[1]:hasFlag(suit_heart) then
+            if targets[1]:canRecover() and source:hasFlag(suit_spade) and source:hasFlag(suit_club) and 
+            source:hasFlag(suit_diamond) and source:hasFlag(suit_heart) then
                 local recover = sgs.RecoverStruct()
-                recover.who = source
                 recover.recover = 1
                 room:recover(targets[1], recover)
             end
