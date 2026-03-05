@@ -1384,16 +1384,11 @@ JiefanCard = sgs.CreateSkillCard{
         for _, p in ipairs(in_range_players) do  
             if p:isAlive() then  
                 local choices = {}
-                if p:getWeapon() then 
-                    table.insert(choices,"discard_weapon") 
-                end  
+                table.insert(choices,"discard_weapon")
                 table.insert(choices,"let_draw") 
-                  
-                local choice = room:askForChoice(p, "jiefan",  table.concat(choices, "+"))  
-                  
-                if choice == "discard_weapon" and p:getWeapon() then  
-                    room:throwCard(p:getWeapon(), p, source)  
-                else  
+                local choice = room:askForChoice(p, "jiefan",  table.concat(choices, "+"))
+                if not (choice == "discard_weapon" 
+                and room:askForCard(p,"Weapon","@jiefan-discard",sgs.QVariant(),sgs.Card_MethodDiscard)) then  
                     target:drawCards(1, "jiefan")  
                 end  
             end  
