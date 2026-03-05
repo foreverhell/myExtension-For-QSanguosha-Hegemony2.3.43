@@ -1,5 +1,40 @@
 -- 创建扩展包  
-extension = sgs.Package("junba",sgs.Package_GeneralPack)  
+extension = sgs.Package("junba",sgs.Package_GeneralPack)
+bining = sgs.General(extension, "bining", "shu", 3)
+xiuwen = sgs.CreateTriggerSkill{  
+    name = "xiuwen",  
+    events = {sgs.CardUsed},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then
+            local use = data:toCardUse()
+            if use.card:getTypeId() == sgs.Card_TypeSkill then return "" end
+            local mark_name = "xiuwen_" .. use.card:getName()
+            if player:getMark(mark_name) == 0 then
+                room:setPlayerMark(player,mark_name,1)
+                return self:objectName()
+            end
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data) then
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        player:drawCards(1,self:objectName())
+    end
+}
+bining:addSkill(xiuwen)
+sgs.LoadTranslationTable{
+    ["bining"] = "毕宁",
+    ["xiuwen"] = "修文",
+    [":xiuwen"] = "每局游戏你使用每种牌名的第一张牌时，你摸一张牌",
+}
 
 caocao_yuanshao = sgs.General(extension, "caocao_yuanshao", "qun", 3)  -- 吴国，4血，男性  
 jiechuYin_card = sgs.CreateSkillCard{  
@@ -2952,7 +2987,141 @@ sgs.LoadTranslationTable{
     ["@mengshi"] = "盟势",  
     ["@mengshi-invoke"] = "盟势：选择两名角色交换体力值",  
 }
+pangshanmin = sgs.General(extension, "pangshanmin", "wei", 3)
+caisi = sgs.CreateTriggerSkill{  
+    name = "caisi",  
+    events = {sgs.CardUsed, sgs.EventPhaseEnd},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.CardUsed then
+            if player and player:isAlive() and player:hasSkill(self:objectName()) then
+                local use = data:toCardUse()
+                if use.card:isKindOf("BasicCard") and player:getMark("@caisi_times") < player:getMaxHp() then
+                    return self:objectName()
+                end
+            end
+        elseif event == sgs.EventPhaseEnd and player:getPhase() == sgs.Player_Finish then
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if owner and owner:isAlive() then
+                room:setPlayerMark(owner,"@caisi_times",0)
+            end
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        local current = room:getCurrent()
+        local pile = nil
+        if current == player then
+            pile = room:getDrawPile()
+        else
+            pile = room:getDiscardPile()
+        end
 
+        local slash_ids = sgs.IntList()  
+        for _, id in sgs.qlist(pile) do  
+            local card = sgs.Sanguosha:getCard(id)  
+            if not card:isKindOf("BasicCard") then  
+                slash_ids:append(id)  
+            end  
+        end  
+        if not slash_ids:isEmpty() then  
+            local index = math.random(0, slash_ids:length() - 1)  
+            local id = slash_ids:at(index)  
+              
+            local card = sgs.Sanguosha:getCard(id)  
+            room:obtainCard(player, card, false)  
+        end
+        room:addPlayerMark(player,"@caisi_times")
+    end
+}
+
+
+zhuoli = sgs.CreateTriggerSkill{  
+    name = "zhuoli",  
+    events = {sgs.CardUsed, sgs.CardsMoveOneTime, sgs.EventPhaseEnd},  
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.CardUsed then
+            if player and player:isAlive() and player:hasSkill(self:objectName()) then
+                room:addPlayerMark(player,"@zhuoli_use")
+            end
+        elseif event == sgs.CardsMoveOneTime then
+            if skillTriggerable(player, self:objectName()) then
+                local current = room:getCurrent()
+                if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+                    local move_datas = data:toList()
+                    for _, move_data in sgs.qlist(move_datas) do
+                        local move = move_data:toMoveOneTime()
+                        if move.to_place == sgs.Player_PlaceHand then
+                            if move.to and move.to:isAlive() and player:objectName()==move.to:objectName() then
+                                room:addPlayerMark(player,"@zhuoli_obtain",move.card_ids:length())
+                            end
+                        end
+                    end
+                end
+            end
+        elseif event == sgs.EventPhaseEnd and player:getPhase() == sgs.Player_Finish then
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if owner and owner:isAlive() then
+                local use = owner:getMark("@zhuoli_use")
+                local obtain = owner:getMark("@zhuoli_obtain")
+                room:setPlayerMark(owner,"@zhuoli_use",0)
+                room:setPlayerMark(owner,"@zhuoli_obtain",0)
+                if use > owner:getHp() or obtain > owner:getHp() then
+                    local has_max = false
+                    for _,p in sgs.qlist(room:getOtherPlayers(owner)) do
+                        if p:getMaxHp() >= owner:getMaxHp() then
+                            has_max = true
+                            break
+                        end
+                    end
+                    if has_max then
+                        return self:objectName(), owner:objectName()
+                    end
+                end
+            end
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:hasShownSkill(self:objectName()) or ask_who:askForSkillInvoke(self:objectName(), data) then
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)
+        -- 加一点体力上限 
+        --ask_who:setMaxHp(ask_who:getMaxHp()+1) --这么实现没有问题，只是不显示
+        --room:broadcastProperty(ask_who,"maxhp")  --告诉所有人，从而显示
+        room:setPlayerProperty(ask_who, "maxhp", sgs.QVariant(ask_who:getMaxHp() + 1))  --等于上面2行
+            
+        -- 回复一点体力  
+        local recover = sgs.RecoverStruct()  
+        recover.who = ask_who  
+        recover.recover = 1  
+        room:recover(ask_who, recover)
+    end
+}
+
+pangshanmin:addSkill(caisi)
+pangshanmin:addSkill(zhuoli)
+sgs.LoadTranslationTable{
+    ["pangshanmin"] = "庞山民",
+    ["caisi"] = "才思",
+    [":caisi"] = "你回合内/外使用基本牌后，你可以从摸牌堆/弃牌堆获得1张随机非基本牌。每回合限X次，X为你的体力上限",
+    ["zhuoli"] = "擢吏",
+    [":zhuoli"] = "锁定技。每回合结束时，若你本回合使用或获得牌的数量大于体力值，且你的体力上限不为场上唯一最多，你增加1点体力上限并恢复1点体力",
+}
 -- 创建武将蒙恬  
 shendanshenyi = sgs.General(extension, "shendanshenyi", "wei", 4) -- 蜀势力，4血，男性（默认）  
 
@@ -3674,7 +3843,62 @@ sgs.LoadTranslationTable{
     ["weimian:draw"] = "摸四张牌",  
     ["@weimian"] = "慰勉：选择弃置所有手牌"  
 }  
+tianchou = sgs.General(extension, "tianchou", "qun", 4)
+shandaoCard = sgs.CreateSkillCard{  
+    name = "shandaoCard",  
+    target_fixed = false,  
+    will_throw = true,  
+    skill_name = "shandao",  
+    filter = function(self, targets, to_select)  
+        return not to_select:isKongcheng()
+    end,  
+    on_use = function(self, room, source, targets)              
+        -- 记录被选择的角色  
+        local selected_players = sgs.SPlayerList()
+        for _, target in ipairs(targets) do
+            selected_players:append(target)
+            local card_id = room:askForCardChosen(source, target, "he", self:objectName())
+            room:moveCardTo(sgs.Sanguosha:getCard(card_id), nil, sgs.Player_DrawPile, true)
+        end  
+        -- 对选择的角色使用五谷丰登  
+        local amazing_grace = sgs.Sanguosha:cloneCard("amazing_grace")  
+        amazing_grace:setSkillName("shandao")            
+        local ag_use = sgs.CardUseStruct(amazing_grace, source, selected_players)  --使用结构体，目标是qlist类型
+        room:useCard(ag_use)  
+        amazing_grace:deleteLater()  
 
+        -- 对未被选择的角色使用万箭齐发
+        local other_players = sgs.SPlayerList()
+        for _, player in sgs.qlist(room:getOtherPlayers(source)) do  
+            if not selected_players:contains(player) then
+                other_players:append(player)
+            end  
+        end
+        local archery_attack = sgs.Sanguosha:cloneCard("archery_attack")  
+        archery_attack:setSkillName("shandao")            
+        local ar_use = sgs.CardUseStruct(archery_attack, source, other_players)  --使用结构体，目标是qlist类型
+        room:useCard(ar_use)  
+        archery_attack:deleteLater()  
+    end  
+}  
+
+shandao = sgs.CreateZeroCardViewAsSkill{  
+    name = "shandao",  
+    view_as = function(self)  
+        card = shandaoCard:clone()  
+        card:setShowSkill(self:objectName())
+        return card
+    end,  
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#shandaoCard")  
+    end  
+}
+tianchou:addSkill(shandao)
+sgs.LoadTranslationTable{
+    ["tianchou"] = "田畴",
+    ["shandao"] = "善刀",
+    [":shandao"] = "出牌阶段限一次。你可将任意名角色各一张牌置于牌堆顶，视为对这些角色使用【五谷丰登】，然后视为对剩余其他角色使用【万箭齐发】",
+}
 wangxu = sgs.General(extension, "wangxu", "wei", 3)  
 
 shepan = sgs.CreateTriggerSkill{  
