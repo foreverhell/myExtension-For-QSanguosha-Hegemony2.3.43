@@ -8,7 +8,7 @@ caojinyu_feng = sgs.General(extension, "caojinyu_feng", "wei", 3, false)
 yuqi = sgs.CreateTriggerSkill{  
     name = "yuqi",  
     events = {sgs.Damaged},  
-    --frequency = sgs.Skill_Frequent,
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         local owner = room:findPlayerBySkillName(self:objectName())
         if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end  
