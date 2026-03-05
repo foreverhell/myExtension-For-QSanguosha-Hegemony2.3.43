@@ -1635,7 +1635,7 @@ sgs.LoadTranslationTable{
 -- 创建武将：
 hejin = sgs.General(extension, "hejin", "qun", 3)  -- 吴国，4血，男性  
 
-mouzhu_card = sgs.CreateSkillCard{  
+mouzhuCard = sgs.CreateSkillCard{  
     name = "mouzhu",  
     target_fixed = false,  
     will_throw = false,  
@@ -1697,11 +1697,11 @@ mouzhu_card = sgs.CreateSkillCard{
     end  
 }
 
-mouzhu_vs = sgs.CreateZeroCardViewAsSkill{  
+mouzhu = sgs.CreateZeroCardViewAsSkill{  
     name = "mouzhu",  
       
     view_as = function(self)  
-        local card = mouzhu_card:clone()  
+        local card = mouzhuCard:clone()  
         card:setSkillName(self:objectName())
         card:setShowSkill(self:objectName())
         return card
@@ -1765,7 +1765,7 @@ yanhuo = sgs.CreateTriggerSkill{
     end  
 }
 
-hejin:addSkill(mouzhu_vs)
+hejin:addSkill(mouzhu)
 hejin:addSkill(yanhuo)
 
 sgs.LoadTranslationTable{
@@ -1835,30 +1835,19 @@ Shanji = sgs.CreateZeroCardViewAsSkill{
 }  
 
 -- 华甲技能  
-Huajia = sgs.CreateMaxCardsSkill{  
-    name = "huajia",  
-    extra_func = function(self, player)  
-        if player:hasSkill(self:objectName()) then  
-            -- 获取装备区的牌  
-            local equips = player:getEquips()  
-            local suits = {}  
-              
-            -- 统计不同花色的数量  
-            for _, card in sgs.qlist(equips) do  
-                local suit = card:getSuit()  
-                suits[suit] = true  
-            end  
-              
-            -- 计算不同花色的数量  
-            local suit_count = 0  
-            for _ in pairs(suits) do  
-                suit_count = suit_count + 1  
-            end  
-              
-            return suit_count  
-        end  
-        return 0  
-    end  
+Huajia = sgs.CreateMaxCardsSkill{
+    name = "huajia",
+    extra_func = function(self, player)
+        if player:hasShownSkill(self:objectName()) then
+            -- 统计不同花色的数量
+            local suits = {}
+            for _, card in sgs.qlist(player:getEquips()) do
+                suits[card:getSuit()] = true
+            end
+            return #suits
+        end
+        return 0
+    end
 }
 
 heqi:addSkill(Shanji)  
@@ -3000,7 +2989,7 @@ MizhaoCard = sgs.CreateSkillCard{
 }  
   
 -- 密诏视为技  
-MizhaoViewAsSkill = sgs.CreateViewAsSkill{  
+Mizhao = sgs.CreateViewAsSkill{  
     name = "mizhao",  
       
     view_filter = function(self, selected, to_select)  
@@ -3105,14 +3094,6 @@ MizhaoTrigger = sgs.CreateTriggerSkill{
         return false  
     end  
 }  
-  
--- 密诏技能（组合视为技和触发技）  
-Mizhao = sgs.CreateTriggerSkill{  
-    name = "mizhao",  
-    view_as_skill = MizhaoViewAsSkill,  
-      
-    on_effect = function() end  -- 实际效果在MizhaoCard和MizhaoTrigger中处理  
-}
 
 -- 添加技能  
 liuxie:addSkill(Tianming)  
@@ -3445,81 +3426,67 @@ fengwu = sgs.CreateTriggerSkill{
         if not (luyusheng and luyusheng:isAlive() and luyusheng:hasSkill(self:objectName())) then  
             return ""  
         end  
-          
+
         -- 检查是否为其他同势力角色的准备阶段  
-        if player and player:isAlive() and player:getPhase() == sgs.Player_Start   
-           and luyusheng:isFriendWith(player) and player ~= luyusheng then  
+        if player and player:isAlive() and player:getPhase() == sgs.Player_Start and player ~= luyusheng
+           and luyusheng:isFriendWith(player) and not luyusheng:isNude() then  
             return self:objectName(), luyusheng:objectName()
         end  
           
         return ""  
     end,  
       
-    on_cost = function(self, event, room, player, data, ask_who)  
-        -- 检查是否有手牌可以交给目标  
-        if ask_who:getCardCount() == 0 then  
-            return false  
-        end  
-          
+    on_cost = function(self, event, room, player, data, ask_who)
         -- 询问是否发动技能  
-        if ask_who:askForSkillInvoke(self:objectName(), data) then  
-            room:broadcastSkillInvoke(self:objectName())  
+        if ask_who:askForSkillInvoke(self:objectName(), data) then
+            room:broadcastSkillInvoke(self:objectName())
             return true
-        end  
-        return false  
+        end
+        return false
     end,  
       
     on_effect = function(self, event, room, player, data, ask_who)  
         -- 选择一张牌交给目标角色  
         local card = room:askForCard(ask_who, ".", "@fengwu-give:" .. player:objectName(),   
             sgs.QVariant(), sgs.Card_MethodNone)  
-        if card then  
+        if card then
             room:obtainCard(player, card, false)  
         else
             return false
-        end  
+        end
           
-        local all_players = room:getAlivePlayers()  
-          
+        local all_players = room:getAlivePlayers()
+
         -- 检查是否手牌数最少  
-        local min_handcard = 1000  
-        for _, p in sgs.qlist(all_players) do  
-            min_handcard = math.min(min_handcard, p:getHandcardNum())  
-        end  
+        local min_handcard = 1000
+        for _, p in sgs.qlist(all_players) do
+            min_handcard = math.min(min_handcard, p:getHandcardNum())
+        end
           
-        if player:getHandcardNum() == min_handcard then  
-            -- 恢复一点体力  
-            local recover = sgs.RecoverStruct()  
-            recover.who = ask_who  
-            recover.recover = 1  
-            room:recover(player, recover)  
+        if player:getHandcardNum() == min_handcard then
+            -- 恢复一点体力
+            local recover = sgs.RecoverStruct()
+            recover.who = ask_who
+            recover.recover = 1
+            room:recover(player, recover)
         end  
           
         -- 检查是否体力值最低  
-        local min_hp = 1000  
-        for _, p in sgs.qlist(all_players) do  
-            min_hp = math.min(min_hp, p:getHp())  
-        end  
-          
-        if player:getHp() == min_hp then  
-            -- 获得牌堆一张基础牌  
-            local basic_cards = {}  
-            for i = 1, 20 do -- 检查牌堆顶20张牌  
-                local card_id = room:drawCard()  
-                local card = sgs.Sanguosha:getCard(card_id)  
-                if card:getTypeId() == sgs.Card_TypeBasic then  
-                    room:obtainCard(player, card_id, false)  
-                    break  
-                else  
-                    table.insert(basic_cards, card_id)  
-                end  
-            end  
-            -- 将非基础牌放回牌堆底  
-            if #basic_cards > 0 then  
-                room:returnToDrawPile(basic_cards)  
-            end  
-        end  
-          
+        local min_hp = 1000
+        for _, p in sgs.qlist(all_players) do
+            min_hp = math.min(min_hp, p:getHp())
+        end
+
+        if player:getHp() == min_hp then
+            -- 获得牌堆一张基础牌
+            for _, card_id in sgs.qlist(room:getDrawPile()) do
+                local card = sgs.Sanguosha:getCard(card_id)
+                if card:getTypeId() == sgs.Card_TypeBasic then
+                    room:obtainCard(player, card_id, false)
+                    break
+                end
+            end
+        end
         return false  
     end  
 }  
@@ -3727,28 +3694,21 @@ qingzhong = sgs.CreateTriggerSkill{
             room:setPlayerFlag(player, "qingzhong_used")  
         else  
             -- 找到手牌最少的角色  
-            local otherPlayers = sgs.QList2Table(room:getOtherPlayers(player))  
             local least = 1000  
-            for _, player in ipairs(otherPlayers) do  
-                least = math.min(player:getHandcardNum(), least)  
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
+                least = math.min(p:getHandcardNum(), least)  
             end  
             
             -- 找到手牌数等于最少数量的玩家  
-            local targets = {}  
-            for _, player in ipairs(otherPlayers) do  
-                if player:getHandcardNum() == least then  
-                    table.insert(targets, player)  
+            local targets = sgs.SPlayerList()
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
+                if p:getHandcardNum() == least then
+                    targets:append(p)
                 end  
             end
               
-            if  #targets > 0 then  
-                local target = nil  
-                if #targets == 1 then  
-                    target = targets[1]  
-                else  
-                    target = room:askForPlayerChosen(player, targets, self:objectName(), "@qingzhong-choose")  
-                end  
-                  
+            if not targets:isEmpty() then  
+                local target = room:askForPlayerChosen(player, targets, self:objectName(), "@qingzhong-choose")
                 if target then  
                     -- 全部交换：交换所有手牌
                     local source_handcards = sgs.IntList()
@@ -5376,9 +5336,8 @@ feijunCard = sgs.CreateSkillCard{
     target_fixed = false,  
     filter = function(self, targets, to_select, Self)  
         if #targets >= 1 then return false end  
-        if to_select:objectName() == Self:objectName() then return false end  
-
-        return to_select:getHandcardNum() > Self:getHandcardNum()-1 or to_select:getEquips():length() > Self:getEquips():length()-1
+        if to_select:objectName() == Self:objectName() then return false end
+        return to_select:getHandcardNum() > Self:getHandcardNum() or to_select:getEquips():length() > Self:getEquips():length()
     end,  
     feasible = function(self, targets, Self)  
         return #targets == 1  
@@ -6536,9 +6495,11 @@ xingshen = sgs.CreateTriggerSkill{
         local choice = player:getTag("zhangchangpu_choice"):toString()  
           
         if choice == "draw" then  
-            player:drawCards(1)  
+            player:drawCards(1)
         elseif choice == "discard" and not player:isKongcheng() then  
-            room:askForDiscard(player, self:objectName(), 1, 1, false, true)  
+            if not room:askForDiscard(player, self:objectName(), 1, 1, true, false) then
+                player:drawCards(1)
+            end
         end  
           
         -- 展示所有手牌  
@@ -6574,8 +6535,8 @@ xingshen = sgs.CreateTriggerSkill{
     end  
 }
 
-yanjiao_card = sgs.CreateSkillCard{  
-    name = "yanjiao_card",  
+yanjiaoCard = sgs.CreateSkillCard{  
+    name = "yanjiaoCard",  
     target_fixed = false,  
     will_throw = false,  
     filter = function(self, targets, to_select, Self)  
@@ -6606,12 +6567,12 @@ yanjiao_card = sgs.CreateSkillCard{
 yanjiao = sgs.CreateZeroCardViewAsSkill{  
     name = "yanjiao",  
     view_as = function(self)  
-        local card = yanjiao_card:clone()  
+        local card = yanjiaoCard:clone()  
         card:setShowSkill(self:objectName())  
         return card  
     end,  
     enabled_at_play = function(self, player)  
-        return not player:hasUsed("#yanjiao_card")  
+        return not player:hasUsed("#yanjiaoCard")  
     end  
 }
 zhangchangpu:addSkill(xingshen)  
