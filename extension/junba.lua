@@ -1,5 +1,6 @@
 -- 创建扩展包  
 extension = sgs.Package("junba",sgs.Package_GeneralPack)
+--[[
 bining = sgs.General(extension, "bining", "shu", 3)
 xiuwen = sgs.CreateTriggerSkill{  
     name = "xiuwen",  
@@ -60,11 +61,10 @@ jiechuYin_card = sgs.CreateSkillCard{
         use.to:append(target)  
         room:useCard(use, false)  
 
-        --[[
-        if target:canSlash(source, nil, false) then  
-            use_slash = room:askForUseSlashTo(target, source, "@jiechuYin-slash:" .. source:objectName())  
-        end  
-        ]]
+        
+        --if target:canSlash(source, nil, false) then  
+        --    use_slash = room:askForUseSlashTo(target, source, "@jiechuYin-slash:" .. source:objectName())  
+        --end
         -- 目标视为对你使用一张杀  
         local slash = sgs.Sanguosha:cloneCard("slash")  
         slash:setSkillName("jiechuYin")  
@@ -290,7 +290,8 @@ sgs.LoadTranslationTable{
 ["club"] = "梅花",
 ["heart"] = "红桃",
 ["diamond"] = "方片"
-}  
+} 
+]]
 -- 创建武将  
 caochong = sgs.General(extension, "caochong", "wei", 3)  
 
@@ -4222,7 +4223,7 @@ sgs.LoadTranslationTable{
     [":yanyu"] = "出牌阶段，你可以将杀重铸；回合结束时，你可以令一名角色摸X张牌，X为以此法重铸杀的次数，至多为3"
 }
 
-xing_caoren = sgs.General(extension, "xing_caoren", "wei", 3)  -- 吴国，4血，男性  
+xing_caoren = sgs.General(extension, "xing_caoren", "jin", 3)  -- 吴国，4血，男性  
 
 sujun = sgs.CreateTriggerSkill{  
     name = "sujun",  
