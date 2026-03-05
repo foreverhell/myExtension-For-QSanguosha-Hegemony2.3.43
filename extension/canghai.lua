@@ -1999,11 +1999,7 @@ dianhu = sgs.CreateTriggerSkill{
             if death.who:getMark("dianhu_target") > 0 then
                 local owner = room:findPlayerBySkillName(self:objectName())
                 if owner and owner:isAlive() and owner:hasSkill(self:objectName()) then
-                    if owner:inHeadSkills(self:objectName()) then
-                        owner:hideGeneral(true)
-                    else
-                        owner:hideGeneral(false)
-                    end
+                    return self:objectName()
                 end
             end
 		end
@@ -2013,7 +2009,7 @@ dianhu = sgs.CreateTriggerSkill{
         return true
 	end,
     on_effect = function(self, event, room, player, data)
-        if event == sgs.GeneralShowed then
+        if event == sgs.GeneralShowed or event == sgs.Death then
             local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())
             room:setPlayerMark(target, "dianhu_target", 1)
         elseif event == sgs.Damage then
@@ -2064,7 +2060,7 @@ huangquan:addSkill(dianhu)
 huangquan:addSkill(jianji)
 sgs.LoadTranslationTable{
     ["dianhu"] = "点虎",
-    [":dianhu"] = "锁定技。你明置此武将时，你选择一名其他角色，与你势力相同的角色对其造成伤害后，伤害源摸一张牌",--；该角色死亡后，你暗置此武将",
+    [":dianhu"] = "锁定技。你明置此武将时，你选择一名其他角色，与你势力相同的角色对其造成伤害后，伤害源摸一张牌；该角色死亡后，你另选择一名其他角色",
     ["jianji"] = "谏计",
     [":jianji"] = "出牌阶段限一次。你可以令一名角色摸一张牌，然后其可以使用之"
 }
