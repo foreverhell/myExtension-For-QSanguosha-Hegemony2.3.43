@@ -8,12 +8,12 @@ caojinyu_feng = sgs.General(extension, "caojinyu_feng", "wei", 3, false)
 yuqi = sgs.CreateTriggerSkill{  
     name = "yuqi",  
     events = {sgs.Damaged},  
-    frequency = sgs.Skill_Frequent,
+    --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         local owner = room:findPlayerBySkillName(self:objectName())
         if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end  
         local damage = data:toDamage()
-        if damage.to:isAlive() and owner:distanceTo(damage.to) <= owner:getHp() then
+        if damage.to:isAlive() and owner:distanceTo(damage.to) <= owner:getHp() and owner:willBeFriendWith(damage.to) then
             return self:objectName(), owner:objectName()
         end
         return ""
@@ -63,7 +63,7 @@ caojinyu_feng:addSkill(shanshen)
 sgs.LoadTranslationTable{
     ["caojinyu_feng"] = "曹金玉",
     ["yuqi"] = "隅泣",
-    [":yuqi"] = "与你距离小于等于你当前体力的角色受到伤害后，你可以令其摸1张牌",
+    [":yuqi"] = "与你势力相同的角色受到伤害后，若你到其的距离小于等于你当前体力值，你可以令其摸1张牌",
     ["shanshen"] = "善身",
     [":shanshen"] = "一名角色死亡时，若没有伤害来源或伤害来源不是你，你可以恢复1点体力"
 }
