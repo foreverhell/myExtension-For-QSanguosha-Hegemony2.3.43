@@ -1321,6 +1321,109 @@ sgs.LoadTranslationTable{
     [":guijie"] = "你可以将2张红色牌当作【闪】使用或打出，然后你摸1张牌",
 }
 
+wangshen_feng = sgs.General(extension, "wangshen_feng", "wei", 3)
+anran = sgs.CreateTriggerSkill{  
+    name = "anran",  
+    events = {sgs.Damaged},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then
+            return self:objectName()
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        -- 询问是否发动技能  
+        if room:askForSkillInvoke(player, self:objectName(), data) then  
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        local n = player:getMark("@anran")
+        if n == 0 then
+            n = 1
+        end
+        player:drawCards(n,self:objectName())
+        room:setPlayerMark(player,"@anran",math.min(n+1,4))
+    end  
+}
+gaofa = sgs.CreateTriggerSkill{  
+    name = "gaofa",  
+    events = {sgs.Damaged, sgs.EventPhaseEnd},  
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.Damaged then
+            local damage = data:toDamage()
+            room:setPlayerFlag(damage.to,"gaofa_damaged")
+        elseif event == sgs.EventPhaseEnd and player:getPhase() == sgs.Player_Finish and not player:hasSkill(self:objectName()) then
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if not (owner and owner:isAlive() and owner:hasShownSkill(self:objectName())) then return "" end --必须展示此技能才有发动时机
+            local n = 0
+            local target = nil
+            for _,p in sgs.qlist(room:getAlivePlayers()) do
+                if p:hasFlag("gaofa_damaged") then
+                    n = n + 1
+                    target = p
+                end
+            end
+            if n == 1 then
+                return self:objectName(),owner:objectName()
+            end
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        return true
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)
+        for _,p in sgs.qlist(room:getAlivePlayers()) do
+            if p:hasFlag("gaofa_damaged") then
+                player = p
+                break
+            end
+        end
+        local choice = room:askForChoice(player,self:objectName(),"slash+reset")
+        if choice == "slash" then
+            local targets = sgs.SPlayerList()  
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
+                if player:inMyAttackRange(p) then
+                    targets:append(p)  
+                end
+            end  
+            local target = room:askForPlayerChosen(player, targets, self:objectName(), "@gaofa-choose", true)
+            if target then
+                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
+                slash:setSkillName(self:objectName())  
+                local use = sgs.CardUseStruct()  
+                use.card = slash  
+                use.from = player  
+                use.to:append(target)  
+                room:useCard(use) 
+                slash:deleteLater()
+            else
+                room:setPlayerMark(ask_who,"@anran",1)
+            end
+        elseif choice == "reset" then
+            room:setPlayerMark(ask_who,"@anran",1)
+        end
+    end  
+}
+
+wangshen_feng:addSkill(anran)
+wangshen_feng:addSkill(gaofa)
+sgs.LoadTranslationTable{
+    ["wangshen_feng"] = "王沈",
+    ["anran"] = "岸然",
+    [":anran"] = "你受到伤害后，你可以摸1张牌，然后下次以此法摸牌数+1，至多为4",
+    ["gaofa"] = "告发",
+    [":gaofa"] = "锁定技。其他角色回合结束时，若本回合仅有一名角色受到伤害，其选择（1）视为使用1张杀（2）重置“岸然”",
+}
+
 wangyun_feng = sgs.General(extension, "wangyun_feng", "qun", 3)
 zongji = sgs.CreateTriggerSkill{  
     name = "zongji",  
@@ -1621,15 +1724,19 @@ zhiyi = sgs.CreateTriggerSkill{
                     targets:append(p)  
                 end  
             end
-            local target = room:askForPlayerChosen(ask_who, targets, self:objectName(), "@zhiyi", true)  
-            local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
-            slash:setSkillName(self:objectName())  
-            local use = sgs.CardUseStruct()  
-            use.card = slash  
-            use.from = ask_who  
-            use.to:append(target)  
-            room:useCard(use) 
-            slash:deleteLater()
+            local target = room:askForPlayerChosen(ask_who, targets, self:objectName(), "@zhiyi", true)
+            if target then
+                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
+                slash:setSkillName(self:objectName())  
+                local use = sgs.CardUseStruct()  
+                use.card = slash  
+                use.from = ask_who  
+                use.to:append(target)  
+                room:useCard(use) 
+                slash:deleteLater()
+            else
+                ask_who:drawCards(1,self:objectName())
+            end
         end
     end
 }
