@@ -500,6 +500,7 @@ sgs.LoadTranslationTable{
 ["yashang"] = "雅殇",  
 [":yashang"] = "锁定技，当你受到伤害后，若伤害来源与你势力不同，其须将手牌弃至X张，若其未弃牌，你将手牌摸至X张；若伤害来源与你势力相同，你须将手牌弃至X张，若你未弃牌，伤害来源将手牌摸至X张。X为你空置装备栏数。",
 }
+--[[
 dongbai = sgs.General(extension, "dongbai", "qun", 3, false)  
 
 lianzhu = sgs.CreateViewAsSkill{  
@@ -590,7 +591,7 @@ sgs.LoadTranslationTable{
 ["lianzhu_discard"] = "弃置两张牌",  
 ["@lianzhu-card"] = "连诛：选择要交给目标角色的牌"
 }
---[[
+
 fuhuanghou = sgs.General(extension, "fuhuanghou", "qun", 3, false)
 zhuikongUse = sgs.CreateZeroCardViewAsSkill{
     name = "zhuikongUse",
