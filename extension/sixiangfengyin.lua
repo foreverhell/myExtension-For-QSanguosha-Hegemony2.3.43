@@ -300,6 +300,12 @@ fuliCard = sgs.CreateSkillCard{
             room:throwCard(dummy, source, source)  
             dummy:deleteLater()  
         end
+        if source:isWounded() then
+            local recover = sgs.RecoverStruct()
+            recover.who = source
+            recover.recover = 1
+            room:recover(source, recover)
+        end
         --目标展示并弃置所有伤害牌
         if not target:isKongcheng() then
             room:showAllCards(target)
@@ -428,8 +434,8 @@ liuli_feng:addSkill(fuli)
 liuli_feng:addSkill(dehua)
 sgs.LoadTranslationTable{
     ["liuli_feng"] = "刘理",
-    ["fuli"] = "扶理",
-    [":fuli"] = "出牌阶段限一次，你可以展示所有手牌并弃置其中的所有伤害类牌（没有则不弃），然后令一名其他角色进行相同操作，并回复1点体力",
+    ["fuli"] = "抚黎",
+    [":fuli"] = "出牌阶段限一次，你可以展示所有手牌并弃置其中的所有伤害类牌（没有则不弃），并回复1点体力，然后令一名其他角色进行相同操作，",
     ["dehua"] = "德化",
     [":dehua"] = "你失去仅两张牌的回合结束时，你可以视为使用一张基本牌",
 }
@@ -985,7 +991,7 @@ sgs.LoadTranslationTable{
     ["jianjie"] = "荐杰",
     [":jianjie"] = "准备阶段，你可以展示至多三名角色各一张牌，这些角色依次可以将展示的红色/黑色牌当【火攻】/【铁索连环】使用。",
     ["chenhao"] = "称好",
-    [":chenhao"] = "每回合限一次，当任意角色受到属性伤害后，你可以令与你一名势力相同的角色摸1张牌。 ",
+    [":chenhao"] = "每回合限一次，当任意角色受到属性伤害后，你可以令一名与你势力相同的角色摸1张牌。 ",
 }
 
 sunluyu_feng = sgs.General(extension, "sunluyu_feng", "wu", 3, false)
@@ -1157,7 +1163,7 @@ sunyi_feng:addSkill(zaoli)
 sgs.LoadTranslationTable{
     ["sunyi_feng"] = "孙翊",
     ["zaoli"] = "躁厉",
-    [":zaoli"] = "锁定技。准备阶段，若你的体力值大于1，你失去1点体力，然后你弃置你手牌/装备区所有牌，并摸等量+已失去体力数张牌",
+    [":zaoli"] = "锁定技。准备阶段，若你的体力值大于1，你失去1点体力；你弃置你手牌/装备区所有牌，并摸等量+已失去体力数张牌",
 }
 
 taoqian_feng = sgs.General(extension, "taoqian_feng", "qun", 3)
