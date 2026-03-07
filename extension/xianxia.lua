@@ -1160,10 +1160,8 @@ zhengfeng = sgs.CreateTriggerSkill{
     events = {sgs.EventPhaseStart},  
     frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
-        if not player or not player:isAlive() or player:getPhase() ~= sgs.Player_Start then  
-            return ""  
-        end  
-          
+        if not (player and player:isAlive() and player:getPhase() == sgs.Player_Start) then return ""  end  
+
         -- 查找拥有征锋技能的同势力角色  
         local guansuo_xianxia = nil  
         for _, p in sgs.qlist(room:getAlivePlayers()) do  
@@ -1180,7 +1178,7 @@ zhengfeng = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data, ask_who)       
-        if ask_who and room:askForUseCard(ask_who, "slash", "", -1, sgs.Card_MethodUse, false) then
+        if room:askForUseCard(ask_who, "slash", "你可以使用一张杀", -1, sgs.Card_MethodUse, false) then
             return true
         end
         return false  
@@ -1258,15 +1256,22 @@ muyang = sgs.CreateTriggerSkill{
         -- 亮出牌堆顶2张牌  
         for i=1,2 do  
             -- 从牌堆顶获得一张牌  
-            local card_id = room:drawCard()  
-            if not card_id then break end  -- 牌堆空了  
-            
-            local card = sgs.Sanguosha:getCard(card_id)  
+            local card_ids = room:getNCards(1)            
+            -- 创建卡牌移动结构，从牌堆移动到桌面（可见）  
+            local move = sgs.CardsMoveStruct()  
+            move.from = nil  
+            move.from_place = sgs.Player_DrawPile  
+            move.to = nil  -- 移动到桌面  
+            move.to_place = sgs.Player_PlaceTable  
+            move.card_ids = card_ids  
+            move.reason = sgs.CardMoveReason(sgs.CardMoveReason.S_REASON_DEMONSTRATE, player:objectName())  
+            -- 执行移动并展示  
+            room:moveCardsAtomic(move, true)
+            local card_id = card_ids:first()
+            local card = sgs.Sanguosha:getCard(card_id)
             if card:isRed() or card:isKindOf("Slash") then  
                 room:obtainCard(player, card_id)
                 room:showCard(player, card_id)
-            --else  
-            --    room:throwCard(card_id, nil, player) 
             end  
         end  
         return false  
@@ -1761,7 +1766,7 @@ liubian:addSkill(shiyuan)
 sgs.LoadTranslationTable{
 ["liubian"] = "刘辩",  
 ["shiyuan"] = "诗怨",  
-[":shiyuan"] = "每回合限一次。当你成为其他角色使用牌的目标时，若其体力值：大于你，你摸2张牌；小于等于你，你摸1张牌。"
+[":shiyuan"] = "每回合限一次。当你成为其他角色使用牌的目标后，若其体力值：大于你，你摸2张牌；小于等于你，你摸1张牌。"
 }
 --[[
 liuchen = sgs.General(extension, "liuchen", "shu", 4) -- 蜀势力，4血，男性（默认）  
