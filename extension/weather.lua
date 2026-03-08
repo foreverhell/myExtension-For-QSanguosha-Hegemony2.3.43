@@ -129,8 +129,11 @@ SunnyRecover = sgs.CreateTriggerSkill{
     name = "SunnyRecover",  
     events = {sgs.PreHpRecover},  
     global = true,      
-    can_trigger = function(self, event, room, player, data)  
-        return self:objectName() 
+    can_trigger = function(self, event, room, player, data)
+        if room:getTag("weather"):toString() == "sunny" then
+            return self:objectName()
+        end
+        return ""
     end,  
       
     on_cost = function(self, event, room, player, data)  
