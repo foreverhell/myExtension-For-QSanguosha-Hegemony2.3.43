@@ -5667,8 +5667,8 @@ sgs.LoadTranslationTable{
 wenqin = sgs.General(extension, "wenqin", "wu", 4)  
 kuoao = sgs.CreateTriggerSkill{  
     name = "kuoao",  
-    events = {sgs.CardUsed},  -- 监听受到伤害和造成伤害事件  
-    frequency = sgs.Skill_Frequent,
+    events = {sgs.CardUsed},
+    --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         local use = data:toCardUse()
         if not (use.card and use.card:isKindOf("Slash")) then return "" end
@@ -6458,7 +6458,8 @@ zhangchangpu = sgs.General(extension, "zhangchangpu", "wei", 3, false)
 
 xingshen = sgs.CreateTriggerSkill{  
     name = "xingshen",  
-    events = {sgs.Damaged},  
+    events = {sgs.Damaged},
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) then  
             return self:objectName()  
@@ -6512,18 +6513,22 @@ xingshen = sgs.CreateTriggerSkill{
         end  
           
         if can_heal then  
-            local others = room:getOtherPlayers(player)  
-            local target = room:askForPlayerChosen(player, others, self:objectName(), "选择一名其他角色令其回复1点体力", true)  
-            if target then  
-                local recover = sgs.RecoverStruct()  
-                recover.who = player  
-                recover.recover = 1  
-                room:recover(target, recover)  
-            end  
-        end  
-          
-        return false  
-    end  
+            local targets = sgs.SPlayerList()
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+                if p:isWounded() then
+                    targets:append(p)
+                end
+            end
+            local target = room:askForPlayerChosen(player, targets, self:objectName(), "选择一名其他角色令其回复1点体力", true)
+            if target then
+                local recover = sgs.RecoverStruct()
+                recover.who = player
+                recover.recover = 1
+                room:recover(target, recover)
+            end
+        end
+        return false
+    end
 }
 
 yanjiaoCard = sgs.CreateSkillCard{  
