@@ -119,7 +119,7 @@ tiaoheCard = sgs.CreateSkillCard{
                 targets:append(p)
             end
         end
-        local target = room:askForPlayerChosen(source, targets, self:objectName())
+        local target = room:askForPlayerChosen(source, targets, self:objectName(), "选择一名角色弃置其装备区的武器")
         room:throwCard(target:getWeapon():getId(),target,source)
 
         --选择另一名角色，弃置其装备区的防具
@@ -129,7 +129,7 @@ tiaoheCard = sgs.CreateSkillCard{
                 targets:append(p)
             end
         end
-        local target = room:askForPlayerChosen(source, targets, self:objectName())
+        local target = room:askForPlayerChosen(source, targets, self:objectName(), "选择一名角色弃置其装备区的防具")
         room:throwCard(target:getArmor():getId(),target,source)
         return false
     end
@@ -1427,7 +1427,7 @@ sgs.LoadTranslationTable{
     ["anran"] = "岸然",
     [":anran"] = "你受到伤害后，你可以摸1张牌，然后下次以此法摸牌数+1，至多为4",
     ["gaofa"] = "告发",
-    [":gaofa"] = "锁定技。其他角色回合结束时，若本回合仅有一名角色受到伤害，其选择（1）视为使用1张杀（2）重置“岸然”",
+    [":gaofa"] = "锁定技。其他角色回合结束时，若本回合仅有一名受到伤害角色存活，其选择（1）视为使用1张杀（2）重置“岸然”",
 }
 
 wangyun_feng = sgs.General(extension, "wangyun_feng", "qun", 3)
