@@ -1345,7 +1345,7 @@ xuehen = sgs.CreateTriggerSkill{
         if use.card:getSuit() == card:getSuit() then
             --参考业仇
             use.card:setFlags("GlobalCardUseDisresponsive")  -- 设置不可响应标志  
-            --use.card:setTag("addcardinality", 1) --伤害+1
+            --use.card:setTag("addcardinality", sgs.QVariant(1)) --伤害+1
         end
         data:setValue(use)
         return false  
