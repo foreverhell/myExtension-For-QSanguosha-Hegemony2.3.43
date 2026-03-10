@@ -517,7 +517,7 @@ yinleijian = sgs.CreateWeapon{
 -- 引雷剑技能实现
 yinleijianSkill = sgs.CreateTriggerSkill{  
     name = "YinLeiJian",  
-    events = {sgs.CardUsed, sgs.DamageCaused},  
+    events = {sgs.CardUsed},--sgs.DamageCaused
     --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) then  
@@ -543,14 +543,17 @@ yinleijianSkill = sgs.CreateTriggerSkill{
     end,  
     on_effect = function(self, event, room, player, data)  
         local use = data:toCardUse()  
-        --[[
         local originalCard = use.card
         local new_card = sgs.Sanguosha:cloneCard("thunder_slash", originalCard:getSuit(), originalCard:getNumber())
         new_card:addSubcard(originalCard:getId())
-        new_card:setFlags("thunder")
+        --new_card:setFlags("thunder")
+
+        local drank_mark = player:getMark("drank")            
+        if drank_mark > 0 then  
+            new_card:setTag("drank", sgs.QVariant(drank_mark))  
+        end  
         use.card = new_card
-        ]]
-        use.card:setFlags("thunder")
+        --use.card:setFlags("thunder")
         data:setValue(use)
         return false  
     end  
