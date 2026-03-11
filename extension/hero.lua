@@ -7,7 +7,8 @@ baiqi = sgs.General(extension, "baiqi", "wu", 4)
 -- 技能1：歼灭  
 jianmie = sgs.CreateTriggerSkill{  
     name = "jianmie",  
-    events = {sgs.Damage},  
+    events = {sgs.Damage},
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) then  
             local damage = data:toDamage()  
@@ -2591,7 +2592,7 @@ Budao = sgs.CreateTriggerSkill{
 wushengSlash = sgs.CreateTriggerSkill{  
     name = "wushengSlash",  
     events = {sgs.CardResponded},  
-    frequency = sgs.Skill_Compulsory,
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         local source = room:findPlayerBySkillName(self:objectName())  
         if not (source and source:isAlive() and source:hasSkill(self:objectName())) then  
@@ -4011,9 +4012,8 @@ neijing = sgs.CreateZeroCardViewAsSkill{
 
 longzheng = sgs.CreateTriggerSkill{
     name = "longzheng",
-    frequency = sgs.Skill_Frequent,
     events = {sgs.Damaged},
-    
+    frequency = sgs.Skill_Frequent,    
     can_trigger = function(self, event, room, player, data)
         -- 检查是否是芈月且存活
         if not player or not player:hasSkill(self:objectName()) or not player:isAlive() then
@@ -4073,7 +4073,7 @@ guanjunhou = sgs.CreateTriggerSkill{
     end,  
     on_cost = function(self, event, room, player, data)  
         if event == sgs.DrawNCards then
-            return player:askForSkillInvoke(self:objectName(),data)
+            return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
         elseif event == sgs.AfterDrawNCards then
             return player:hasFlag("guanjunhou_used")
         end
@@ -4097,7 +4097,7 @@ huoqubing:addSkill("kurou")
 sgs.LoadTranslationTable{
 ["huoqubing"] = "霍去病",
 ["guanjunhou"] = "冠军侯",  
-[":guanjunhou"] = "摸牌阶段开始时，你可以令额定摸牌数+2；若如此做，摸牌阶段结束时，你弃置1张牌。",
+[":guanjunhou"] = "锁定技。摸牌阶段开始时，你可以令额定摸牌数+2；若如此做，摸牌阶段结束时，你弃置1张牌。",
 }
 
 
@@ -4886,17 +4886,16 @@ zhubei = sgs.CreateTriggerSkill{
         if player and player:isAlive() and player:hasSkill(self:objectName()) then  
             local damage = data:toDamage()  
             if damage.from and damage.from:objectName() == player:objectName() then  
-                --room:setPlayerFlag(player,"zhubei")  
+                room:setPlayerFlag(player,"zhubei_damage")  
                 return self:objectName()  
             end  
         end  
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
-        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data)
+        return false
     end,  
     on_effect = function(self, event, room, player, data)    
-        room:setPlayerFlag(player,"zhubei")  
         return false  
     end  
 }  
@@ -4904,7 +4903,7 @@ zhubeiMod = sgs.CreateTargetModSkill{
     name = "#zhubei-mod",  
     pattern = "Slash",  
     residue_func = function(self, player, card)  
-        if player:hasFlag("zhubei") then  
+        if player:hasShownSkill("zhubei") and player:hasFlag("zhubei_damage") then  
             return 1  
         else  
             return 0  
@@ -5069,11 +5068,10 @@ yaoyue = sgs.CreateTriggerSkill{
 }  
 ]]
 
--- 技能：酒仙 - 使用杀时触发（摸牌部分）  
 jiuxian = sgs.CreateTriggerSkill{  
     name = "jiuxian",  
     events = {sgs.CardUsed, sgs.DamageInflicted},  
-    frequency = sgs.Skill_Compulsory,
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) then
             if event == sgs.CardUsed then
@@ -5177,7 +5175,7 @@ mingque = sgs.CreateTriggerSkill{
     frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)  
         if not player or player:isDead() or not player:hasSkill(self:objectName()) then return "" end  
-        if player:getPhase() == sgs.Player_Start and not player:isWounded() then  
+        if player:getPhase() == sgs.Player_Start then  
             return self:objectName()
         elseif player:getPhase() == sgs.Player_Finish and player:isWounded() then
             return self:objectName()
@@ -5205,7 +5203,7 @@ lichunfeng:addSkill(mingque)
 sgs.LoadTranslationTable{  
     ["lichunfeng"] = "李淳风",
     ["mingque"] = "命缺",
-    [":mingque"] = "锁定技。你的准备阶段，若你没有受伤，你失去1点体力，观星X；你的回合结束时，若你已受伤，观星X。X为你失去的体力值"
+    [":mingque"] = "锁定技。你的准备阶段，若你没有受伤，你失去1点体力；观星X。你的回合结束时，若你已受伤，观星X。X为你失去的体力值"
 }
 
 liguang = sgs.General(extension, "liguang", "shu", 4)  
@@ -6805,7 +6803,7 @@ luobingwang = sgs.General(extension, "luobingwang", "qun", 3)
 yonge = sgs.CreateTriggerSkill{  
     name = "yonge",  
     events = {sgs.CardUsed, sgs.CardResponded, sgs.EventPhaseChanging},  
-    frequency = sgs.Skill_Compulsory,
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
             return ""  
@@ -6814,7 +6812,8 @@ yonge = sgs.CreateTriggerSkill{
         if event == sgs.EventPhaseChanging then  
             local change = data:toPhaseChange()  
             if change.from == sgs.Player_Play then  
-                -- 清除出牌阶段结束时的记录  
+                -- 清除出牌阶段结束时的记录
+                room:setPlayerMark(player, "@max_number_this_turn", 0)
                 return self:objectName()  
             end  
         elseif player:getPhase() == sgs.Player_Play then  
@@ -6850,7 +6849,7 @@ yonge = sgs.CreateTriggerSkill{
       
     on_cost = function(self, event, room, player, data)  
         if event == sgs.EventPhaseChanging then  
-            return true  
+            return false  
         else  
             -- 自动触发，无需询问  
             return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)  
@@ -6901,7 +6900,7 @@ biaoqi = sgs.CreateTriggerSkill{
 	end,
 
 	on_cost = function(self, event, room, skill_target, data, player)
-		if player:askForSkillInvoke(self:objectName(), data) then
+		if player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data) then
 			room:broadcastSkillInvoke(self:objectName(), player)
 			return true
 		end
@@ -8897,7 +8896,7 @@ zhiba = sgs.CreateZeroCardViewAsSkill{
 baye = sgs.CreateTriggerSkill{  
     name = "baye",  
     events = {sgs.Pindian},  
-    frequency = sgs.Skill_Frequent,  
+    frequency = sgs.Skill_Compulsory,  
       
     can_trigger = function(self, event, room, player, data)  
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
@@ -8913,7 +8912,7 @@ baye = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(),data)
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
     end,  
       
     on_effect = function(self, event, room, player, data)  
@@ -10447,12 +10446,12 @@ qijiCard = sgs.CreateSkillCard{
 }  
   
 -- 创建强行视为技  
-qijiViewAsSkill = sgs.CreateViewAsSkill{  
+qiji = sgs.CreateViewAsSkill{  
     name = "qiji",  
       
     view_filter = function(self, selected, to_select)  
         -- 只能选择手牌，且最多选择两张  
-        return not to_select:isEquipped() and #selected < 2  
+        return #selected < 2 and not to_select:isEquipped()   
     end,  
       
     view_as = function(self, cards)  
@@ -10471,13 +10470,6 @@ qijiViewAsSkill = sgs.CreateViewAsSkill{
         -- 出牌阶段限一次，且需要有至少两张手牌  
         return not player:hasUsed("#qijiCard") and player:getHandcardNum() >= 2  
     end  
-}  
-  
--- 创建强行技能  
-qiji = sgs.CreateTriggerSkill{  
-    name = "qiji",  
-    view_as_skill = qijiViewAsSkill,  
-    events = {},  -- 没有触发事件，纯视为技  
 }
 
 bingsheng = sgs.CreateTriggerSkill{  
@@ -10511,7 +10503,6 @@ bingsheng = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data, ask_who)  
-        --local source = room:findPlayerBySkillName(self:objectName())  
         ask_who:drawCards(1, self:objectName())  
         local use = data:toCardUse()
         if not use.from:hasFlag("bingsheng_slash") and room:askForDiscard(ask_who, self:objectName(), 1, 1, true, true) then
@@ -11982,7 +11973,7 @@ weizifu = sgs.General(extension, "weizifu", "wu", 4, false)
 jiangmen = sgs.CreateTriggerSkill{  
     name = "jiangmen",  
     events = {sgs.EventPhaseStart},  
-    frequency = sgs.Skill_Frequent,
+    --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if player:getPhase() ~= sgs.Player_Play then return "" end  
           
@@ -12371,7 +12362,7 @@ Shensuan = sgs.CreateTriggerSkill{
 -- 天机技能  
 Tianji = sgs.CreateTriggerSkill{  
     name = "tianji",  
-    events = {sgs.CardFinished, sgs.CardResponded},
+    events = {sgs.CardFinished},
     frequency = sgs.Skill_Frequent,  
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
@@ -12380,14 +12371,7 @@ Tianji = sgs.CreateTriggerSkill{
           
         local card = nil  
         if event == sgs.CardFinished then  
-            card = data:toCardUse().card  
-        --[[
-        elseif event == sgs.CardResponded then  
-            local response = data:toCardResponse()  
-            if response.m_isUse then  
-                card = response.m_card  
-            end  
-        ]]
+            card = data:toCardUse().card
         end  
 
         if card and not card:hasFlag("tianji_used") then  
@@ -12950,7 +12934,6 @@ youshuoVS= sgs.CreateViewAsSkill{
 youshuo = sgs.CreateTriggerSkill{  
     name = "youshuo",  
     events = {sgs.Damage},  
-    --frequency = sgs.Skill_Compulsory,
     view_as_skill = youshuoVS,      
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:isAlive() then return "" end  
@@ -13067,7 +13050,6 @@ renmingVS = sgs.CreateZeroCardViewAsSkill{
 renming = sgs.CreateTriggerSkill{  
     name = "renming",  
     events = {sgs.EventPhaseStart},  
-    --frequency = sgs.Skill_Compulsory,  
     view_as_skill = renmingVS,        
     can_trigger = function(self, event, room, player, data)  
         if player and player:getMark("@ming") > 0 and player:getPhase() == sgs.Player_Start then  
@@ -15088,7 +15070,7 @@ zhishangtanbing = sgs.CreateTriggerSkill{
         local damage = data:toDamage()  
         local to = damage.to  
         if to:objectName() == ask_who:objectName() then
-            if not ask_who:hasFlag("zhishangtanbing_discard") then
+            if not ask_who:hasFlag("zhishangtanbing_discard") and not ask_who:isNude() then
                 room:askForDiscard(ask_who, self:objectName(), 1, 1, false, true)
                 room:setPlayerFlag(ask_who,"zhishangtanbing_discard")
             end
@@ -15143,7 +15125,7 @@ zhaoyong = sgs.General(extension, "zhaoyong", "shu", 3)--shu,wu
 hufu = sgs.CreateTriggerSkill{  
     name = "hufu",  
     events = {sgs.DrawNCards},  
-    frequency = sgs.Skill_Frequent,
+    frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) and not player:getArmor() then     
             return self:objectName()  
@@ -15151,7 +15133,7 @@ hufu = sgs.CreateTriggerSkill{
         return ""  
     end,  
     on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(),data)
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)
     end,  
     on_effect = function(self, event, room, player, data)
         local n = data:toInt()
@@ -15616,7 +15598,6 @@ tianpeng = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data, ask_who)  
-        --local source = room:findPlayerBySkillName(self:objectName())  
         if ask_who:hasShownSkill(self:objectName()) or ask_who:askForSkillInvoke(self:objectName(), data) then  
             room:notifySkillInvoked(ask_who, self:objectName())  
             room:broadcastSkillInvoke(self:objectName())  
@@ -15626,7 +15607,6 @@ tianpeng = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data, ask_who)  
-        --local source = room:findPlayerBySkillName(self:objectName())  
         ask_who:drawCards(1, self:objectName())  
         return false  
     end  
