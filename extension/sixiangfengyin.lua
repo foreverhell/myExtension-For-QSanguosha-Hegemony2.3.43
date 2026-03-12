@@ -965,7 +965,7 @@ mingshiLimit = sgs.CreateZeroCardViewAsSkill{
 
 lingjian = sgs.CreateTriggerSkill{  
     name = "lingjian",
-    events = {sgs.CardUsed, sgs.SlashMissed, sgs.CardFinished},
+    events = {sgs.CardUsed, sgs.Damage, sgs.CardFinished},
     can_trigger = function(self, event, room, player, data)
         if event == sgs.CardUsed then
             local use = data:toCardUse()
@@ -973,15 +973,18 @@ lingjian = sgs.CreateTriggerSkill{
                 room:setPlayerFlag(use.from,"slash_used") --给自己标记本回合使用过杀
                 use.card:setFlags("mingshiLimit_slash") --给杀标记
             end
-        elseif event == sgs.SlashMissed then
-            local effect = data:toSlashEffect()
-            if effect.slash:hasFlag("mingshiLimit_slash") then --被闪避，重置限定技
-                room:setPlayerMark(effect.from,"@mingshiLimit",1)
+        elseif event == sgs.Damage then
+            local damage = data:toDamage()
+            if damage.card:hasFlag("mingshiLimit_slash") then --造成伤害
+                room:setPlayerFlag(damage.from,"mingshiLimit_damage")
             end
         elseif event == sgs.CardFinished then
             local use = data:toCardUse()
             if use.card:hasFlag("mingshiLimit_slash") then --清除标记
                 use.card:setFlags("-mingshiLimit_slash")
+                if not use.from:hasFlag("mingshiLimit_damage") then
+                    room:setPlayerMark(use.from,"@mingshiLimit",1)
+                end
             end
         end
         return ""
