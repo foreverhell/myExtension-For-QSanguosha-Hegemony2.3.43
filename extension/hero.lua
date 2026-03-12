@@ -1245,7 +1245,7 @@ sgs.LoadTranslationTable{
     [":zhuding"] = "准备阶段，你可以弃置一张黑色牌，令一名相同势力角色获得一个'鼎'标记。拥有'鼎'的角色摸牌阶段摸牌数+X，X为'鼎'的数量，且至多为3",  
     ["zhishui"] = "治水",  
     [":zhishui"] = "任意一名角色准备阶段，若其手牌数大于等于4，你可以弃置其一张牌，若其有'鼎'，其'鼎'标记+1。",  
-    ["@zhuding-discard"] = "铸鼎：弃置一张黑色手牌",  
+    ["@zhuding-discard"] = "铸鼎：弃置一张黑色牌",  
     ["@zhuding-target"] = "铸鼎：选择一名角色获得'鼎'标记"  
 }  
 
@@ -5239,7 +5239,7 @@ feijiang = sgs.CreateTriggerSkill{
         room:judge(judge)  
         
         -- 若判定牌为黑色，获得目标一张牌  
-        if judge.card:isBlack() and not skill_target:isNude() then  
+        if judge.card:isBlack() then  
             local use = data:toCardUse()
             use.card:setFlags("GlobalCardUseDisresponsive")  -- 设置不可响应标志
         elseif judge.card:isRed() then
