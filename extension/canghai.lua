@@ -736,12 +736,19 @@ weifu3 = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data)
+        --[[
         local select_card_ids = room:askForExchange(player, self:objectName(), 1, 0, "", "", ".|.|.|.")  
         if not select_card_ids:isEmpty() then
             local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())
             local dummy = sgs.DummyCard(select_card_ids)  
             room:obtainCard(target, dummy)  
             dummy:deleteLater()  
+        end
+        ]]
+        local card = room:askForCard(player, ".|.|.|hand,equipped", self:objectName()) 
+        if card then
+            local target = room:askForPlayerChosen(player,room:getOtherPlayers(player),self:objectName())
+            room:obtainCard(target, card, false)  
         end
     end
 }
@@ -6638,9 +6645,14 @@ congjianGive = sgs.CreateTriggerSkill{
             local damage = data:toDamage()
             target = damage.from
         end
-        local card_id = room:askForCardChosen(player, player, "he", self:objectName())  
-        room:obtainCard(target, card_id, false)  
-        player:drawCards(1,self:objectName())
+        --local card_id = room:askForCardChosen(player, player, "he", self:objectName())  
+        --room:obtainCard(target, card_id, false)  
+        --player:drawCards(1,self:objectName())
+        local card = room:askForCard(player, ".|.|.|hand,equipped", self:objectName()) 
+        if card then
+            room:obtainCard(target, card, false)  
+            player:drawCards(1,self:objectName())
+        end
         return false
     end
 }
