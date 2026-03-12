@@ -3224,7 +3224,9 @@ fuyin = sgs.CreateTriggerSkill{
         if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
         local use = data:toCardUse()
         if (use.card:isKindOf("Slash") or use.card:isKindOf("Duel")) and use.to:contains(owner) then  
-            if not owner:hasFlag("fuyin_used") then  
+            if not owner:hasFlag("fuyin_used") then
+                -- 标记本回合已使用
+                room:setPlayerFlag(owner, "fuyin_used")  
                 return self:objectName(), owner:objectName()
             end  
         end  
@@ -3244,10 +3246,7 @@ fuyin = sgs.CreateTriggerSkill{
                 end  
             end  
             use.to = new_targets  
-            data:setValue(use)  
-              
-            -- 标记本回合已使用  
-            room:setPlayerFlag(player, "fuyin_used")  
+            data:setValue(use)
         end  
         return false  
     end  
