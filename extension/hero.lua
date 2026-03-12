@@ -108,7 +108,7 @@ sgs.LoadTranslationTable{
   
 
 -- 创建武将：褒姒  
-baosi = sgs.General(extension, "baosi", "wei", 3, false)  --wei,wu,qun
+baosi = sgs.General(extension, "baosi", "wu", 3, false)  --wei,wu,qun
 -- 技能：烽火 - 将装备牌视为南蛮入侵  
 fenghuo = sgs.CreateOneCardViewAsSkill{  
     name = "fenghuo",  
