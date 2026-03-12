@@ -4,6 +4,76 @@ sgs.LoadTranslationTable{
     ["sixiangfengyin"] = "四象封印"
 }
 
+baoxin_feng = sgs.General(extension, "baoxin_feng", "wei", 4)
+yimou = sgs.CreateTriggerSkill{  
+    name = "yimou",  
+    events = {sgs.Damaged},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then
+            return self:objectName()
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(), data)
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        local card = room:askForCard(player, ".|.|.|hand,equipped", self:objectName()) 
+        if card then
+            local target = room:askForPlayerChosen(player,room:getOtherPlayers(player),self:objectName())
+            room:obtainCard(target, card, false)  
+        end
+        return false        
+    end  
+}
+
+mutao = sgs.CreateTriggerSkill{  
+    name = "mutao",  
+    events = {sgs.EventPhaseStart},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start then  
+            return self:objectName()  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)
+        return player:askForSkillInvoke(self:objectName(),data)
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(), "@mutao-invoke")  
+        if target then
+            room:showAllCards(target)
+            local can_damage = false
+            for _,card in sgs.qlist(target:getHandcards()) do
+                if card:isKindOf("Slash") then
+                    can_damage = true
+                    break
+                end
+            end
+            if can_damage then
+                local damage = sgs.DamageStruct()
+                damage.from = player
+                damage.to = target
+                damage.damage = 1
+                room:damage(damage)
+            end
+        end
+        return false  
+    end  
+}
+baoxin_feng:addSkill(yimou)
+baoxin_feng:addSkill(mutao)
+sgs.LoadTranslationTable{  
+    ["baoxin_feng"] = "鲍信",  
+    ["yimou"] = "毅谋",  
+    [":yimou"] = "当你受到伤害后，你可以将一张牌交给一名其他角色",
+    ["mutao"] = "募讨",
+    [":mutao"] = "准备阶段，你可以令一名其他角色展示所有手牌，若其中有【杀】，你对其造成1点伤害。 "
+}
 caojinyu_feng = sgs.General(extension, "caojinyu_feng", "wei", 3, false)
 yuqi = sgs.CreateTriggerSkill{  
     name = "yuqi",  
@@ -234,6 +304,48 @@ sgs.LoadTranslationTable{
     [":taoluan"] = "其他势力角色结束阶段，你可以交给其1张牌，其展示所有手牌，然后弃置所有闪",
 }
 
+
+huangwudie_feng = sgs.General(extension, "huangwudie_feng", "shu", 4, false)
+shuangrui = sgs.CreateTriggerSkill{  
+    name = "shuangrui",  
+    events = {sgs.EventPhaseStart},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start then  
+            return self:objectName()  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)
+        local n = player:getHandcardNum()
+        return player:askForSkillInvoke(self:objectName(),data) and room:askForDiscard(player,self:objectName(),n,1,true,false)
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(), "@shuangrui-invoke", true, true)  
+        if target then            
+            -- 视为对目标使用杀  
+            local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
+            slash:setSkillName(self:objectName())  
+            slash:deleteLater()
+            local use = sgs.CardUseStruct()  
+            use.card = slash  
+            use.from = player  
+            use.to:append(target)
+            if player:getHandcardNum() == target:getHandcardNum() then
+                use.card:setFlags("GlobalCardUseDisresponsive")
+            end
+            room:useCard(use, false)
+        end
+        return false  
+    end  
+}
+huangwudie_feng:addSkill(shuangrui)
+sgs.LoadTranslationTable{
+	["huangwudie_feng"] = "黄舞蝶",
+	["shuangrui"] = "双锐",
+	[":shuangrui"] = "准备阶段，你可以弃置任意张手牌并视为使用一张【杀】，若目标角色手牌数与你相同，此【杀】不能被响应",
+    ["@shuangrui-invoke"] = "双锐：选择一名其他角色，视为对其使用1张杀"
+}
 liuba_feng = sgs.General(extension, "liuba_feng", "shu", 3)
 zhubi = sgs.CreateTriggerSkill{  
     name = "zhubi",  
@@ -759,7 +871,55 @@ sgs.LoadTranslationTable{
     [":zhuan"] = "锁定技。你每回合首次受到伤害后，你摸3张牌，然后伤害来源获得你1张牌",
 }
 
+nahualaoxian_feng = sgs.General(extension, "nahualaoxian_feng", "qun", 3)
+xianluCard = sgs.CreateSkillCard{  
+    name = "xianluCard",  
+    filter = function(self, targets, to_select)  
+        return #targets == 0 and not to_select:getEquips():isEmpty()  
+    end,  
+      
+    on_use = function(self, room, source, targets)  
+        local target = targets[1]  
+        -- 选择并弃置目标角色的一张装备  
+        local equip_id = room:askForCardChosen(source, target, "e", "xianlu")
+        room:throwCard(equip_id, target, source)
+        local card = sgs.Sanguosha:getCard(equip_id)
+        if card:isRed() then
+		    supCard = sgs.Sanguosha:cloneCard("indulgence", card:getSuit(), card:getNumber())        
+            supCard:addSubcard(equip_id)
+            supCard:setSkillName(self:objectName())
+            room:useCard(sgs.CardUseStruct(supCard, source, source), true) --只能对自己用
+            supCard:deleteLater()
 
+            local damage = sgs.DamageStruct()  
+            damage.from = source  
+            damage.to = target  
+            damage.damage = 1  
+            room:damage(damage)
+        --else
+        --    room:throwCard(equip_id, target, source)            
+        end
+    end  
+}  
+  
+xianlu = sgs.CreateZeroCardViewAsSkill{  
+    name = "xianlu",        
+    view_as = function(self)  
+        local card = xianluCard:clone()  
+        card:setShowSkill(self:objectName())  
+        return card  
+    end,
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#xianluCard")  
+    end  
+}
+nahualaoxian_feng:addSkill(xianlu)
+nahualaoxian_feng:addSkill("taidan")
+sgs.LoadTranslationTable{  
+    ["nahualaoxian_feng"] = "南华老仙",  
+    ["xianlu"] = "仙箓",  
+    [":xianlu"] = "出牌阶段限一次，你可以弃置一名角色场上的一张装备牌，若此牌为红色，你将此牌当【乐不思蜀】置入你的判定区并对其造成1点伤害",  
+}
 pangdegong_feng = sgs.General(extension, "pangdegong_feng", "qun", 3)
 mingshiLimitCard = sgs.CreateSkillCard{
     name = "mingshiLimitCard",
@@ -889,6 +1049,88 @@ sgs.LoadTranslationTable{
     [":zhitu"] = "你可以将点数和等于13的至少2张牌当任意锦囊使用",
 }
 ]]
+
+quyi_feng = sgs.General(extension, "quyi_feng", "qun", 4)
+fuqi = sgs.CreateTriggerSkill{  
+    name = "fuqi",  
+    events = {sgs.CardUsed},  
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.CardUsed then
+            local use = data:toCardUse()
+            if use.card:getTypeId() == sgs.Card_TypeSkill then return "" end
+            if not use.card:isKindOf("Slash") then return "" end
+            local owner = room:findPlayerBySkillName(self:objectName())
+            if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+            if use.from ~= owner and use.from:distanceTo(owner) <= 1 and use.to:contains(owner) then
+                return self:objectName(),owner:objectName()
+            elseif use.from == owner then
+                return self:objectName(),owner:objectName()
+            end
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        if ask_who:hasShownSkill(self:objectName()) or ask_who:askForSkillInvoke(self:objectName(), data) then
+            return true  
+        end  
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)
+        local use = data:toCardUse()
+        disresponsive_list = use.disresponsive_list
+        if use.from ~= ask_who  and use.from:distanceTo(ask_who) <= 1 and use.to:contains(ask_who) then
+            table.insert(disresponsive_list,ask_who:objectName())
+        elseif use.from == ask_who then
+            for _,p in sgs.qlist(use.to) do
+                if ask_who:distanceTo(p) <= 1 then
+                    table.insert(disresponsive_list,p:objectName())
+                end
+            end
+        end
+        use.disresponsive_list = disresponsive_list
+        data:setValue(use)
+    end
+}
+jiaozi = sgs.CreateTriggerSkill{  
+    name = "jiaozi",  
+    events = {sgs.DamageCaused, sgs.DamageInflicted},  
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then
+            for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                if p:getHandcardNum() >= player:getHandcardNum() then
+                    return ""
+                end
+            end
+            return self:objectName()
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data)
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local damage = data:toDamage()
+        damage.damage = damage.damage + 1
+        data:setValue(damage)
+        return false        
+    end  
+}
+quyi_feng:addSkill(fuqi)
+quyi_feng:addSkill(jiaozi)
+sgs.LoadTranslationTable{
+    ["quyi_feng"] = "麹义",
+    ["fuqi"] = "伏骑",
+    [":fuqi"] = "锁定技。你对你距离为1的角色使用的【杀】不能被响应；到你距离为1的角色对你使用的【杀】不能被响应",
+    ["jiaozi"] = "骄恣",
+    [":jiaozi"] = "锁定技。你造成或受到伤害时，若你的手牌数全场唯一最多，此伤害+1",--四象封印原版是首次
+}
+
 simahui_feng = sgs.General(extension, "simahui_feng", "qun", 3)
 jianjieUse = sgs.CreateZeroCardViewAsSkill{
     name = "jianjieUse",
@@ -1440,7 +1682,9 @@ zongji = sgs.CreateTriggerSkill{
         if damage.card and (damage.card:isKindOf("Slash") or damage.card:isKindOf("Duel")) then
             local owner = room:findPlayerBySkillName(self:objectName())
             if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
-            return self:objectName(), owner:objectName()
+            if damage.from and damage.from:isAlive() and damage.to and damage.to:isAlive() then
+                return self:objectName(), owner:objectName()
+            end
         end
         return ""
     end,  
@@ -1454,11 +1698,11 @@ zongji = sgs.CreateTriggerSkill{
       
     on_effect = function(self, event, room, player, data, ask_who)
         local damage = data:toDamage()
-        if damage.from and not damage.from:isNude() then
+        if damage.from and damage.from:isAlive() and not damage.from:isNude() then
             local card_id = room:askForCardChosen(ask_who, damage.from, "he", self:objectName())
             room:throwCard(card_id, damage.from, ask_who)
         end
-        if damage.to and not damage.to:isNude() then
+        if damage.to and damage.to:isAlive() and not damage.to:isNude() then
             local card_id = room:askForCardChosen(ask_who, damage.to, "he", self:objectName())
             room:throwCard(card_id, damage.to, ask_who)
         end
@@ -1471,6 +1715,96 @@ sgs.LoadTranslationTable{
     [":zongji"] = "一名角色受到杀或决斗的伤害后，你可以弃置其与伤害来源各1张牌",
 }
 
+wenyuan_feng = sgs.General(extension, "wenyuan_feng", "shu", 3, false)  
+kengqiang = sgs.CreateTriggerSkill{
+    name = "kengqiang",
+    events = {sgs.CardUsed, sgs.DamageCaused},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if not skillTriggerable(player, self:objectName()) then
+            return false
+        end
+        if event == sgs.CardUsed then
+            local use = data:toCardUse()
+            if isDamageCard(use.card) and not player:hasFlag("kengqiang_used") then
+                return self:objectName()
+            end
+        elseif event == sgs.DamageCaused then
+            local damage = data:toDamage()
+            if damage.card and damage.card:hasFlag("kengqiang_add") then
+                damage.damage = damage.damage + 1
+                data:setValue(damage)
+            end
+        end
+        return false
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then
+            room:setPlayerFlag(player,"kengqiang_used")
+			return true
+		end
+        return false 
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        local choice = room:askForChoice(player,self:objectName(),"draw+damage")
+        if choice == "draw" then
+            player:drawCards(2,self:objectName())
+        else
+            room:loseHp(player,1)
+            local use = data:toCardUse()
+            use.card:setFlags("kengqiang_add")
+            data:setValue(use)
+        end
+    end
+}
+
+shangjue = sgs.CreateTriggerSkill{  
+    name = "shangjue",  
+    events = {sgs.Dying},
+    frequency = sgs.Skill_Limited,
+    limit_mark = "@shangjue",
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:hasSkill(self:objectName()) and player:getMark("@shangjue") > 0) then return "" end
+        local dying = data:toDying()
+        if dying.who == player then
+            return self:objectName()
+        end
+        return ""
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then
+            room:broadcastSkillInvoke(self:objectName())
+            room:setPlayerMark(player, "@shangjue", 0)
+            return true  
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data)
+        local dying = data:toDying()
+        local recover = sgs.RecoverStruct()  
+        recover.recover = dying.who:getMaxHp() - dying.who:getHp()
+        room:recover(dying.who, recover)
+        if player:hasSkill("kengqiang") and room:askForChoice(player,"你可以失去“铿锵”令此技能视为未发动过","yes+no") == "yes" then
+            if player:inHeadSkills(self:objectName()) then
+                room:handleAcquireDetachSkills(player, "-kengqiang")
+            else
+                room:handleAcquireDetachSkills(player, "-kengqiang!")
+            end
+            room:setPlayerMark(player, "@shangjue", 1)
+        end
+    end
+}
+wenyuan_feng:addSkill(kengqiang)
+wenyuan_feng:addSkill(shangjue)
+sgs.LoadTranslationTable{
+	["wenyuan_feng"] = "文鸳",
+	["kengqiang"] = "铿锵",
+	[":kengqiang"] = "每回合限一次，当你使用伤害牌时，你可以选择一项：1.摸两张牌；2.失去1点体力，令此牌伤害+1",
+    ["shangjue"] = "殇决",
+    [":shangjue"] = "限定技，当你进入濒死状态时，你可以将体力回复至体力上限，然后你可以失去“铿锵”令此技能视为未发动过"
+}
 xiaohouba_feng = sgs.General(extension, "xiaohouba_feng", "shu", 4)
 baobianSlash = sgs.CreateTriggerSkill{  
     name = "baobianSlash",  
@@ -1650,6 +1984,183 @@ sgs.LoadTranslationTable{
     [":mingfaDamage"] = "出牌阶段，你可以对一名体力值大于1的角色造成1点伤害，然后此技能失效直到其死亡或恢复体力",
 }
 
+zerong_feng = sgs.General(extension, "zerong_feng", "qun", 4)
+  
+cansi = sgs.CreateTriggerSkill{  
+    name = "cansi",  
+    events = {sgs.EventPhaseStart, sgs.Damage},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
+            return ""  
+        end  
+        if event == sgs.EventPhaseStart then  
+            -- 准备阶段触发  
+            if player:getPhase() == sgs.Player_Start then
+                return self:objectName()
+            end  
+        elseif event == sgs.Damage then  
+            -- 造成伤害时摸牌  
+            local damage = data:toDamage()  
+            if damage.from and damage.from:objectName() == player:objectName() and   
+               damage.card and damage.card:getSkillName()==self:objectName() then  
+                return self:objectName()  
+            end  
+        end
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart then  
+            return player:askForSkillInvoke(self:objectName(),data)  
+        else  
+            -- 造成伤害时自动触发  
+            return true  
+        end  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart then  
+            player:skip(sgs.Player_Draw)
+            local others = room:getOtherPlayers(player)  
+            local target = room:askForPlayerChosen(player, others, self:objectName(), "@cansi-invoke", true, true)  
+            if not target then return false end  
+              
+            -- 双方各回复1点体力  
+            if player:isWounded() then  
+                local recover = sgs.RecoverStruct()  
+                recover.who = player  
+                recover.recover = 1  
+                room:recover(player, recover)  
+            end  
+              
+            if target:isWounded() then  
+                local recover = sgs.RecoverStruct()  
+                recover.who = player  
+                recover.recover = 1  
+                room:recover(target, recover)  
+            end  
+              
+            -- 依次使用杀、决斗、火攻  
+            local cards = {"slash", "duel", "fire_attack"}  
+            for _, card_name in ipairs(cards) do  
+                if player:isAlive() and target:isAlive() then  
+                    local card = sgs.Sanguosha:cloneCard(card_name, sgs.Card_NoSuit, 0)  
+                    card:setSkillName(self:objectName())  
+                    card:deleteLater()                      
+                    local use = sgs.CardUseStruct()  
+                    use.card = card  
+                    use.from = player  
+                    use.to:append(target)  
+                    room:useCard(use, false)  
+                end  
+            end  
+        elseif event == sgs.Damage then  
+            -- 每当目标受到1次伤害后，摸2张牌  
+            player:drawCards(2, self:objectName())  
+        end  
+        return false  
+    end  
+}  
+  
+cansi = sgs.CreateTriggerSkill{  
+    name = "cansi",  
+    events = {sgs.EventPhaseStart},--sgs.Damage
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
+            return ""  
+        end
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
+            for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                if player:inMyAttackRange(p) then
+                    return self:objectName()
+                end
+            end
+        elseif event == sgs.Damage then  
+            -- 造成伤害时摸牌  
+            local damage = data:toDamage()  
+            if damage.from and damage.from:objectName() == player:objectName() and   
+               damage.card and damage.card:getSkillName()==self:objectName() then  
+                return self:objectName()  
+            end  
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then  
+            return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(),data)  
+        else  
+            -- 造成伤害时自动触发  
+            return true  
+        end  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
+            local targets = sgs.SPlayerList()
+            for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+                if player:inMyAttackRange(p) then
+                    targets:append(p)
+                end
+            end
+            if targets:isEmpty() then return false end
+            local target = room:askForPlayerChosen(player, targets, self:objectName(), "@cansi-invoke", true, true)  
+            if target then
+                if not player:isNude() then
+                    local card_id = room:askForCardChosen(target, player, "he", self:objectName())
+                    room:obtainCard(target,card_id,false)
+                end
+                --[[
+                -- 双方各回复1点体力  
+                if player:isWounded() then  
+                    local recover = sgs.RecoverStruct()  
+                    recover.who = player  
+                    recover.recover = 1  
+                    room:recover(player, recover)  
+                end  
+                
+                if target:isWounded() then  
+                    local recover = sgs.RecoverStruct()  
+                    recover.who = player  
+                    recover.recover = 1  
+                    room:recover(target, recover)  
+                end  
+                ]]
+                -- 依次使用杀、决斗、火攻  
+                local cards = {"slash", "duel"}--, "fire_attack"}  
+                for _, card_name in ipairs(cards) do  
+                    if player:isAlive() and target:isAlive() then  
+                        local card = sgs.Sanguosha:cloneCard(card_name, sgs.Card_NoSuit, 0)  
+                        card:setSkillName(self:objectName())  
+                        card:deleteLater()
+                        
+                        local use = sgs.CardUseStruct()  
+                        use.card = card  
+                        use.from = player  
+                        use.to:append(target)  
+                        room:useCard(use, false)  
+                    end  
+                end  
+            end
+        elseif event == sgs.Damage then  
+            -- 每当目标受到1次伤害后，摸2张牌  
+            player:drawCards(2, self:objectName())  
+        end
+        return false  
+    end  
+}  
+zerong_feng:addSkill(cansi)  
+-- 翻译表  
+sgs.LoadTranslationTable{  
+    ["zerong_feng"] = "笮融",  
+    ["cansi"] = "残肆",  
+    [":cansi"] = "准备阶段，你可以跳过摸牌阶段，并选择一名其他角色，令你与其各回复一点体力，然后你视为对其依次使用【杀】、【决斗】、【火攻】。每当你以此法造成1次伤害后，你摸2张牌。",  
+    [":cansi"] = "锁定技。准备阶段，你令攻击范围内一名角色获得你一张牌，然后视为你对其依次使用【杀】、【决斗】",  
+    ["@cansi-invoke"] = "残肆：选择一名其他角色"  
+}
+
 zhangfen_feng = sgs.General(extension, "zhangfen_feng", "wu", 4)  
 wangluCard = sgs.CreateSkillCard{  
     name = "wangluCard",  
@@ -1692,6 +2203,68 @@ sgs.LoadTranslationTable{
     [":wanglu"] = "出牌阶段限一次。你可以弃置场上一张装备牌；若为武器牌，失去该牌的角色摸X张牌，X为该武器的攻击范围"
 }
 
+zhangxuan_feng = sgs.General(extension, "zhangxuan_feng", "wu", 4, false)  
+tongli = sgs.CreateTriggerSkill{
+    name = "tongli",
+    events = {sgs.CardUsed, sgs.EventPhaseStart},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if not skillTriggerable(player, self:objectName()) then
+            return false
+        end
+        if event == sgs.EventPhaseStart then
+            room:setPlayerMark(player,"@tongli",0)
+            return false
+        end
+        if player:getPhase() ~= sgs.Player_Play then return false end --出牌阶段
+        local current = room:getCurrent()
+        if current ~= player then return false end --自己的出牌阶段
+        local use = data:toCardUse()
+        if use.card:getTypeId() == sgs.Card_TypeSkill then return false end
+        if use.card:hasFlag("tongli") then return false end
+        --使用牌的数量
+        room:addPlayerMark(player,"@tongli")
+        --手牌中的花色
+        local suits = {}  
+        local suit_count = 0  
+        for _, card in sgs.qlist(player:getHandcards()) do  
+            local suit = card:getSuitString()  
+            if not suits[suit] then  
+                suits[suit] = true  
+                suit_count = suit_count + 1  
+            end  
+        end
+        if player:getMark("@tongli") == suit_count then
+            return self:objectName()
+        end
+        return false
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then
+			return true
+		end
+        return false 
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local use = data:toCardUse()
+        local card = use.card
+        card:setFlags("tongli")
+        local new_use = sgs.CardUseStruct()  
+        new_use.card = use.card  
+        new_use.from = use.from  
+        new_use.to = use.to  
+        room:useCard(new_use) --额外结算。直接用use，方天画戟杀不会再次生效
+        return false  
+    end  
+}  
+zhangxuan_feng:addSkill(tongli)
+sgs.LoadTranslationTable{
+	["zhangxuan_feng"] = "张璇",
+	["tongli"] = "同礼",
+	[":tongli"] = "出牌阶段，当你使用牌时，若你手牌中的花色数等于你此阶段已使用的牌数，你可以令此牌额外执行1次。",
+}
 zhangyi_feng = sgs.General(extension, "zhangyi_feng", "shu", 4)
 zhiyi = sgs.CreateTriggerSkill{  
     name = "zhiyi",  
