@@ -2733,7 +2733,7 @@ sgs.LoadTranslationTable{
     ["hero"] = "英雄",  
     ["guanzhong"] = "管仲",  
     ["kuanghe"] = "匡合",  
-    [":kuanghe"] = "出牌阶段每名角色限一次，你可以与一名角色拼点，若你赢，你摸一张牌。",  
+    [":kuanghe"] = "出牌阶段每名角色限一次，你可以与一名角色拼点，若你赢，你摸一张牌。",  --削弱方向：每个势力一次；拼点没赢本回合失效
     ["zunwang"] = "尊王",   
     [":zunwang"] = "每回合限一次。你拼点结算后，你摸一张牌。"  
 }  
@@ -3882,7 +3882,7 @@ sgs.LoadTranslationTable{
     ["extension"] = "英雄扩展包",  
     ["huamulan"] = "花木兰",  
     ["yi4rong"] = "易容",  
-    [":yi4rong"] = "主将技，-1阴阳鱼。任意一名角色死亡时，你可以失去该武将上的所有技能，获得其一个武将上的所有技能。然后你可以变更副将。",
+    [":yi4rong"] = "主将技，-1阴阳鱼。任意一名角色死亡时，你可以失去该武将上的所有技能，获得其一个武将上的所有技能。然后你可以变更副将。",--限定技标记
 }  
 
 huangdi = sgs.General(extension, "huangdi", "wu", 3)  --wu,qun  
@@ -13932,7 +13932,7 @@ huwei = sgs.CreateTriggerSkill{
         -- 检查是否有杀造成的伤害，且尉迟恭存活且拥有此技能  
         if damage.card and damage.card:isKindOf("Slash") then  
             local yuchigong = room:findPlayerBySkillName(self:objectName())  
-            if yuchigong and yuchigong:isAlive() and yuchigong:hasSkill(self:objectName()) and yuchigong:isFriendWith(damage.to) then  
+            if yuchigong and yuchigong:isAlive() and yuchigong:hasSkill(self:objectName()) and yuchigong:willBeFriendWith(damage.to) then  
                 return self:objectName(), yuchigong:objectName()
             end  
         end  
@@ -13940,37 +13940,31 @@ huwei = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data, ask_who)  
-        local yuchigong = ask_who --room:findPlayerBySkillName(self:objectName())  
-        if not yuchigong then return false end  
-          
         local damage = data:toDamage()  
         local _data = sgs.QVariant()  
         _data:setValue(damage.to)  
           
-        if yuchigong:askForSkillInvoke(self:objectName(), _data) then  
+        if ask_who:askForSkillInvoke(self:objectName(), _data) then  
             -- 选择弃置装备牌或失去体力  
-            if not room:askForCard(yuchigong,"EquipCard","@huwei-discard",sgs.QVariant(),sgs.Card_MethodDiscard) then
-                room:loseHp(yuchigong, 1)  
+            if not room:askForCard(ask_who,"EquipCard","@huwei-discard",sgs.QVariant(),sgs.Card_MethodDiscard) then
+                room:loseHp(ask_who, 1)  
             end                
-            room:broadcastSkillInvoke(self:objectName(), yuchigong)  
+            room:broadcastSkillInvoke(self:objectName(), ask_who)  
             return true  
         end  
         return false  
     end,  
       
-    on_effect = function(self, event, room, player, data, ask_who)  
-        local yuchigong = ask_who --room:findPlayerBySkillName(self:objectName())  
-        if not yuchigong then return false end  
-          
+    on_effect = function(self, event, room, player, data, ask_who)            
         local damage = data:toDamage()  
         -- 减少1点伤害  
         damage.damage = damage.damage - 1  
         data:setValue(damage)  
           
         -- 摸X张牌，X为已失去的体力值  
-        local lost_hp = yuchigong:getLostHp()  
+        local lost_hp = ask_who:getLostHp()  
         if lost_hp > 0 then  
-            yuchigong:drawCards(lost_hp, self:objectName())  
+            ask_who:drawCards(lost_hp, self:objectName())  
         end  
         if damage.damage <= 0 then
             return true
@@ -15452,7 +15446,6 @@ xiaoyaoMaxCards = sgs.CreateMaxCardsSkill{
         local handcards = player:getHandcards()  
         local count = 0  
           
-        -- 计算点数大于等于10的手牌数量
         -- 满足条件的卡不计入卡牌上限，即每有一张满足条件的卡，卡牌上限加1
         for _, card in sgs.qlist(handcards) do  
             if card:hasFlag("butterfly_card") then  
@@ -15472,8 +15465,6 @@ xiaoyaoTargetMod = sgs.CreateTargetModSkill{
         local handcards = player:getHandcards()  
         local count = 0  
           
-        -- 计算点数大于等于10的手牌数量
-        -- 满足条件的卡不计入卡牌上限，即每有一张满足条件的卡，卡牌上限加1
         for _, card in sgs.qlist(handcards) do  
             if card:hasFlag("butterfly_card") then  
                 count = count + 1  
@@ -15492,8 +15483,6 @@ xiaoyaoTargetMod = sgs.CreateTargetModSkill{
         local handcards = player:getHandcards()  
         local count = 0  
           
-        -- 计算点数大于等于10的手牌数量
-        -- 满足条件的卡不计入卡牌上限，即每有一张满足条件的卡，卡牌上限加1
         for _, card in sgs.qlist(handcards) do  
             if card:hasFlag("butterfly_card") then  
                 count = count + 1  
@@ -15519,7 +15508,7 @@ xiaoyaoTurned = sgs.CreateTriggerSkill{
             if effect.card and (effect.card:isKindOf("DelayedTrick")) then  
                 return self:objectName()  
             end  
-        elseif event == sgs.TurnedOver then --叠置事件开始时
+        elseif event == sgs.TurnedOver then
             return self:objectName()
         end   
     end,  
@@ -15531,15 +15520,14 @@ xiaoyaoTurned = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data)     
         if event == sgs.CardEffected then
             return true
-        elseif event == sgs.TurnedOver then --叠置事件开始时
+        elseif event == sgs.TurnedOver then
             --player:setFaceUp(false)
-            if not player:faceUp() then --正面朝上
-                player:turnOver() --先翻一次面，触发事件翻回来
+            if not player:faceUp() then
+                player:turnOver()
                 return false
             end
-            --背面朝上，不需要先翻面
         end
-        return true  --返回true，终止效果结算
+        return true
     end  
 }
 -- 组合技能  
