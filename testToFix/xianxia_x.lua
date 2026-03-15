@@ -328,7 +328,7 @@ luoyingTurn = sgs.CreateTriggerSkill{
                     current:gainAnExtraTurn()
                 end
             elseif skillTriggerable(player, self:objectName()) and change.to == sgs.Player_NotActive then
-                if player:getMark("ThreatenEmperorExtraTurn") > 0 then --挟天子特殊处理，不然会被直接吞掉
+                if player:getMark("ThreatenEmperorExtraTurn") > 0 and player:getMark("luoyingTurnget") > 0 then --挟天子特殊处理，不然会被直接吞掉
                     room:setPlayerMark(player, "getNewTurn", 1)
                 end
             end
