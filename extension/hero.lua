@@ -5838,7 +5838,7 @@ manwu = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data)  
-        return room:askForCard(player, ".|heart,spade", self:objectName(), data, sgs.Card_MethodDiscard)  
+        return room:askForCard(player, ".|heart,spade|.|hand", self:objectName(), data, sgs.Card_MethodDiscard)  
     end,  
       
     on_effect = function(self, event, room, player, data)  
@@ -12373,7 +12373,7 @@ Tianji = sgs.CreateTriggerSkill{
         if event == sgs.CardFinished then  
             card = data:toCardUse().card
         end  
-
+        if card:getTypeId() == sgs.Card_TypeSkill then return "" end
         if card and not card:hasFlag("tianji_used") then  
             card:setFlags("tianji_used")
 
