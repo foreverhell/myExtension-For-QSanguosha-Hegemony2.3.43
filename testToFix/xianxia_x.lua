@@ -313,12 +313,16 @@ luoyingTurn = sgs.CreateTriggerSkill{
             local change = data:toPhaseChange()
             if change.to == sgs.Player_RoundStart then
                 for _, p in sgs.qlist(room:getAlivePlayers()) do
+                    local isCurrent = room:getCurrent() == p
                     if p:getMark("luoyingTurnget") > 0 then
                         room:removePlayerMark(p, "luoyingTurnget")
                         local phases = sgs.PhaseList()
                         phases:append(sgs.Player_Play)
                         p:play(phases)
                         room:broadcastProperty(p, "phase")
+                        if isCurrent then
+                            p:gainAnExtraTurn()
+                        end
                     end
                 end
             elseif change.from == sgs.Player_Play then
