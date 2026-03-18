@@ -4018,13 +4018,14 @@ wenjinCard = sgs.CreateSkillCard{
     target_fixed = false,  
     will_throw = false,  
     filter = function(self, targets, to_select)  
-        return #targets == 0 and to_select:getPile("wenjin"):isEmpty()
+        return #targets == 0 and to_select:getPile("wenjin"):isEmpty() and not to_select:hasFlag("wenjinUsed")
     end,  
       
     on_use = function(self, room, source, targets)  
         local target = targets[1]  
         target:addToPile("wenjin", self:getSubcards())
         room:handleAcquireDetachSkills(target, "wenjinSlash")
+        room:setPlayerFlag(target,"wenjinUsed")
     end  
 }  
   
@@ -4101,7 +4102,7 @@ if not sgs.Sanguosha:getSkill("wenjinSlash") then skills:append(wenjinSlash) end
 sgs.LoadTranslationTable{
     ["mazhong"] = "马忠",  
     ["wenjin"] = "稳进",  
-    [":wenjin"] = "出牌阶段，你可以将一张手牌置于一名没有“稳进”牌的角色上；其可以将“稳进”牌当杀使用或打出，若为打出或其使用此杀造成伤害后，你摸一张牌",
+    [":wenjin"] = "每回合每名角色限一次，你可以将一张手牌置于一名没有“稳进”牌的角色上；其可以将“稳进”牌当杀使用或打出，若为打出或其使用此杀造成伤害后，你摸一张牌",
     ["wenjinSlash"] = "稳进-杀",
     [":wenjinSlash"] = "你可以将“稳进”牌当杀使用或打出"
 }
@@ -5662,7 +5663,7 @@ sgs.LoadTranslationTable{
     ["dingzhu"] = "定著",
     [":dingzhu"] = "出牌阶段结束时，你可以选择一名本回合获得过牌的其他角色，令其视为使用一张决斗"
 }
-wenqin = sgs.General(extension, "wenqin", "wu", 4)  
+wenqin_canghai = sgs.General(extension, "wenqin_canghai", "wu", 4)  
 kuoao = sgs.CreateTriggerSkill{  
     name = "kuoao",  
     events = {sgs.CardUsed},
@@ -5723,8 +5724,9 @@ kuoao = sgs.CreateTriggerSkill{
         end
     end
 }
-wenqin:addSkill(kuoao)
+wenqin_canghai:addSkill(kuoao)
 sgs.LoadTranslationTable{
+    ["wenqin_canghai"] = "文钦",
     ["kuoao"] = "扩鷔",
     [":kuoao"] = "你使用杀可以多指定一个攻击范围内的目标；其他角色使用杀时，若你在其攻击范围内，其可以多指定你为目标，此时若你的手牌数为偶数，你摸一张牌，然后可以令此杀对与你势力相同的目标角色和你选择的任意名目标无效"
 }
