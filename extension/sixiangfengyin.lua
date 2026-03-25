@@ -309,7 +309,7 @@ huangwudie_feng = sgs.General(extension, "huangwudie_feng", "shu", 4, false)
 shuangrui = sgs.CreateTriggerSkill{  
     name = "shuangrui",  
     events = {sgs.EventPhaseStart},
-    frequency = sgs.Skill_Frequent,
+    --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start then  
             return self:objectName()  
@@ -321,7 +321,13 @@ shuangrui = sgs.CreateTriggerSkill{
         return player:askForSkillInvoke(self:objectName(),data) and room:askForDiscard(player,self:objectName(),n,1,true,false)
     end,  
     on_effect = function(self, event, room, player, data)  
-        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(), "@shuangrui-invoke", true, true)  
+        local targets = sgs.SPlayerList()
+        for _,p in sgs.qlist(room:getOtherPlayers(player)) do
+            if player:inMyAttackRange(p) then
+                targets:append(p)
+            end
+        end
+        local target = room:askForPlayerChosen(player, targets, self:objectName(), "@shuangrui-invoke", true, true)  
         if target then            
             -- 视为对目标使用杀  
             local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
@@ -343,7 +349,7 @@ huangwudie_feng:addSkill(shuangrui)
 sgs.LoadTranslationTable{
 	["huangwudie_feng"] = "黄舞蝶",
 	["shuangrui"] = "双锐",
-	[":shuangrui"] = "准备阶段，你可以弃置任意张手牌并视为使用一张【杀】，若目标角色手牌数与你相同，此【杀】不能被响应",
+	[":shuangrui"] = "准备阶段，你可以弃置任意张手牌并视为对攻击范围内一名其他角色使用一张【杀】，若目标角色手牌数与你相同，此【杀】不能被响应",
     ["@shuangrui-invoke"] = "双锐：选择一名其他角色，视为对其使用1张杀"
 }
 liuba_feng = sgs.General(extension, "liuba_feng", "shu", 3)
