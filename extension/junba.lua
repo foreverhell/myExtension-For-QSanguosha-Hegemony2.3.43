@@ -779,9 +779,9 @@ lingrenGuessDamage = sgs.CreateTriggerSkill{
     events = {sgs.DamageCaused},  
     global = true,  
     can_trigger = function(self, event, room, player, data)  
-        if not player or player:isDead() or player:getMark("lingrenGuess_damage") <= 0 then  
+        if not (player and player:getMark("lingren_damage") > 0) then  
             return false  
-        end  
+        end
         local damage = data:toDamage()  
         local card = room:getTag("lingrenGuess_card"):toCard()  
         local target_name = room:getTag("lingrenGuess_target"):toString()  
