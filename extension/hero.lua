@@ -7510,7 +7510,7 @@ xuyi = sgs.CreateTriggerSkill{
             if use.card:isKindOf("Slash") and not use.from:hasFlag("xuyi_slash") then  --首次使用杀                  
                 room:setPlayerFlag(use.from,"xuyi_slash") --不管是否发动，使用者添加使用过杀的标记
                 return self:objectName(),owner:objectName() --询问是否发动，若发动，添加发动标记
-            elseif owner:getMark("xuyi_card_id") > 0 and use.card:getId() == card_id then
+            elseif owner:getMark("xuyi_card_id") > 0 and use.card:getId() == owner:getMark("xuyi_card_id") then
                 owner:obtainCard(use.card)
                 room:setPlayerFlag(owner,"xuyi_obtain")
             end
@@ -7520,6 +7520,7 @@ xuyi = sgs.CreateTriggerSkill{
                 room:setPlayerMark(owner,"xuyi_card_id",0)--结束阶段，将xuyi_card_id清除
                 if owner:hasFlag("xuyi_used") and not owner:hasFlag("xuyi_obtain") then --发动过技能，且没有获得该牌
                     room:loseHp(player,1)
+                    room:setPlayerFlag(owner,"-xuyi_used")
                 end
             end
         end
