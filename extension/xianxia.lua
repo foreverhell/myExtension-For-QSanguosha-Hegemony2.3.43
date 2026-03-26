@@ -3583,10 +3583,10 @@ yinpanVS = sgs.CreateZeroCardViewAsSkill{
 
 yinpan = sgs.CreateTriggerSkill{  
     name = "yinpan",
-    events = {sgs.dying, sgs.EventPhaseEnd},
+    events = {sgs.QuitDying, sgs.EventPhaseEnd},
     view_as_skill = yinpanVS,
     can_trigger = function(self, event, room, player, data)
-        if event == sgs.dying then
+        if event == sgs.QuitDying then
             local dying = data:toDying()
             if dying.who:hasFlag("yinpaning") then
                 room:setPlayerFlag(dying.who,"yinpan_dying")
@@ -3936,16 +3936,26 @@ gongjian = sgs.CreateTriggerSkill{
 }
 kuimang = sgs.CreateTriggerSkill{  
     name = "kuimang",  
-    events = {sgs.Death},  
+    events = {sgs.Dying, sgs.Death},  
     frequency = sgs.Skill_Compulsory,  
     can_trigger = function(self, event, room, player, data)  
-        if not (player and player:isAlive() and not player:hasSkill(self:objectName())) then return "" end
-        local death = data:toDeath()
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+        local death = nil
+        if event == sgs.Dying then
+            death = data:toDying()
+        elseif event == sgs.Death then
+            death = data:toDeath()
+        end
         -- 检查是否有杀死你的角色且该角色有牌可以弃置  
         if death.damage and death.damage.from and death.damage.from:isAlive() then  
             local killer = death.damage.from
-            if killer == player and killer:hasShownOneGeneral() and not killer:isFriendWith(death.who) and death.who:getFormation():length()>=2 then --已经死亡，是否能计算队列？
-                return self:objectName()  
+            if killer == player and killer:hasShownOneGeneral() and not killer:isFriendWith(death.who) then
+                if event == sgs.Dying and death.who:getFormation():length()>=2 then --已经死亡，是否能计算队列？
+                    room:setPlayerFlag(death.who,"kuimang_formation")
+                elseif event == sgs.Death and death.who:hasFlag("kuimang_formation") then
+                    room:setPlayerFlag(death.who,"-kuimang_formation")
+                    return self:objectName()
+                end
             end  
         end  
         return ""  
