@@ -2365,7 +2365,7 @@ xushi = sgs.CreateTriggerSkill{
         local use = data:toCardUse()
         sgs.Room_cancelTarget(use, player)
 		data:setValue(use)
-		if use.from and use.from:isAlive() then
+		if use.from and use.from:isAlive() and not use.from:isNude() and room:askForChoice(player,"xushi_askfordiscard","yes+no")=="yes" then
 			room:askForDiscard(use.from, "xushi_discard", 1, 1, false, true)
 		end
         return false
