@@ -399,7 +399,7 @@ fuliCard = sgs.CreateSkillCard{
     target_fixed = false,
     will_throw = true,
     filter = function(self, targets, to_select)  
-        return #targets == 0
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()
     end,  
     on_use = function(self, room, source, targets)
         local target = targets[1]
