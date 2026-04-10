@@ -152,7 +152,7 @@ sgs.LoadTranslationTable{
 ["shidu"] = "识度",   
 [":shidu"] = "出牌阶段限一次，你可以与一名其他角色拼点，若你赢，你获得其所有手牌，然后你交给其你的一半（向下取整）手牌。",
 }
-simaliang = sgs.General(extension, "simaliang", "jin", 3)  
+simaliang = sgs.General(extension, "simaliang", "jin", 4)  
 gongzhi = sgs.CreateTriggerSkill{  
     name = "gongzhi",  
     view_as_skill = gongZhiVS,  
@@ -257,7 +257,7 @@ sgs.LoadTranslationTable{
 ["#shenju-recover"] = "慎惧[回复体力]",  
 ["#shenju-discard"] = "慎惧[弃置手牌]",
 }
-simalun = sgs.General(extension, "simalun", "jin", 3)  
+simalun = sgs.General(extension, "simalun", "jin", 4)  
 
 luanchang = sgs.CreateTriggerSkill{  
     name = "luanchang",  
@@ -561,7 +561,7 @@ sgs.LoadTranslationTable{
 ["@rouzuo-choose"] = "肉作：请选择一名角色获得额外回合",
 ["rouzuo_extra"] = "肉作",
 }  
-simazhou = sgs.General(extension, "simazhou", "jin", 3)  
+simazhou = sgs.General(extension, "simazhou", "jin", 4)  
 poJingCard = sgs.CreateSkillCard{  
     name = "poJingCard",  
     target_fixed = false,  
@@ -1392,7 +1392,7 @@ sgs.LoadTranslationTable{
 ["duchi"] = "督持",  
 [":duchi"] = "每回合限一次，当你成为其他角色使用牌的目标后，你可以从牌堆底摸一张牌并展示所有手牌，若颜色均相同，此牌对你无效。"
 }
-jin_simayi = sgs.General(extension, "jin_simayi", "jin", 3)  
+jin_simayi = sgs.General(extension, "jin_simayi", "jin", 4)  
   
 -- 技能1：鹰视  
 yingshi = sgs.CreateTriggerSkill{  
@@ -1446,13 +1446,13 @@ yingshi = sgs.CreateTriggerSkill{
 }  
   
 -- 技能2：瞬覆  
-shunfu_card = sgs.CreateSkillCard{  
-    name = "shunfu_card",  
+shunfuCard = sgs.CreateSkillCard{  
+    name = "shunfuCard",  
     target_fixed = false,  
     will_throw = true,  
-    filter = function(self, targets, to_select)  
+    filter = function(self, selected, to_select)  
         -- 选择未确定势力的角色，最多3个  
-        if #targets >= 3 then return false end  
+        if #selected >= 3 then return false end  
         if to_select:hasShownOneGeneral() then return false end  
         return to_select:objectName() ~= sgs.Self:objectName()  
     end,  
@@ -1461,28 +1461,35 @@ shunfu_card = sgs.CreateSkillCard{
         -- 令目标角色各摸两张牌  
         for i=1, #targets do  
             room:drawCards(targets[i], 2, "shunfu")  
-        end  
-
+        end
+        for i=1, #targets do
+            room:setPlayerFlag(targets[i],"shunfu_slash")
+            room:askForUseCard(targets[i], "slash", "shunfu-slash", -1, sgs.Card_MethodUse, false)
+            room:setPlayerFlag(targets[i],"-shunfu_slash")
+        end
+        --[[
         local slash = sgs.Sanguosha:cloneCard("slash")  
         slash:setSkillName("shunfu")  
         slash:deleteLater()
 
         local use = sgs.CardUseStruct()  
-        use.card = slash  
+        use.card = slash
+        use.card:setFlags("GlobalCardUseDisresponsive")
         use.from = source           
         -- 视为依次对它们使用无距离限制且不可响应的杀  
         for i=1, #targets do  
             use.to:append(targets[i])  
         end 
         room:useCard(use, false) 
+        ]]
     end  
 }  
   
-shunfu = sgs.CreateZeroCardViewAsSkill{  
+shunfuVS = sgs.CreateZeroCardViewAsSkill{  
     name = "shunfu",  
     limit_mark = "@shunfu",
     view_as = function(self, cards)  
-        local card = shunfu_card:clone()
+        local card = shunfuCard:clone()
         card:setShowSkill(self:objectName())
         return card
     end,  
@@ -1490,7 +1497,25 @@ shunfu = sgs.CreateZeroCardViewAsSkill{
         return player:getMark("@shunfu") > 0  
     end  
 }  
-   
+shunfu = sgs.CreateTriggerSkill{  
+    name = "shunfu",  
+    events = {sgs.CardUsed},
+    view_as_skill = shunfuVS,
+    can_trigger = function(self, event, room, player, data)  
+        local use = data:toCardUse()
+        if use.card:isKindOf("Slash") and use.from:hasFlag("shunfu_slash") then
+            use.card:setFlags("Global_NoDistanceChecking")
+            use.card:setFlags("GlobalCardUseDisresponsive")
+        end
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data)
+        return true
+    end
+}
 -- 为武将添加技能  
 jin_simayi:addSkill(yingshi)  
 jin_simayi:addSkill(shunfu)  
@@ -1500,10 +1525,11 @@ sgs.LoadTranslationTable{
     ["yingshi"] = "鹰视",
     [":yingshi"] = "出牌阶段开始时，你可以令一名角色视为对另一名角色使用【知己知彼】，若使用者非自已，则摸一张牌。",
     ["shunfu"] = "瞬覆",
-    [":shunfu"] = "限定技，主动技。出牌阶段，你可令至多三名未确定势力角色各摸两张牌，然后你视为依次对它们使用一张无距离限制的【杀】。"
+    [":shunfu"] = "限定技。出牌阶段，你可令至多三名未确定势力角色各摸两张牌，然后你视为依次对它们使用一张无距离限制且不可响应的【杀】。",
+    [":shunfu"] = "限定技。出牌阶段，你可令至多三名未确定势力角色各摸两张牌，然后它们可以使用一张无距离限制且不可响应的【杀】。"
 }
 
-jin_wenyang = sgs.General(extension, "jin_wenyang", "jin", 4)  --qun
+jin_wenyang = sgs.General(extension, "jin_wenyang", "jin", 5)  --qun
 
 duanqiu = sgs.CreateTriggerSkill{  
     name = "duanqiu",  
@@ -1568,7 +1594,7 @@ sgs.LoadTranslationTable{
 ["jin_wenyang"] = "晋文鸯",  
 ["illustrator:jin_wenyang"] = "画师名",  
 ["duanqiu"] = "断虬",  
-[":duanqiu"] = "准备阶段，你可以选择一名其他势力角色，视为对该势力所有角色使用一张决斗。",
+[":duanqiu"] = "准备阶段，你可以选择一名不同势力角色，视为对该势力所有角色使用一张决斗。",
 }
 jin_zhangchunhua = sgs.General(extension, "jin_zhangchunhua", "jin", 3, false)  
 ejue = sgs.CreateTriggerSkill{  
