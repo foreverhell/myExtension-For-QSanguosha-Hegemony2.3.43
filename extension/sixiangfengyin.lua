@@ -1010,12 +1010,12 @@ sgs.LoadTranslationTable{
 peixiu_feng = sgs.General(extension, "peixiu_feng", "qun", 3)
 zhitu = sgs.CreateViewAsSkill{  
     name = "zhitu",  
-    view_filter = function(self, selected, to_select)
-        local total_points = 0  
+    view_filter = function(self, selected, to_select)--是过滤当前可选的牌，不是是否可以继续选牌
+        local total_points = 0
         for _, card in ipairs(selected) do  
             total_points = total_points + card:getNumber()  
         end  
-        return total_points < 13
+        return total_points + to_select:getNumber() <= 13 --不算上to_select，可能超过13
     end,  
     view_as = function(self, cards)  
         if #cards < 2 then return nil end
@@ -1044,8 +1044,10 @@ zhitu = sgs.CreateViewAsSkill{
         end  
           
         -- 只有点数和等于13时才返回锦囊牌列表  
-        if total_points == 13 then  
-            return nil --这里要列举所有锦囊
+        if total_points == 13 then --这里要列举所有锦囊
+            return "collateral+duel+ex_nihilo+snatch+dismantlement+fire_attack+known_both+befriend_attacking" ..
+            "+amazing_grace+god_salvation+savage_assault+archery_attack" ..
+            "+iron_chain+await_exhausted+alliance_feast+burning_camps+drowning+fight_together+lure_tiger+imperial_order+threaten_emperor+nullification+heg_nullification" 
         else  
             return "" -- 返回空列表，不显示guhuo框  
         end  
