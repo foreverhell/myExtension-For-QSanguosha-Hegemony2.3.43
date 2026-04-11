@@ -1006,9 +1006,8 @@ sgs.LoadTranslationTable{
     [":lingjian"] = "当你每回合首次使用【杀】结算后，若此牌未造成伤害，“明识”视为未发动过",
 }
 
---[[
-peixiu_feng = sgs.General(extension, "peixiu_feng", "qun", 3)
-zhitu = sgs.CreateViewAsSkill{  
+peixiu_feng = sgs.General(extension, "peixiu_feng", "qun", 4)
+zhituVS = sgs.CreateViewAsSkill{  
     name = "zhitu",  
     view_filter = function(self, selected, to_select)--是过滤当前可选的牌，不是是否可以继续选牌
         local total_points = 0
@@ -1031,7 +1030,13 @@ zhitu = sgs.CreateViewAsSkill{
 		end
     end,  
     enabled_at_play = function(self, player)  
-        return true
+        return not player:hasFlag("zhitu_used")
+    end,
+    enabled_at_response = function(self, player, pattern)  
+        return pattern == "nullification" and not player:hasFlag("zhitu_used")-- 只在需要无懈可击时可用  
+    end,
+    enabled_at_nullification = function(self, player)
+        return not player:hasFlag("zhitu_used")
     end,
     vs_card_names = function(self, selected)  
         -- 检查是否有选中的牌  
@@ -1053,13 +1058,36 @@ zhitu = sgs.CreateViewAsSkill{
         end  
     end
 }
+
+zhitu = sgs.CreateTriggerSkill{  
+    name = "zhitu",  
+    events = {sgs.CardUsed},  
+    frequency = sgs.Skill_Frequent,
+    view_as_skill = zhituVS,
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.CardUsed then
+            local use = data:toCardUse()
+            if use.card:getSkillName()==self:objectName() then
+                room:setPlayerFlag(use.from,"zhitu_used")
+            end
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)   
+        return false  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        return false
+    end
+}
 peixiu_feng:addSkill(zhitu)
 sgs.LoadTranslationTable{
     ["peixiu_feng"] = "裴秀",
     ["zhitu"] = "制图",
-    [":zhitu"] = "你可以将点数和等于13的至少2张牌当任意锦囊使用",
+    [":zhitu"] = "每回合限一次。你可以将点数和等于13的至少2张牌当任意锦囊使用。",
 }
-]]
 
 quyi_feng = sgs.General(extension, "quyi_feng", "qun", 4)
 fuqi = sgs.CreateTriggerSkill{  
