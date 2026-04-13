@@ -4,7 +4,7 @@ sgs.LoadTranslationTable{
     ["sixiangfengyin"] = "四象封印"
 }
 
-baoxin_feng = sgs.General(extension, "baoxin_feng", "wei", 4)
+baoxin_feng = sgs.General(extension, "baoxin_feng", "qun", 4)
 yimou = sgs.CreateTriggerSkill{  
     name = "yimou",  
     events = {sgs.Damaged},  
