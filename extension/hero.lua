@@ -5416,7 +5416,7 @@ sgs.LoadTranslationTable{
     ["@zhui"] = "追",  
     ["#dihuiDamage"] = "%from 的'%arg'效果被触发，伤害从 %arg2 点增加至 %arg3 点"  
 }
-
+--[[
 lijing = sgs.General(extension, "lijing", "wu", 4) 
 
 junshenCard = sgs.CreateSkillCard{  
@@ -5519,7 +5519,7 @@ sgs.LoadTranslationTable{
     ["bingshi"] = "兵势",
     [":bingshi"] = "你的回合开始时，你可以令1名其他角色摸2张牌；其回合开始时，其需弃置2张牌，不足则失去1点血量。"
 }
-
+]]
 limu = sgs.General(extension, "limu", "shu", 4)
 lianque = sgs.CreateTriggerSkill{  
     name = "lianque",  
@@ -5902,7 +5902,7 @@ sgs.LoadTranslationTable{
     [":yuci"] = "出牌阶段限一次。你可以弃置一名角色一张手牌，若此牌为基础牌，你弃置一张牌，无牌则不弃",        
     ["~liqingzhao"] = "生当作人杰，死亦为鬼雄。"  
 }
-
+--[[
 lishimin = sgs.General(extension, "lishimin", "wu", 4)  --wu,jin
 
 kongju = sgs.CreateProhibitSkill{  --不能指定为目标，不是取消目标
@@ -5923,7 +5923,7 @@ sgs.LoadTranslationTable{
     ["kongju"] = "控局",  
     [":kongju"] = "你不能成为顺手牵羊、过河拆桥、延时性锦囊的目标",  
 }
-
+]]
 lishishi = sgs.General(extension, "lishishi", "wu", 3, false)  --wu,jin
 manwu = sgs.CreateTriggerSkill{  
     name = "manwu",  
@@ -6393,7 +6393,7 @@ sgs.LoadTranslationTable{
     ["rendeTrick"] = "仁德",
     [":rendeTrick"] = "你使用锦囊时，你可以令一名势力相同的其他角色摸一张牌",
 }
-
+--[[
 liubei_jieyi = sgs.General(extension, "liubei_jieyi", "shu", 3)  --shu,jin  
 
 jieyi1 = sgs.CreateTriggerSkill{  
@@ -6459,12 +6459,6 @@ jieyi1 = sgs.CreateTriggerSkill{
         local liubei = room:findPlayerBySkillName(self:objectName())                    
         if event == sgs.DamageInflicted then  
             -- 转移伤害给自己  
-            --[[
-            damage.transfer = true  
-            damage.to = liubei  
-            damage.transfer_reason = self:objectName()  
-            data:setValue(damage)
-            ]]
             local new_damage = sgs.DamageStruct()  
             new_damage.from = damage.from --伤害源如果是自己，再选择替他受到伤害，也会直接扣到死  
             new_damage.to = liubei  
@@ -6586,7 +6580,7 @@ sgs.LoadTranslationTable{
     ["jieyi2"] = "结义-同生",
     [":jieyi2"] = "当其他角色回复体力时，你可以弃置一张牌，回复等量体力；当你回复体力时，你可以弃置一张牌，选择一名其他角色回复等量体力。",
 }  
-
+]]
 liuche = sgs.General(extension, "liuche", "wu", 4)
 
 zhengfaCard = sgs.CreateSkillCard{  
