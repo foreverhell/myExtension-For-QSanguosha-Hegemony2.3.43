@@ -2965,15 +2965,11 @@ sgs.LoadTranslationTable{
 --沧海中修改为晋势力的武将------------------
 ------------------------------------------
 wangyi_canghai = sgs.General(extension, "wangyi_canghai", "jin", 3) -- 吴苋，蜀势力，3血，女性  
-wenyang_canghai = sgs.General(extension, "wenyang_canghai", "jin", 3) -- 吴苋，蜀势力，3血，女性  
 zhangchangpu_canghai = sgs.General(extension, "zhangchangpu_canghai", "jin", 3, false)  
 zhonghui_canghai = sgs.General(extension, "zhonghui_canghai", "jin", 3)  -- 吴国，4血，男性  
 
 wangyi_canghai:addSkill("zhenlie")
 wangyi_canghai:addSkill("miji")
-
-wenyang_canghai:addSkill("qili")  
-wenyang_canghai:addSkill("duoqi")  
   
 zhangchangpu_canghai:addSkill("xingshen")  
 zhangchangpu_canghai:addSkill("yanjiao")  
@@ -2995,8 +2991,8 @@ caofang_junba = sgs.General(extension, "caofang_junba", "jin", 3)  -- 吴国，4
 caomao_junba = sgs.General(extension, "caomao_junba", "jin", 3)  -- 吴国，4血，男性  
 haozhao_junba = sgs.General(extension, "haozhao_junba", "jin", 4)  -- 吴国，4血，男性  
 liujinliupei_junba = sgs.General(extension, "liujinliupei_junba", "jin", 3, false)  -- 吴国，4血，男性  
-jikang_junba = sgs.General(extension, "jikang_junba", "jin", 3)  
-simahui_junba = sgs.General(extension, "simahui_junba", "jin", 3)  
+--jikang_junba = sgs.General(extension, "jikang_junba", "jin", 3)  
+--simahui_junba = sgs.General(extension, "simahui_junba", "jin", 3)  
 simafu_junba = sgs.General(extension, "simafu_junba", "jin", 3)  -- 吴国，4血，男性  
 wangxu_junba = sgs.General(extension, "wangxu_junba", "jin", 3)  
 xiahoushi_junba = sgs.General(extension, "xiahoushi_junba", "jin", 3, false)  -- 吴国，4血，男性  
@@ -3011,13 +3007,6 @@ caomao_junba:addSkill("fensi")
 haozhao_junba:addSkill("zhengu")
 
 liujinliupei_junba:addSkill("jiusi")
-
-jikang_junba:addSkill("qingxian")  
-jikang_junba:addSkill("juexiang")
-
-simahui_junba:addSkill("longfeng")  
-simahui_junba:addSkill("longfengYehuo")  
-simahui_junba:addSkill("yinshi")  
 
 simafu_junba:addSkill("panxiang")
 simafu_junba:addSkill("chenjie")
@@ -3065,7 +3054,7 @@ sgs.LoadTranslationTable{
 ------------------------------------------
 baozhen_jin = sgs.General(extension, "baozhen_jin", "jin", 3)  --wei,jin
 jifa_jin = sgs.General(extension, "jifa_jin", "jin", 4)  --wei,jin
-liubei_jin = sgs.General(extension, "liubei_jin", "jin", 3)  --shu,jin  
+--liubei_jin = sgs.General(extension, "liubei_jin", "jin", 3)  --shu,jin  
 luzhishen_jin = sgs.General(extension, "luzhishen_jin", "jin", 4)  --wei,jin  
 maosui_jin = sgs.General(extension, "maosui_jin", "jin", 3)  --jin,qun
 miyue_jin = sgs.General(extension, "miyue_jin", "jin", 3, false)  --qun,jin  
@@ -3097,8 +3086,8 @@ baozhen_jin:addSkill("shenduan")
 jifa_jin:addSkill("taofa")
 jifa_jin:addSkill("zhubao")
 
-liubei_jin:addSkill("jieyi1")
-liubei_jin:addSkill("jieyi2")
+--liubei_jin:addSkill("jieyi1")
+--liubei_jin:addSkill("jieyi2")
 
 luzhishen_jin:addSkill("dili")
 luzhishen_jin:addSkill("kuangchan")
