@@ -715,6 +715,7 @@ sgs.LoadTranslationTable{
     ["farou"] = "伐柔",
     [":farou"] = "每回合限一次。有角色脱离濒死时，若当前回合角色或伤害源与你势力相同，你可以弃置一张牌，对其造成一点伤害"
 }
+--[[
 fengzhao = sgs.General(extension, "fengzhao", "wei", 4)  
 
 weifu3 = sgs.CreateTriggerSkill{  
@@ -803,12 +804,7 @@ touxi = sgs.CreateTriggerSkill{
         elseif targets:length()>1 then
             local source = room:askForPlayerChosen(ask_who,  targets, self:objectName(), "@touxi-target")
             local target = room:askForPlayerChosen(ask_who,  targets:removeOne(source), self:objectName(), "@touxi-victim")  
-            --[[
-            local chosen_players = room:askForPlayersChosen(ask_who, targets, self:objectName(), 2, 2, "请选择2名玩家，后选的视为对先选的使用决斗（先选的先出杀）", true)
-            if chosen_players:length() < 2 then return false end
-            local source = chosen_players:first()
-            local target = chosen_players:last()
-            ]]
+
             local duel = sgs.Sanguosha:cloneCard("duel")  
             duel:setSkillName(self:objectName())  
             duel:deleteLater()
@@ -831,6 +827,7 @@ sgs.LoadTranslationTable{
     ["touxi"] = "投隙",
     [":touxi"] = "每回合结束时，若本回合得到你牌的角色数：为1，你可以移动其场上一张牌；大于1，你可以令其中一名角色视为对另一名角色使用一张决斗"
 }
+
 fuqian = sgs.General(extension, "fuqian", "shu", 4)  
 
 juetu = sgs.CreateTriggerSkill{  
@@ -924,6 +921,7 @@ sgs.LoadTranslationTable{
     [":juetu"] = "锁定技。结束阶段，若没有进入鏖战状态，你摸牌至体力上限，然后进入鏖战状态；若已经进入鏖战状态，且你未移除副将，则你移除副将；若已经进入鏖战状态，且你已经移除副将，则你视为使用一张决斗",
     ["aozhan_fuqian"] = "鏖战"
 }
+]]
 gaoshun = sgs.General(extension, "gaoshun", "qun", 4)  
 xunji = sgs.CreateTriggerSkill{
 	name = "xunji",
@@ -2063,7 +2061,7 @@ sgs.LoadTranslationTable{
     [":jianji"] = "出牌阶段限一次。你可以令一名角色摸一张牌，然后其可以使用之"
 }
 
-huojun = sgs.General(extension, "huojun", "shu", 3)  
+huojun = sgs.General(extension, "huojun", "shu", 4)  
 
 gue = sgs.CreateOneCardViewAsSkill{  
     name = "gue",  
@@ -3401,7 +3399,7 @@ sgs.LoadTranslationTable{
     ["jueyan"] = "决堰",
     [":jueyan"] = "出牌阶段限一次。你可以弃置X张手牌（X为与你势力相同的角色数，不足则全弃，无牌则不弃），摸2张牌"
 }
-
+--[[
 luyusheng_canghai = sgs.General(extension, "luyusheng_canghai", "wu", 3, false)  
 
 fengwu = sgs.CreateTriggerSkill{  
@@ -3583,7 +3581,7 @@ sgs.LoadTranslationTable{
     [":zhaojieDelay"] = "锁定技，延时锦囊对你生效时，取消之",  
     ["@fengwu-give"] = "奉无：交给 %src 一张牌"  
 }  
-  
+]]
 
 luzhi = sgs.General(extension, "luzhi", "wei", 3) -- 吴苋，蜀势力，3血，女性
 xianjingVS = sgs.CreateZeroCardViewAsSkill{  
@@ -5663,6 +5661,7 @@ sgs.LoadTranslationTable{
     ["dingzhu"] = "定著",
     [":dingzhu"] = "出牌阶段结束时，你可以选择一名本回合获得过牌的其他角色，令其视为使用一张决斗"
 }
+--[[
 wenqin_canghai = sgs.General(extension, "wenqin_canghai", "wu", 4)  
 kuoao = sgs.CreateTriggerSkill{  
     name = "kuoao",  
@@ -5731,7 +5730,6 @@ sgs.LoadTranslationTable{
     [":kuoao"] = "你使用杀可以多指定一个攻击范围内的目标；其他角色使用杀时，若你在其攻击范围内，其可以多指定你为目标，此时若你的手牌数为偶数，你摸一张牌，然后可以令此杀对与你势力相同的目标角色和你选择的任意名目标无效"
 }
 wenyang = sgs.General(extension, "wenyang", "wei", 3) -- 吴苋，蜀势力，3血，女性
-
 -- 齐力技能  
 qili = sgs.CreateTriggerSkill{  
     name = "qili",  
@@ -5943,7 +5941,7 @@ sgs.LoadTranslationTable{
     [":guixiang"] = "结束阶段，你可以令一名角色进行判定，若判定牌是基本牌或普通锦囊牌，其可以使用之；若为红桃，改为可以视为使用桃。",  
     ["@guixiang"] = "贵相：选择一名角色进行判定"  
 }
-
+]]
 wuyi = sgs.General(extension, "wuyi", "shu", 4) -- 吴苋，蜀势力，3血，女性
 benxi = sgs.CreateTriggerSkill{  
     name = "benxi",  
@@ -6265,7 +6263,7 @@ sgs.LoadTranslationTable{
     ["source_show_head_general"] = "明置伤害来源的主将",  
     ["source_show_deputy_general"] = "明置伤害来源的副将",
 }
-
+--[[
 xurong = sgs.General(extension, "xurong", "qun", 4)  
 Piaolu = sgs.CreateTriggerSkill{  
     name = "piaolu",  
@@ -6453,7 +6451,7 @@ sgs.LoadTranslationTable{
     [":shajue"] = "有角色进入濒死时，若其体力小于0，你可以获得造成此伤害的牌。",  
     ["@shajue-invoke"] = "%src 进入濒死状态，体力小于0，是否发动'杀绝'获得 %arg？",
 }
-
+]]
 zhangchangpu = sgs.General(extension, "zhangchangpu", "wei", 3, false)  
 
 xingshen = sgs.CreateTriggerSkill{  
@@ -6706,7 +6704,7 @@ sgs.LoadTranslationTable{
     ["xiongluan"] = "雄乱",
     [":xiongluan"] = "任意一名角色回合结束时，若你本回合受到过伤害，你可以将一张装备牌当作杀对所有本回合对你造成过伤害的角色使用"
 }
-
+--[[
 zhangyi_canghai = sgs.General(extension, "zhangyi_canghai", "shu", 4)  
 dianjun = sgs.CreateTriggerSkill{  
     name = "dianjun",  
@@ -6827,8 +6825,9 @@ sgs.LoadTranslationTable{
     [":kangruiDamged"] = "一名角色于其回合内首次受到伤害后，你可以选择（1）令其恢复一点体力（2）令其本回合下次造成的伤害+1",
     ["damage_boost"] = "本回合下次造成的伤害+1"
 }
+]]
 -- 创建武将：
-zhonghui_wei = sgs.General(extension, "zhonghui_wei", "wei", 3)  -- 吴国，4血，男性  
+zhonghui_wei = sgs.General(extension, "zhonghui_wei", "wei", 4)  -- 吴国，4血，男性  
 
 fushuCard = sgs.CreateSkillCard{  
     name = "fushu",  
@@ -7026,6 +7025,101 @@ sgs.LoadTranslationTable{
     [":huomo"] = "若你本回合没有失去过牌，你可以将一张黑色非基本牌当作任意基本牌使用，然后将该牌放在牌堆顶",
 }
 ]]
+zhugedan = sgs.General(extension, "zhugedan", "wei", 4)
+
+gongao = sgs.CreateTriggerSkill{  
+    name = "gongao",  
+    frequency = sgs.Skill_Compulsory, -- 锁定技  
+    events = {sgs.Death},  
+    can_trigger = function(self, event, room, player, data)  
+        local death = data:toDeath()  
+        local killer = death.damage and death.damage.from or nil  
+        
+        -- 检查是否是技能拥有者杀死的角色  
+        if killer and killer:isAlive() and killer:hasSkill(self:objectName()) and not killer:hasFlag("gongao_" .. death.who:objectName()) then  
+            return self:objectName(), killer:objectName()
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        -- 锁定技无需询问，直接返回true  
+        local death = data:toDeath()  
+        local killer = death.damage.from
+        if ask_who:hasShownSkill(self:objectName()) or ask_who:askForSkillInvoke(self:objectName(),data) then
+            room:notifySkillInvoked(ask_who, self:objectName())  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end
+        return false
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        local death = data:toDeath()  
+        local killer = death.damage.from  
+        local dead_player = death.who  
+        room:setPlayerFlag(ask_who,"gongao_" .. death.who:objectName())
+        -- 查找与死亡角色势力相同的存活角色  
+        local same_kingdom_players = sgs.SPlayerList()  
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if dead_player:isFriendWith(p) then  
+                same_kingdom_players:append(p)  
+            end  
+        end  
+          
+        if same_kingdom_players:length() > 0 then  
+            -- 有相同势力角色存活，对他们各造成1点伤害  
+            for _, target in sgs.qlist(same_kingdom_players) do  
+                room:damage(sgs.DamageStruct(self:objectName(), killer, target, 1, sgs.DamageStruct_Normal))  
+            end  
+        else  
+            -- 没有相同势力角色存活，获得额外回合  
+            killer:gainAnExtraTurn()  
+        end  
+          
+        return false  
+    end,  
+}
+
+weizhong = sgs.CreateTriggerSkill{  
+    name = "weizhong",  
+    frequency = sgs.Skill_Frequent,  
+    events = {sgs.PostHpReduced},  
+    can_trigger = function(self, event, room, player, data)          
+        -- 检查是否是技能拥有者杀死的角色  
+        if player and player:hasSkill(self:objectName()) then  
+            return self:objectName()
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(),data) then
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end
+        return false
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        if player:isKongcheng() then
+            player:drawCards(2,self:objectName()) 
+        else
+            player:drawCards(1,self:objectName())
+        end
+    end
+}
+
+zhugedan:addSkill(gongao)
+zhugedan:addSkill(weizhong)
+sgs.LoadTranslationTable{
+["zhugedan"] = "诸葛诞",  
+["illustrator:zhugedan"] = "插画师名称",  
+["gongao"] = "功獒",  
+[":gongao"] = "锁定技，你杀死角色后，若有与其势力相同的角色存活，你对与其势力相同的角色各造成1点伤害；若没有与其势力相同的角色存活，你获得1个额外回合。",
+["weizhong"] = "威重",
+[":weizhong"] = "你体力减少时，你可以摸一张牌，若你没有手牌，则改为摸2张"
+}
 zhugezhan_canghai = sgs.General(extension, "zhugezhan_canghai", "shu", 4)  
 zhugezhan_canghai:setDeputyMaxHpAdjustedValue(-1)
 
