@@ -957,7 +957,7 @@ sgs.LoadTranslationTable{
     ["mingjie"] = "命劫",  
     [":mingjie"] = "结束阶段，你可以摸1张牌，若此牌为：红色，你可以重复此流程（最多摸3张）；黑色，若你的体力值大于1，你失去1点体力",  
 }
-
+--[[
 guanning = sgs.General(extension, "guanning", "qun", 3)  
 
 qinggong = sgs.CreateTriggerSkill{  
@@ -1151,7 +1151,7 @@ sgs.LoadTranslationTable{
     ["~qinggong"] = "选择一名其他角色→点击确定",  
     ["~shangya"] = "选择一名武将牌均明置的角色→点击确定",
 }
-
+]]
 guansuo_xianxia = sgs.General(extension, "guansuo_xianxia", "shu", 4) -- 蜀势力，4血，男性（默认）  
 guansuo_xianxia:setDeputyMaxHpAdjustedValue(-1)
 
@@ -1887,7 +1887,6 @@ sgs.LoadTranslationTable{
 ["zhanjueDuel"] = "战绝",  
 [":zhanjueDuel"] = "出牌阶段限一次，你可以将所有手牌当决斗使用，该决斗结算完成后，你和受到此决斗伤害的角色各摸一张牌；若你未受到此决斗伤害，该技能出牌阶段限2次。",
 }
-]]
 
 liuyao = sgs.General(extension, "liuyao", "qun", 4)  -- 群雄，4血  
 zhannanCard = sgs.CreateSkillCard{  
@@ -2022,6 +2021,7 @@ sgs.LoadTranslationTable{
     ["yiqi"] = "刈旗",
     [":yiqi"] = "准备阶段，你可以令一名势力不同角色获得先驱。你对角色造成伤害后，你可以获得其先驱"
 }
+]]
 simashi = sgs.General(extension, "simashi", "wei", 3)
 
 yimie = sgs.CreateTriggerSkill{  
@@ -2884,101 +2884,7 @@ sgs.LoadTranslationTable{
 	["zhongyong"] = "忠勇",
 	[":zhongyong"] = "每回合限一次。你使用杀结算后，你可以将此杀或响应此杀的闪交给一名其他角色，若其获得的牌为红色，其可以对你攻击范围内一名角色使用一张杀",
 }
-zhugedan = sgs.General(extension, "zhugedan", "wei", 4)
-
-gongao = sgs.CreateTriggerSkill{  
-    name = "gongao",  
-    frequency = sgs.Skill_Compulsory, -- 锁定技  
-    events = {sgs.Death},  
-    can_trigger = function(self, event, room, player, data)  
-        local death = data:toDeath()  
-        local killer = death.damage and death.damage.from or nil  
-        
-        -- 检查是否是技能拥有者杀死的角色  
-        if killer and killer:isAlive() and killer:hasSkill(self:objectName()) and not killer:hasFlag("gongao_" .. death.who:objectName()) then  
-            return self:objectName(), killer:objectName()
-        end  
-        return ""  
-    end,  
-      
-    on_cost = function(self, event, room, player, data, ask_who)  
-        -- 锁定技无需询问，直接返回true  
-        local death = data:toDeath()  
-        local killer = death.damage.from
-        if ask_who:hasShownSkill(self:objectName()) or ask_who:askForSkillInvoke(self:objectName(),data) then
-            room:notifySkillInvoked(ask_who, self:objectName())  
-            room:broadcastSkillInvoke(self:objectName())  
-            return true  
-        end
-        return false
-    end,  
-      
-    on_effect = function(self, event, room, player, data, ask_who)  
-        local death = data:toDeath()  
-        local killer = death.damage.from  
-        local dead_player = death.who  
-        room:setPlayerFlag(ask_who,"gongao_" .. death.who:objectName())
-        -- 查找与死亡角色势力相同的存活角色  
-        local same_kingdom_players = sgs.SPlayerList()  
-        for _, p in sgs.qlist(room:getAlivePlayers()) do  
-            if dead_player:isFriendWith(p) then  
-                same_kingdom_players:append(p)  
-            end  
-        end  
-          
-        if same_kingdom_players:length() > 0 then  
-            -- 有相同势力角色存活，对他们各造成1点伤害  
-            for _, target in sgs.qlist(same_kingdom_players) do  
-                room:damage(sgs.DamageStruct(self:objectName(), killer, target, 1, sgs.DamageStruct_Normal))  
-            end  
-        else  
-            -- 没有相同势力角色存活，获得额外回合  
-            killer:gainAnExtraTurn()  
-        end  
-          
-        return false  
-    end,  
-}
-
-weizhong = sgs.CreateTriggerSkill{  
-    name = "weizhong",  
-    frequency = sgs.Skill_Frequent,  
-    events = {sgs.PostHpReduced},  
-    can_trigger = function(self, event, room, player, data)          
-        -- 检查是否是技能拥有者杀死的角色  
-        if player and player:hasSkill(self:objectName()) then  
-            return self:objectName()
-        end  
-        return ""  
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        if player:askForSkillInvoke(self:objectName(),data) then
-            room:broadcastSkillInvoke(self:objectName())  
-            return true  
-        end
-        return false
-    end,  
-      
-    on_effect = function(self, event, room, player, data)
-        if player:isKongcheng() then
-            player:drawCards(2,self:objectName()) 
-        else
-            player:drawCards(1,self:objectName())
-        end
-    end
-}
-
-zhugedan:addSkill(gongao)
-zhugedan:addSkill(weizhong)
-sgs.LoadTranslationTable{
-["zhugedan"] = "诸葛诞",  
-["illustrator:zhugedan"] = "插画师名称",  
-["gongao"] = "功獒",  
-[":gongao"] = "锁定技，你杀死角色后，若有与其势力相同的角色存活，你对与其势力相同的角色各造成1点伤害；若没有与其势力相同的角色存活，你获得1个额外回合。",
-["weizhong"] = "威重",
-[":weizhong"] = "你体力减少时，你可以摸一张牌，若你没有手牌，则改为摸2张"
-}
+--[[
 zhugeguo = sgs.General(extension, "zhugeguo", "shu", 3, false)  
 qidao = sgs.CreateTriggerSkill{
 	name = "qidao",
@@ -3003,19 +2909,9 @@ qidao = sgs.CreateTriggerSkill{
 
 	on_effect = function(self, event, room, player, data)
         local use = data:toCardUse()  
-          
         -- 弃置一张牌并记录弃置牌的类型  
         local discarded_card = nil
         if not player:isNude() then  
-            --[[
-            local card_id = room:askForCardChosen(player, player, "he", self:objectName(), false, sgs.Card_MethodDiscard)  
-            if card_id ~= -1 then  
-                discarded_card = sgs.Sanguosha:getCard(card_id)  
-                room:throwCard(card_id, player, player) 
-                -- 摸一张牌  
-                room:drawCards(player, 1, self:objectName())   
-            end  
-            ]]
             discarded_card = room:askForCard(player, ".|.|.|hand,equipped", "@qidao-discard", data, sgs.Card_MethodDiscard)  
             if discarded_card then  
                 -- 摸一张牌  
@@ -3448,6 +3344,7 @@ sgs.LoadTranslationTable{
     ["huaman3"] = "技能3",  
     [":huaman3"] = "出牌阶段限一次。你可以将所有手牌当作【南蛮入侵】使用",      
 }
+]]
 dongcheng = sgs.General(extension, "dongcheng", "qun", 4)  
 dongcheng1 = sgs.CreateTriggerSkill{  
     name = "dongcheng1",  
