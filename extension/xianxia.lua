@@ -682,7 +682,74 @@ sgs.LoadTranslationTable{
     ["chengzhao"] = "承诏",
     [":chengzhao"] = "你一次性获得过至少2张牌的回合结束时，你可以与一名其他角色拼点，赢的角色视为对输的角色使用杀",
 }
+duyuluawuku = sgs.General(extension, "duyuluawuku", "qun", 4)
+luawukuVS = sgs.CreateOneCardViewAsSkill{  
+    name = "luawuku",  
+    guhuo_type = "tb",
+    filter_pattern = ".",
+    response_or_use = true,  
+    view_as = function(self, card)
+        local card_name = sgs.Self:getTag(self:objectName()):toString()
+		if card_name ~= "" then
+			local view_as_card = sgs.Sanguosha:cloneCard(card_name)
+			view_as_card:setCanRecast(false)
+            view_as_card:addSubcard(card:getId())
+			view_as_card:setSkillName(self:objectName())
+			view_as_card:setShowSkill(self:objectName())
+			return view_as_card
+		end
+    end,  
+      
+    enabled_at_play = function(self, player)   
+        return player:getMark("@luawuku") > 0 and not player:isNude()
+    end,
 
+    enabled_at_response = function(self, player, pattern)
+        return player:getMark("@luawuku") > 0 and not player:isNude() 
+        and (pattern == "slash" or pattern == "jink" or string.find(pattern, "peach") or string.find(pattern, "analeptic") or pattern == "nullification" )
+    end,
+    enabled_at_nullification = function(self, player)  
+        return player:getMark("@luawuku") > 0 and not player:isNude()
+    end
+}
+luawuku = sgs.CreateTriggerSkill{  
+    name = "luawuku",  
+    view_as_skill = luawukuVS,
+    events = {sgs.CardUsed},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.CardUsed then
+            local use = data:toCardUse()
+            if use.card:isKindOf("EquipCard") then
+                local owner = room:findPlayerBySkillName(self:objectName())  
+                if not (owner and owner:isAlive() and owner:hasShownSkill(self:objectName())) then return "" end
+                if use.from:hasShownOneGeneral() and not use.from:isFriendWith(owner) then
+                    return self:objectName(), owner:objectName()
+                end
+            elseif use.card:getSkillName() == self:objectName() then
+                room:setPlayerMark(use.from, "@luawuku", use.from:getMark("@luawuku")-1)
+                use.from:drawCards(1,self:objectName())
+            end
+        end
+        return ""
+    end,
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        return ask_who:hasShownSkill(self:objectName())
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)  
+        room:addPlayerMark(ask_who, "@luawuku")        
+        return false  
+    end  
+}  
+
+duyuluawuku:addSkill(luawuku)
+sgs.LoadTranslationTable{
+	["duyuluawuku"] = "杜预",
+	["luawuku"] = "武库",
+	[":luawuku"] = "你明置此武将后，与你势力不同的角色使用装备牌后，你获得1个“武库”标记；每回合限一次。你可以弃置1个“武库”，将一张牌当作任意基本牌或锦囊牌使用或打出，然后你摸1张牌",
+}
 guanluo = sgs.General(extension, "guanluo", "wei", 3)
 
 luatuiyanCard = sgs.CreateSkillCard{
@@ -2015,6 +2082,114 @@ sgs.LoadTranslationTable{
     [":tairan"] = "出牌阶段限一次。你可以失去任意点体力并弃置至多X张牌（X为已失去的体力值），回合结束时，你恢复因此失去的体力值，并摸因此弃置的牌数",
     ["@tairan-losehp"] = "要失去的体力值",
     ["@tairan-discard"] = "要弃的牌数"
+}
+
+sunluyu_xianxia = sgs.General(extension, "sunluyu_xianxia", "wu", 3, false)
+
+mumuTarget = sgs.CreateTriggerSkill{  
+    name = "mumuTarget",  
+    events = {sgs.TargetConfirming},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then  
+            local use = data:toCardUse()  
+            local card = use.card  
+            -- 检查是否目标数大于1  
+            if card and use.to:length() > 1 then  
+                -- 检查当前玩家是否在目标列表中  
+                for _, target in sgs.qlist(use.to) do  
+                    if target:objectName() == player:objectName() then  
+                        return self:objectName()  
+                    end  
+                end  
+            end  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
+    on_effect = function(self, event, room, player, data)
+        local use = data:toCardUse()  
+        if use.from:getNextAlive() == player or player:getNextAlive() == use.from then --相邻
+            local choices = {"draw"}
+            if not use.from:isNude() then
+                table.insert(choices,"discard")
+            end
+            table.insert(choices,"cancel")
+            local choice = room:askForChoice(player,self:objectName(),table.concat(choices,'+'))
+            if choice == "draw" then
+                use.from:drawCards(1,self:objectName())
+            elseif choice == "discard" and not use.from:isNude() then
+                local card_id = room:askForCardChosen(player,use.from,"h",self:objectName())
+                room:throwCard(card_id,use.from,player)
+            end
+        else --不相邻
+            if not player:isNude() and room:askForDiscard(player,self:objectName(),1,1,true,true) then
+                local target = room:askForPlayerChosen(player, use.to, self:objectName(), "mumuTarget-invoke")  
+                sgs.Room_cancelTarget(use, target)
+                data:setValue(use)
+            end
+        end
+        return false  
+    end,  
+}
+biebao = sgs.CreateTriggerSkill{
+	name = "biebao",
+	events = {sgs.CardsMoveOneTime},
+    --frequency = sgs.Skill_Frequent,  
+    can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) then
+			local current = room:getCurrent()
+			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					if move.from_places:contains(sgs.Player_PlaceEquip) then
+						if move.from and move.from:isAlive() and player:objectName()==move.from:objectName() then
+                            return self:objectName()
+						end
+					end
+				end
+			end
+		end
+		return ""
+	end,
+    on_cost = function(self, event, room, player, data)
+		return player:askForSkillInvoke(self:objectName(),data)
+	end,
+    on_effect = function(self, event, room, player, data)
+        local min_num = player:getHandcardNum()
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if p:getHandcardNum() < min_num then
+                min_num = p:getHandcardNum()
+            end
+        end
+        local targets = sgs.SPlayerList()
+        for _, p in sgs.qlist(room:getAlivePlayers()) do  
+            if p:getHandcardNum() == min_num then
+                targets:append(p)
+            end
+        end
+        local target = room:askForPlayerChosen(player,targets,self:objectName(),"@biebao-choose",true)
+        if target then
+            target:drawCards(2,self:objectName())
+        end
+        return false
+	end
+}
+sunluyu_xianxia:addSkill(mumuTarget)
+sunluyu_xianxia:addSkill(biebao)
+sgs.LoadTranslationTable{
+["sunluyu_xianxia"] = "孙鲁育",
+["mumuTarget"] = "穆穆",
+[":mumuTarget"] = "当一张牌指定了包含你在内的多个目标时，若你与使用者：相邻，你可以弃置其一张牌或令其摸一张牌；不相邻，你可以弃置一张牌，取消其中一个目标",
+["biebao"] = "别抱",
+[":biebao"] = "当你失去装备区的牌后，你可以令一名手牌数最少的角色摸2张牌",
 }
 -- 创建武将：
 sunru_xianxia = sgs.General(extension, "sunru_xianxia", "wu", 3, false)  
