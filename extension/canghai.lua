@@ -6105,7 +6105,6 @@ sgs.LoadTranslationTable{
 
 xujing = sgs.General(extension, "xujing", "shu", 3)
 
--- 许名技能卡  
 XumingCard = sgs.CreateSkillCard{  
     name = "XumingCard",  
     target_fixed = false,  
@@ -6120,7 +6119,7 @@ XumingCard = sgs.CreateSkillCard{
         local room = effect.to:getRoom()  
         local source = effect.from  
         local target = effect.to  
-          
+
         -- 视为使用远交近攻  
         local card_id = self:getSubcards():first()
         local card = sgs.Sanguosha:getCard(card_id)
@@ -6133,51 +6132,97 @@ XumingCard = sgs.CreateSkillCard{
         use.to:append(target)  
         room:useCard(use)  
         yuanjiao:deleteLater()
-        -- 让玩家选择遍历方向  
-        local direction = room:askForChoice(source, "xuming_direction", "clockwise+counterclockwise")  
-          
-        -- 根据选择计算路径  
-        local path_players = {}            
-        if direction == "counterclockwise" then 
-            -- 逆时针遍历  
-            local current = source:getNextAlive()
-            while current ~= target do  
-                table.insert(path_players, current)  --这里不能选自己
-                current = current:getNextAlive()  
-                if current == source then break end  
-            end  
-        else  
-            -- 顺时针遍历  
-            local current = target:getNextAlive()--就是这个函数有问题
-            while current ~= source do  
-                table.insert(path_players, current)  --这里不能选自己
-                current = current:getNextAlive()  
-                if current == target then break end  
-            end  
-        end  
-          
-        -- 所有路径上的角色摸牌  
-        for _, player in ipairs(path_players) do  
-            player:drawCards(1, "xuming")  
-        end  
-    end  
-}  
-  
--- 许名ViewAsSkill  
-xuming = sgs.CreateOneCardViewAsSkill{  
-    name = "xuming",  
-    filter_pattern = "TrickCard",  
-    enabled_at_play = function(self, player)  
-        return not player:hasUsed("#XumingCard")  
-    end,  
-    view_as = function(self, card)  
-        local xuming_card = XumingCard:clone()  
-        xuming_card:addSubcard(card)  
-        xuming_card:setShowSkill(self:objectName())  
-        return xuming_card  
-    end  
-}
+        -- 让玩家选择遍历方向
+        local direction = room:askForChoice(source, "xuming_direction", "clockwise+counterclockwise")
 
+        -- 根据选择计算路径
+        local path_players = {}
+        if direction == "counterclockwise" then
+            -- 逆时针遍历
+            local current = source:getNextAlive()
+            while current ~= target do
+                table.insert(path_players, current)  --这里不能选自己
+                current = current:getNextAlive()
+                if current == source then break end
+            end
+        else
+            -- 顺时针遍历
+            local current = target:getNextAlive()
+            while current ~= source do
+                table.insert(path_players, current)  --这里不能选自己
+                current = current:getNextAlive()
+                if current == target then break end
+            end
+        end
+
+        -- 所有路径上的角色摸牌  
+        for _, player in ipairs(path_players) do
+            player:drawCards(1, "xuming")
+        end
+    end
+}
+  
+xumingVS = sgs.CreateOneCardViewAsSkill{
+    name = "xuming",
+    filter_pattern = "TrickCard",
+    view_as = function(self, card)
+        local xuming_card = sgs.Sanguosha:cloneCard("befriend_attacking", card:getSuit(), card:getNumber())--XumingCard:clone()
+        xuming_card:addSubcard(card)
+        xuming_card:setShowSkill(self:objectName())
+        xuming_card:setSkillName(self:objectName())
+        return xuming_card
+    end,
+    enabled_at_play = function(self, player)  
+        return not player:hasFlag("xuming_used") --player:hasUsed("#XumingCard")
+    end,
+}
+xuming = sgs.CreateTriggerSkill{
+    name = "xuming",
+    view_as_skill = xumingVS,
+    events = {sgs.CardFinished},
+    can_trigger = function(self, event, room, player, data)
+        local use = data:toCardUse()
+        if use.card and use.card:getSkillName() == self:objectName() then
+            room:setPlayerFlag(use.from,"xuming_used")
+            return self:objectName()
+        end
+        return ""
+    end,  
+    on_cost = function(self, event, room, player, data)
+        return true  
+    end,  
+    on_effect = function(self, event, room, player, data)
+        local use = data:toCardUse()
+        local source = use.from
+        local target = use.to:first()
+        local direction = room:askForChoice(source, "xuming_direction", "clockwise+counterclockwise")
+
+        -- 根据选择计算路径  
+        local path_players = {}
+        if direction == "counterclockwise" then
+            -- 逆时针遍历
+            local current = source:getNextAlive()
+            while current ~= target do
+                table.insert(path_players, current)  --这里不能选自己
+                current = current:getNextAlive()
+                if current == source then break end
+            end
+        else
+            -- 顺时针遍历
+            local current = target:getNextAlive()
+            while current ~= source do
+                table.insert(path_players, current)  --这里不能选自己
+                current = current:getNextAlive()
+                if current == target then break end
+            end
+        end
+
+        -- 所有路径上的角色摸牌
+        for _, player in ipairs(path_players) do
+            player:drawCards(1, "xuming")
+        end
+    end
+}
 -- 靖德技能  
 jingde = sgs.CreateTriggerSkill{  
     name = "jingde",  
