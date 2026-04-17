@@ -1413,6 +1413,10 @@ sgs.ai_skill_invoke.luachengxu = function(self, data)
             local canliuli = false
             for _, p in sgs.qlist(self.room:getOtherPlayers(self.player)) do
                 if p:getMark("@companion") > 0 and p:isFriendWith(target) then
+                    local current = self.room:getCurrent()
+                    if current:hasShownSkill("wansha") and p ~= target then
+                        return true
+                    end
                     return false
                 end
                 if target:hasShownSkill("liuli") and self:canLiuli(target, p) and self.player:isFriendWith(p) then
@@ -1432,7 +1436,9 @@ sgs.ai_skill_invoke.luachengxu = function(self, data)
                         return true
                     end
                 end
-                return false 
+                return false
+            elseif target:getMark("@jizhao") > 0 or target:getMark("@nirvana") > 0 then
+                return false
             end
             if target:hasArmorEffect("Vine") then
                 if self.player:getWeapon() and (self.player:getWeapon():objectName() == "Fan" or 
@@ -2216,21 +2222,22 @@ sgs.ai_skill_use_func["#luaxinggongCard"] = function(card, use, self)
     local targets = sgs.QList2Table(room:getAlivePlayers())
     self:sort(targets, "hp")
     for _, p in pairs(targets) do
-        if self.player:isFriendWith(p) and (not p:isChained() or not p:canBeChainedBy() or p:hasArmorEffect("PeaceSpell")) and
-        p:objectName() ~= self.player:objectName() then
+        if self.player:isFriendWith(p) and not p:isChained() and p:objectName() ~= self.player:objectName() and
+        p:hasShownSkills(sgs.masochism_skill) then
             self.luaxinggongPlayer = p
         end
     end
     if not self.luaxinggongPlayer then
         for i = #targets, 1, -1 do
-            if self.player:isFriendWith(targets[i]) and targets[i]:getHp() > 1 and targets[i]:objectName() ~= self.player:objectName() then
+            if self.player:isFriendWith(targets[i]) and targets[i]:getHp() > 1 and targets[i]:objectName() ~= self.player:objectName() and
+            not targets[i]:isChained() then
                 self.luaxinggongPlayer = targets[i]
             end
         end
     end
     if not self.luaxinggongPlayer then
         for _, p in pairs(targets) do
-            if self:isFriend(self.player, p) and (p:isChained() or not p:canBeChainedBy() or p:hasArmorEffect("PeaceSpell")) and
+            if self:isFriend(self.player, p) and not p:isChained() and (not p:canBeChainedBy() or p:hasArmorEffect("PeaceSpell")) and
             p:objectName() ~= self.player:objectName() then
                 self.luaxinggongPlayer = p
             end
@@ -2719,7 +2726,7 @@ sgs.ai_use_priority.luachenyinCard = 2.1
 --刘焉
 sgs.ai_skill_invoke.luazifeng = function(self, data)
     local current = self.room:getCurrent()
-    if self.player:getActualGeneral1Name() ~= "lualiuyan" or self.player:getActualGeneral2Name() ~= "lualiuyan" then
+    if self.player:getActualGeneral1Name() ~= "lualiuyan" and self.player:getActualGeneral2Name() ~= "lualiuyan" then
         return false
     end
     if current:getNextAlive():objectName() == self.player:objectName() and self.player:faceUp() then return false end
@@ -2985,7 +2992,7 @@ sgs.ai_skill_choice["provinceSeal_give"] = function(self, choices, data)
             end
         end
         for _, c in pairs(hecards) do
-            if c:getTypeId() == sgs.Card_TypeTrick then
+            if c:getTypeId() == sgs.Card_TypeTrick and not c:isKindOf("Nullification") then
                 self.provinceSealCard = c:getId()
                 return "yes"
             end
@@ -3370,7 +3377,7 @@ sgs.ai_skill_use["@@luaqiangzhiUse"] = function(self, prompt)
         local targets = room:getOtherPlayers(self.player)
         room:sortByActionOrder(targets)
         for _, p in sgs.qlist(targets) do
-            if self:isFriend(p) and not self.player:isFriendWith(p) then
+            if self.player:hasShownOneGeneral() and self:isFriend(p) and not self.player:isFriendWith(p) then
                 return card_str .. "->" .. p:objectName()
             end
         end
