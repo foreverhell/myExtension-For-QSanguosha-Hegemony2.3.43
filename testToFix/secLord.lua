@@ -56,7 +56,7 @@ jinxiuzhengpao_skill = sgs.CreateTriggerSkill{
         if event == sgs.TargetConfirmed and player:hasArmorEffect("jinxiuzhengpao") then
             local use = data:toCardUse()
             local armor = player:getArmor()
-            if armor and armor:isKindOf("jinxiuzhengpao") and use.card and use.card:getSuit() <= sgs.Card_Heart and
+            if armor and armor:isKindOf("jinxiuzhengpao") and use.card and use.card:getSuit() <= sgs.Card_Diamond and
             use.to:contains(player) and use.from:objectName() ~= player:objectName() then
                 --检查是否是伤害牌
                 if not isDamageCard(use.card) then return false end
