@@ -473,12 +473,12 @@ sgs.ai_skill_invoke.jiefenwei = function(self, data)
                 end
             end
             if #result == 1 then table.remove(result, 1) end
-        elseif card:isKindOf("FightTogether") and use.to:contains(self.player) then
+        --[[elseif card:isKindOf("FightTogether") and use.to:contains(self.player) then
             for _, p in pairs(tos) do
                 if self.player:isFriendWith(p) and not p:isChained() then
                     table.insert(result, p)
                 end
-            end
+            end]]
         elseif card:isKindOf("Duel") and use.from:hasShownSkills("luoyi|wushuang|wushuang_lvlingqi") then
             for _, p in pairs(tos) do
                 if (self:isFriend(p) or self.player:isFriendWith(p)) and self:isWeak(p) then
@@ -1149,7 +1149,7 @@ sgs.ai_skill_choice["docommand_luamibei"] = function(self, choices, data)
             return "yes"
         end
     end
-    if index == 6 and self.player:getEquips():length() < 3 and self.player:getHandcardNum() < 3 then
+    if index == 6 and self.player:getEquips():length() < 3 then
         return "yes"
     end
     return "no"
@@ -2077,6 +2077,9 @@ sgs.ai_skill_transfercardchosen.luatuifeng = sgs.ai_skill_transfercardchosen.qia
 --君·刘禅
 sgs.ai_skill_choice.luayanxi_death = function(self, choices, data)
     if self.player:getHp() > 2 and not self.player:isNude() then return "yes" end
+    if self.player:isRemoved() then
+        return "yes"
+    end
     local skill_number = math.random(2)
     if skill_number == 1 then
         return "yes"
@@ -2981,6 +2984,13 @@ sgs.ai_skill_choice["provinceSeal_give"] = function(self, choices, data)
                         return "yes"
                     end
                 end
+            elseif target:hasShownSkill("guishu") then
+                for _, c in pairs(hecards) do
+                    if c:getSuitString() == "spade" then
+                        self.provinceSealCard = c:getId()
+                        return "yes"
+                    end
+                end
             end
         end
         if target:getLostHp() > 1 and self:getCardsNum("Peach") > 0 then
@@ -3459,7 +3469,7 @@ sgs.ai_skill_invoke.jieqianxun = function(self, data)
     return false
 end
 sgs.ai_skill_playerchosen.jieqianxun = function(self, targets, max_num, min_num)
-    targets = self.room:sortByActionOrder(targets)
+    self.room:sortByActionOrder(targets)
     local drawtargets = {}
     for _, p in sgs.qlist(targets) do
         if self.player:isFriendWith(p) then
@@ -3480,7 +3490,10 @@ sgs.ai_skill_playerchosen.jieqianxun = function(self, targets, max_num, min_num)
             end
         end
     end
-    return drawtargets
+    if #drawtargets > 0 then
+        return drawtargets
+    end
+    return {}
 end
 
 --步骘
@@ -3564,4 +3577,49 @@ sgs.ai_skill_choice["luadingpan"] = function(self, choices)
         return "luadingpanGet"
     end
     return "luadingpanDiscard"
+end
+
+--周泰
+sgs.ai_skill_choice.jiefenji = function(self, choices, data)
+    local target = data:toPlayer()
+    if self.player:isFriendWith(target) then
+        local len = self.player:getPile("scars"):length()
+        if target:getWeapon() and target:getWeapon():objectName() == "Crossbow" then
+            return "yes"
+        elseif target:hasShownSkills("tianxiang|liuli|xiaoji|kurou") and len <= 3 then
+            return "yes"
+        elseif self:isWeak(target) and len <= 3 then
+            return "yes"
+        end
+    end
+    return "no"
+end
+
+sgs.ai_skill_invoke.jiebuqu = sgs.ai_skill_invoke.buqu
+sgs.ai_skill_cardchosen.jiebuqu = function(self, who, flags, method, disable_list)
+    local card_ids = self.player:getPile("scars")
+    local hecards = self.player:getCards("he")
+    local suitTable = {spade = false, club = false, diamond = false, heart = false}
+    local buqucard = {}
+    if not card_ids:isEmpty() then
+        for _, cid in sgs.qlist(card_ids) do
+            local card = sgs.Sanguosha:getCard(cid)
+            local suit = card:getSuitString()
+            suitTable[suit] = true
+        end
+    end
+    self.room:sortByKeepValue(hecards, true)
+    for _, c in sgs.qlist(hecards) do
+        local suit = c:getSuitString()
+        if not suitTable[suit] then
+            table.insert(buqucard, c:getId())
+            break
+        end
+    end
+
+    if #buqucard <= 0 then
+        local c = hecards:at(0)
+        table.insert(buqucard, c:getId())
+    end
+    return buqucard
 end
