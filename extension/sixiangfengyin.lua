@@ -639,7 +639,65 @@ sgs.LoadTranslationTable{
     ["dehua"] = "德化",
     [":dehua"] = "你失去仅两张牌的回合结束时，你可以视为使用一张基本牌",
 }
-
+liuzan_feng = sgs.General(extension, "liuzan_feng", "wu", 4)
+fenyinFeng = sgs.CreateTriggerSkill{  
+    name = "fenyinFeng",  
+    events = {sgs.EventPhaseStart, sgs.CardUsed},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill(self:objectName()) then
+            if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Play then
+                return self:objectName()
+            elseif event == sgs.CardUsed then
+                local current = room:getCurrent()
+                if current ~= player then return "" end --回合内
+                if not player:hasFlag("fenyinFeng_used") then return "" end
+                local use = data:toCardUse()  
+                if use.from == player and use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill then  --不是技能卡
+                    if use.card:isBlack() then --用的是黑牌
+                        if player:hasFlag("fenyinFeng_black") then --若有黑标记
+                            return self:objectName() --发动技能
+                        else
+                            room:setPlayerFlag(player,"fenyinFeng_black")
+                            room:setPlayerFlag(player,"-fenyinFeng_red")
+                        end
+                    elseif use.card:isRed() then --用的是红牌
+                        if player:hasFlag("fenyinFeng_red") then --若有红标记
+                            return self:objectName() --发动技能
+                        else
+                            room:setPlayerFlag(player,"fenyinFeng_red")
+                            room:setPlayerFlag(player,"-fenyinFeng_black")
+                        end
+                    end
+                end
+            end
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Play then
+            return player:askForSkillInvoke(self:objectName(),data)
+        elseif event == sgs.CardUsed and not player:isNude() then
+            return true
+        end
+        return false
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Play then
+            room:drawCards(player,2,self:objectName())
+            room:setPlayerFlag(player,"fenyinFeng_used")
+        elseif event == sgs.CardUsed and not player:isNude() then
+            room:askForDiscard(player,self:objectName(),1,1,false,true)
+        end
+        return false  
+    end  
+}
+liuzan_feng:addSkill(fenyinFeng)
+sgs.LoadTranslationTable{
+    ["liuzan_feng"] = "留赞",
+    ["fenyinFeng"] = "奋音",
+    [":fenyinFeng"] = "出牌阶段开始时，你摸2张牌，若如此做，本回合若你使用的牌和上一张颜色相同，你弃置一张牌",
+}
 jiakui_feng = sgs.General(extension, "jiakui_feng", "wei", 3)
 zhongzuo = sgs.CreateTriggerSkill{  
     name = "zhongzuo",  
