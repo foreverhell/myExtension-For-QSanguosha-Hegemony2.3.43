@@ -7347,6 +7347,114 @@ sgs.LoadTranslationTable{
     ["zuilun4_discard"] = "弃置手牌至1张",
     ["zuilun4_losehp"] = "失去体力至1点"
 }
+--[[
+zhoutai = sgs.General(extension, "zhoutai", "wu", 4) 
+buquSuit = sgs.CreateTriggerSkill{  
+    name = "buquSuit",
+    events = {sgs.Dying},
+    frequency = sgs.Skill_Compulsory,          
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:hasSkill(self:objectName())) then  
+            return false  
+        end 
+        local dying = data:toDying()  
+        if dying.who == player then
+            return self:objectName()
+        end
+        return ""
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName(),data) then
+            return true
+        end
+        return false
+    end,  
+    on_effect = function(self, event, room, player, data)
+        --摸一张牌
+        player:drawCards(1,self:objectName())
+        --选择一张牌
+        local card_id = room:askForCardChosen(player,player,"he",self:objectName())
+        local card = sgs.Sanguosha:getCard(card_id)
+		local pile = player:getPile("chuang")
+        local is_unique = true
+        for _, pile_id in sgs.qlist(pile) do
+            local pile_card = sgs.Sanguosha:getCard(pile_id)
+            if pile_card:getSuit() == card:getSuit() then
+                is_unique = false
+                break
+            end
+        end
+        if is_unique then --若”创“牌堆没有这种花色，放进去
+            local card_ids = sgs.IntList()
+            card_ids:append(card_id)
+            player:addToPile("chuang", card_ids, true)
 
+            local recover = sgs.RecoverStruct()  
+            recover.who = player  
+            recover.recover = 1 - player:getHp()
+            room:recover(player, recover)  
+        else  --若”创“牌堆有这种花色，弃置
+            room:throwCard(card_id,player,player)
+        end
+        return false  
+    end,
+}  
+
+fenjiLose = sgs.CreateTriggerSkill{  
+    name = "fenjiLose",  
+    events = {sgs.CardsMoveOneTime},  
+    frequency = sgs.Skill_Frequent,  
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) and not player:hasFlag("fenji_used") then
+			local current = room:getCurrent()
+			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+					if reasonx ~= sgs.CardMoveReason_S_REASON_USE and reasonx ~= sgs.CardMoveReason_S_REASON_RESPONSE then
+                        if move.from and move.from:isAlive() and (move.from_places:contains(sgs.Player_PlaceHand) or move.from_places:contains(sgs.Player_PlaceEquip)) then
+                            return self:objectName()
+                        end
+					end
+				end
+			end
+		end     
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data)            
+        if player:askForSkillInvoke(self:objectName(), data) then
+            room:setPlayerFlag(player,"fenji_used")
+            room:loseHp(player,1)
+            return true
+        end
+        return false
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local move_datas = data:toList()
+        local card_ids = sgs.IntList()
+        for _, move_data in sgs.qlist(move_datas) do
+            local move = move_data:toMoveOneTime()
+            local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+            if reasonx ~= sgs.CardMoveReason_S_REASON_USE and reasonx ~= sgs.CardMoveReason_S_REASON_RESPONSE then
+                if move.from and move.from:isAlive() and (move.from_places:contains(sgs.Player_PlaceHand) or move.from_places:contains(sgs.Player_PlaceEquip)) then
+                    move.from:drawCards(2,self:objectName())
+                end
+            end
+        end
+        return false  
+    end  
+}  
+zhoutai:addSkill(buquSuit)
+zhoutai:addSkill(fenjiLose)
+sgs.LoadTranslationTable{
+    ["buquSuit"] = "不屈",
+    [":buquSuit"] = "锁定技。你进入濒死状态时，你摸一张牌，并将一张牌置入“创”，若“创”的花色均不相同，你恢复体力至1点",
+    ["fenjiLose"] = "奋激",
+    [":fenjiLose"] = "每回合限一次。一名角色不因使用或打出失去牌时，你可以失去1点体力，令其摸2张牌"
+}
+]]
 sgs.Sanguosha:addSkills(skills)
 return {extension}
