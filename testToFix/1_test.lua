@@ -53,6 +53,9 @@ jietaishici:addCompanion("sunce")
 jiesunjian = sgs.General(testToFix, "sunjian", "wu", 5, true, false, true)
 jiesunjian:addCompanion("zumao")
 jiesunjian:addCompanion("wuguotai")
+jiezhoutai = sgs.General(testToFix, "zhoutai", "wu", 4, true, false, true)
+jiezhoutai:addCompanion("sunquan")
+jiezhoutai:addCompanion("jiangqin")
 
 --群势力
 jienanhualaoxian = sgs.General(testToFix, "nanhualaoxian", "qun", 3, true, false, true)
@@ -62,12 +65,6 @@ jieyanliangwenchou = sgs.General(testToFix, "yanliangwenchou", "qun", 4, true, f
 jieyanliangwenchou:addCompanion("yuanshao")
 jiezuoci = sgs.General(testToFix, "zuoci", "qun", 3)
 jiezuoci:addCompanion("yuji")
-
---双势力
---[[jiepengyang = sgs.General(testToFix, "pengyang", "shu", 3, true, false, true)
-jiepengyang:setSubordinateKingdom("qun")
-jiehuangquan = sgs.General(testToFix, "huangquan", "shu", 3, true, false, true)
-jiehuangquan:setSubordinateKingdom("wei")]]
 
 local skills = sgs.SkillList()
 
@@ -779,6 +776,9 @@ jiezhiren = sgs.CreateTriggerSkill{
 			if response.m_isUse then
 				card_use = response.m_card
 			end
+		end
+		if not card_use then
+			return false
 		end
 		local card_name = card_use:getName()
 		local x = #card_name
@@ -2136,7 +2136,7 @@ sgs.LoadTranslationTable{
 
 jieyizhi = sgs.CreateTriggerSkill{
 	name = "jieyizhi",
-	events = {sgs.EventLoseSkill, sgs.GeneralShown, sgs.GeneralHidden, sgs.DFDebut, sgs.TurnStart},
+	events = {sgs.EventLoseSkill, sgs.GeneralShown, sgs.GeneralHidden, sgs.DFDebut},
 	frequency = sgs.Skill_Compulsory,
 	relate_to_place = "deputy",
 	can_trigger = function(self, event, room, player, data)
@@ -2207,22 +2207,6 @@ sgs.LoadTranslationTable{
 
 jiezuoci:addSkill("huashen")
 jiezuoci:addSkill("xinsheng")
-
---[[
-
--- 加载翻译表
-sgs.LoadTranslationTable{
-    ["jiepengyang"] = "彭羕",
-    ["jiedaming"] = "达命",
-	[":jiedaming"] = "与你势力相同的角色的出牌阶段开始时，你可以弃置一张锦囊牌，横置一名角色副将的武将牌，然后你摸X张牌（X为有处于" ..
-	"“连环状态”的角色的势力数），若如此做，你选择一项：1.令当前回合角色回复1点体力；2.令当前回合角色视为对你选择的另一名角色" ..
-	"使用一张不计入次数的雷【杀】。",
-	["jiexiaoni"] = "嚣逆",
-	[":jiexiaoni"] = "锁定技，当你使用牌指定目标后，或成为其他角色使用牌的目标后，若场上有与你势力相同的角色且你的手牌数是" ..
-	"所属势力最多的，目标角色不能响应此牌。",
-	["jiedaming_recover"] = "回复体力",
-	["jiedaming_slash"] = "对另一名角色使用雷【杀】",
-}]]
 
 jieqizhi = sgs.CreateTriggerSkill{
 	name = "jieqizhi",
@@ -2421,7 +2405,7 @@ jieshushen = sgs.CreateTriggerSkill{
 
     on_cost = function(self, event, room, player, data)
 		local targets = room:getOtherPlayers(player)
-		local target = room:askForPlayerChosen(player, targets, "shushen", "shushen-invoke", true, true)
+		local target = room:askForPlayerChosen(player, targets, self:objectName(), "shushen-invoke", true, true)
 		if target then
 			local d = sgs.QVariant()
 			d:setValue(target)
@@ -2436,12 +2420,12 @@ jieshushen = sgs.CreateTriggerSkill{
 		player:removeTag("jieshushenTarget")
 		if target then
 			room:broadcastSkillInvoke("shushen", player)
-			player:drawCards(1, self:objectName())
+			--player:drawCards(1, self:objectName())
+			local num = 1
 			if target:isKongcheng() then
-				target:drawCards(2, self:objectName())
-			else
-				target:drawCards(1, self:objectName())
+				num = 2
 			end
+			target:drawCards(num, self:objectName())
 		end
         return false
     end
@@ -2453,7 +2437,139 @@ jieganfuren:addSkill("shenzhi")
 sgs.LoadTranslationTable{
     ["jieganfuren"] = "甘夫人",
     ["jieshushen"] = "淑慎",
-	[":jieshushen"] = "当你回复1点体力或一次性失去至少两张牌后，你可以选择一名其他角色，令你与其各摸一张牌，若其没有手牌，其改为摸两张牌",
+	[":jieshushen"] = "当你回复1点体力或一次性失去至少两张牌后，你可以选择一名其他角色，令其摸一张牌，若其没有手牌，改为摸两张牌。",
+}
+
+jiebuqu = sgs.CreateTriggerSkill{
+    name = "jiebuqu",
+    events = {sgs.Dying},
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)
+        if not skillTriggerable(player, self:objectName()) then
+            return false
+        end
+        local dying = data:toDying()
+        if dying.who == player then
+            return self:objectName()
+        end
+        return false
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        if not player:hasShownSkill(self:objectName()) then
+            if player:askForSkillInvoke(self:objectName(), data) then
+                room:broadcastSkillInvoke(self:objectName(), player)
+                return true
+            else
+                return false
+            end
+        end
+		room:broadcastSkillInvoke(self:objectName(), player)
+        return true
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        --摸一张牌
+        room:drawCards(player, 1)
+        --选择一张牌
+        --local card_id = room:askForCardChosen(player,player, "he", self:objectName())
+		local card_idex = room:askForExchange(player, self:objectName(), 1, 1)
+		local card_id = card_idex:at(0)
+        local card = sgs.Sanguosha:getCard(card_id)
+		local pile = player:getPile("scars")
+        local is_unique = true
+        for _, pile_id in sgs.qlist(pile) do
+            local pile_card = sgs.Sanguosha:getCard(pile_id)
+            if pile_card:getSuit() == card:getSuit() then
+                is_unique = false
+                break
+            end
+        end
+        if is_unique then --若”创“牌堆没有这种花色，放进去
+            local card_ids = sgs.IntList()
+            card_ids:append(card_id)
+            player:addToPile("scars", card_ids, true)
+
+            local recover = sgs.RecoverStruct()
+            recover.who = player
+            recover.recover = 1 - player:getHp()
+            room:recover(player, recover)
+        else  --若”创“牌堆有这种花色，弃置
+            room:throwCard(card_id,player, player)
+        end
+        return false
+    end,
+}
+
+jiefenji = sgs.CreateTriggerSkill{
+    name = "jiefenji",
+    events = {sgs.CardsMoveOneTime},
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) and not player:hasFlag("fenji_used") then
+			local current = room:getCurrent()
+			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+				local move_datas = data:toList()
+				for _, move_data in sgs.qlist(move_datas) do
+					local move = move_data:toMoveOneTime()
+					local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+					if reasonx ~= sgs.CardMoveReason_S_REASON_USE and reasonx ~= sgs.CardMoveReason_S_REASON_RESPONSE then
+                        if move.from and move.from:isAlive() and (move.from_places:contains(sgs.Player_PlaceHand) or move.from_places:contains(sgs.Player_PlaceEquip)) then
+                            return self:objectName()
+                        end
+					end
+				end
+			end
+		end
+        return false
+    end,
+
+    on_cost = function(self, event, room, player, data)
+		local move_datas = data:toList()
+		local choices = {"yes", "no"}
+        for _, move_data in sgs.qlist(move_datas) do
+            local move = move_data:toMoveOneTime()
+			if move and move.from then
+				local move_from = getServerPlayer(room, move.from:objectName())
+				local d = sgs.QVariant()
+				d:setValue(move_from)
+				local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"), d, "@jiefenji-draw::".. 
+				move_from:objectName(), "yes+no")
+				if choice == "yes" then
+					room:setPlayerFlag(player,"fenji_used")
+					room:loseHp(player, 1)
+					return true
+				end
+			end
+		end
+        return false
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        local move_datas = data:toList()
+        for _, move_data in sgs.qlist(move_datas) do
+            local move = move_data:toMoveOneTime()
+            local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+            if reasonx ~= sgs.CardMoveReason_S_REASON_USE and reasonx ~= sgs.CardMoveReason_S_REASON_RESPONSE then
+                if move.from and move.from:isAlive() and (move.from_places:contains(sgs.Player_PlaceHand) or move.from_places:contains(sgs.Player_PlaceEquip)) then
+                    local move_from = getServerPlayer(room, move.from:objectName())
+					room:drawCards(move_from, 2)
+                end
+            end
+        end
+        return false
+    end
+}
+
+jiezhoutai:addSkill(jiefenji)
+jiezhoutai:addSkill(jiebuqu)
+
+sgs.LoadTranslationTable{
+	["jiezhoutai"] = "周泰",
+    ["jiebuqu"] = "不屈",
+    [":jiebuqu"] = "锁定技，你进入濒死状态时，你摸一张牌，并将一张牌置入“创”，若“创”的花色均不相同，你回复体力至1点。",
+    ["jiefenji"] = "奋激",
+    [":jiefenji"] = "每回合限一次，一名角色不因使用或打出失去牌时，你可以失去1点体力，令其摸两张牌。",
+	["@jiefenji-draw"] = "奋激：是否失去1点体力令%dest摸两张牌",
 }
 
 sgs.Sanguosha:addSkills(skills)

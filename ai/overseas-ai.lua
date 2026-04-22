@@ -948,8 +948,8 @@ sgs.ai_skill_invoke.danlao = function(self, data)
 end
 
 sgs.ai_skill_invoke.jilei = function(self, data)
-	local damage = data:toDamage()
-	if damage.from and (self:isFriend(damage.from) or self.player:willBeFriendWith(damage.from)) then
+	local player = data:toPlayer()
+	if player and (self:isFriend(player) or self.player:willBeFriendWith(player)) then
 		return false
 	end
 	return true
@@ -1380,6 +1380,8 @@ sgs.ai_skill_playerchosen["naman_target"] = function(self, targets)
     local targetlist = sgs.QList2Table(targets)
 	local result = {}
 
+	local xuyou = self.room:findPlayerBySkillName("chenglve")
+
     if card:isKindOf("ArcheryAttack") or card:isKindOf("SavageAssault") or card:isKindOf("BurningCamps") or card:isKindOf("Drowning") then
         self:sort(tos, "hp")
         for _, p in ipairs(tos) do
@@ -1437,14 +1439,30 @@ sgs.ai_skill_playerchosen["naman_target"] = function(self, targets)
                 return result
             end
         end
+		if xuyou and from:isFriendWith(xuyou) and not self:isFriend(xuyou) and #tos == 2 then
+			for _, p in ipairs(tos) do
+				if self:trickIsEffective(card, p, from) then
+					table.insert(result, p)
+					return result
+				end
+			end
+		end
         self:sort(targetlist, "defenseSlash")
         for _, p in ipairs(targetlist) do
             if not table.contains(tos, p) and not self:isFriend(p) and self:trickIsEffective(card, p, from) and not p:isChained() then
-                table.insert(result, p)
+				table.insert(result, p)
                 return result
             end
         end
     elseif card:isKindOf("FightTogether") then
+		if xuyou and from:isFriendWith(xuyou) and not self:isFriend(xuyou) and #tos == 2 then
+			for _, p in ipairs(tos) do
+				if self:trickIsEffective(card, p, from) then
+					table.insert(result, p)
+					return result
+				end
+			end
+		end
         self:sort(tos, "defenseSlash")
         for _, p in ipairs(tos) do
             if self.player:isFriendWith(p) and self:trickIsEffective(card, p, from) and not p:isChained() then
@@ -1691,6 +1709,9 @@ sgs.ai_skill_invoke.zhuidu = function(self, data)
 	if target:hasShownSkill("tianxiang") and target:getHandcardNum() > 1 then
 		return false
 	end
+	if target:hasArmorEffect("BreastPlate") and target:getHp() <= 2 then
+		return false
+	end
     return not self:isFriend(target)
 end
 
@@ -1713,6 +1734,9 @@ sgs.ai_skill_choice.zhuidu_choice = function(self, choices, data)
     if target:hasShownSkill("gongqing") and from:getAttackRange() < 3 then
         return "damage"
     end
+	if target:hasArmorEffect("BreastPlate") and target:getHp() <= 2 then
+		return "damage"
+	end
     --暂时不详细考虑-1伤害
     return "throw"
 end

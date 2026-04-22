@@ -56,7 +56,7 @@ jinxiuzhengpao_skill = sgs.CreateTriggerSkill{
         if event == sgs.TargetConfirmed and player:hasArmorEffect("jinxiuzhengpao") then
             local use = data:toCardUse()
             local armor = player:getArmor()
-            if armor and armor:isKindOf("jinxiuzhengpao") and use.card and use.card:getSuit() <= sgs.Card_Heart and
+            if armor and armor:isKindOf("jinxiuzhengpao") and use.card and use.card:getSuit() <= sgs.Card_Diamond and
             use.to:contains(player) and use.from:objectName() ~= player:objectName() then
                 --检查是否是伤害牌
                 if not isDamageCard(use.card) then return false end
@@ -424,12 +424,6 @@ luayanxi = sgs.CreateTriggerSkill{
                     room:setPlayerMark(player, "luayanxiHas", 1)
                 end
             end
-        elseif event == sgs.EventLoseSkill and data:toString():split(":")[1] == self:objectName() and player then
-			for _, p in sgs.qlist(room:getAlivePlayers()) do
-                if p:getMark("luayanxiHas") > 0 then
-                    room:setPlayerMark(player, "luayanxiHas", 0)
-                end
-            end
         end
     end,
 
@@ -687,8 +681,11 @@ luaxtfcz = sgs.CreateTriggerSkill{
                     end
                 end
                 for _, p in sgs.qlist(room:getAlivePlayers()) do
-                    if p:getMark("luaxtfcz_gotCompanion") > 0 then
+                    if p:getMark("luaxtfcz_gotCompanion") > 0 and player:isFriendWith(p) then
                         room:addPlayerMark(p, "@companion", 1)
+                    end
+                    if p:getMark("luayanxiHas") > 0 then
+                        room:setPlayerMark(player, "luayanxiHas", 0)
                     end
                 end
             end
@@ -1123,20 +1120,14 @@ luajpzzg = sgs.CreateTriggerSkill{
                 return false --若没有暗将且魏势力角色数不足两人，则无大旗效果，无需再往下执行
             end
               
-            if event == sgs.Death then
+            if event == sgs.Death and player:getPhase() < sgs.Player_NotActive then
                 local death = data:toDeath()
                 if death.who:getGeneralName() == "lord_caopi" or death.who:getGeneralName() == "lord_caopi$" or
                 (not hasAnjiang and player:getPlayerNumWithSameKingdom("AI", "wei", 1) <= 1) then
                     for _, p in sgs.qlist(room:getAlivePlayers()) do
-                        if p:getMark("##luajpzzg_peach") > 0 then
-                            room:setPlayerMark(p, "##luajpzzg_peach", 0)
-                        end
-                        if p:getMark("##luajpzzg_killer") > 0 then
-                            room:setPlayerMark(p, "##luajpzzg_killer", 0)
-                        end
-                        if p:getMark("##luajpzzg_handcards") > 0 then
-                            room:setPlayerMark(p, "##luajpzzg_handcards", 0)
-                        end
+                        room:setPlayerMark(p, "##luajpzzg_peach", 0)
+                        room:setPlayerMark(p, "##luajpzzg_killer", 0)
+                        room:setPlayerMark(p, "##luajpzzg_handcards", 0)
                     end
                     return false
                 end
@@ -1163,8 +1154,7 @@ luajpzzg = sgs.CreateTriggerSkill{
                     end
                     table.sort(weiMax, function(a, b) return a > b end)
                     table.sort(allMax, function(a, b) return a > b end)
-                    if weiMax[1] == weiMax[2] or player:getPlayerNumWithSameKingdom("AI", "wei", 1) <= 1 or 
-                    skill_owners1 == nil then return false end
+                    if #weiMax < 2 or weiMax[1] == weiMax[2] or skill_owners1 == nil then return false end
                     for _, p in sgs.qlist(room:getAlivePlayers()) do
                         if p:getSeemingKingdom() == "wei" and p:getMark("luajpzzg_killCount") == weiMax[1] then
                             if weiMax[1] >= allMax[1] then
@@ -1198,7 +1188,6 @@ luajpzzg = sgs.CreateTriggerSkill{
                 end
 
                 if player:hasSkill("luachenyin") and player:getPhase() == sgs.Player_Play then
-                    local move_datas = data:toList()
                     for _, move_data in sgs.qlist(move_datas) do
                         local move = move_data:toMoveOneTime()
                         if move.to_place == sgs.Player_DiscardPile then
