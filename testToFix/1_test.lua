@@ -2249,6 +2249,7 @@ jieqizhi = sgs.CreateTriggerSkill{
 
 	on_effect = function(self, event, room, player, data)
 		local target = player:getTag("jieqizhi_target"):toPlayer()
+		player:removeTag("jieqizhi_target")
 		if target and player:canDiscard(target, "he") then
 			local card_id = room:askForCardChosen(player, target, "he", self:objectName(), false, sgs.Card_MethodDiscard)
 			room:throwCard(card_id, target, player)
@@ -2458,13 +2459,13 @@ jiebuqu = sgs.CreateTriggerSkill{
     on_cost = function(self, event, room, player, data)
         if not player:hasShownSkill(self:objectName()) then
             if player:askForSkillInvoke(self:objectName(), data) then
-                room:broadcastSkillInvoke(self:objectName(), player)
+                room:broadcastSkillInvoke("buqu", player)
                 return true
             else
                 return false
             end
         end
-		room:broadcastSkillInvoke(self:objectName(), player)
+		room:broadcastSkillInvoke("buqu", player)
         return true
     end,
 
@@ -2535,8 +2536,10 @@ jiefenji = sgs.CreateTriggerSkill{
 				local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"), d, "@jiefenji-draw::".. 
 				move_from:objectName(), "yes+no")
 				if choice == "yes" then
+					room:broadcastSkillInvoke("fenji", player)
 					room:setPlayerFlag(player,"fenji_used")
 					room:loseHp(player, 1)
+					player:setTag("@jiefenji_target", d)
 					return true
 				end
 			end
@@ -2545,17 +2548,9 @@ jiefenji = sgs.CreateTriggerSkill{
     end,
 
     on_effect = function(self, event, room, player, data)
-        local move_datas = data:toList()
-        for _, move_data in sgs.qlist(move_datas) do
-            local move = move_data:toMoveOneTime()
-            local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
-            if reasonx ~= sgs.CardMoveReason_S_REASON_USE and reasonx ~= sgs.CardMoveReason_S_REASON_RESPONSE then
-                if move.from and move.from:isAlive() and (move.from_places:contains(sgs.Player_PlaceHand) or move.from_places:contains(sgs.Player_PlaceEquip)) then
-                    local move_from = getServerPlayer(room, move.from:objectName())
-					room:drawCards(move_from, 2)
-                end
-            end
-        end
+		local target = player:getTag("@jiefenji_target"):toPlayer()
+		player:removeTag("@jiefenji_target")
+		room:drawCards(target, 2)
         return false
     end
 }
