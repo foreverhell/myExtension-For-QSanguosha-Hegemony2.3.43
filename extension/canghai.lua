@@ -2320,7 +2320,7 @@ JianXiang = sgs.CreateTriggerSkill{
           
         for _, p in sgs.qlist(all_players) do  
             if p:getHandcardNum() < min_handcards then  
-                min_handcards = handcard_num  
+                min_handcards = p:getHandcardNum()  
             end  
         end  
           
