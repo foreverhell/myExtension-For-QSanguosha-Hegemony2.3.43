@@ -3752,7 +3752,11 @@ jueyanArea = sgs.CreateTriggerSkill{
                 room:handleAcquireDetachSkills(player, "-jizhi")
             end
         end
-        if not player:getEquips():isEmpty() and room:askForChoice(player,"是否移除装备区所有牌，并摸3张牌","yes+no")=="yes" then
+        if not player:isKongcheng() and room:askForChoice(player,"是否移除手牌区所有牌，令本回合出杀次数+3","yes+no")=="yes" then
+            player:throwAllHandCards()
+            room:setPlayerFlag(player,"jueyan_hand")
+        end
+        if not player:getEquips():isEmpty() and room:askForChoice(player,"是否移除装备区所有牌，并摸3张牌，令本回合手牌上限+3","yes+no")=="yes" then
             player:throwAllEquips()
             player:drawCards(3,self:objectName())
             room:setPlayerFlag(player,"jueyan_equip")
@@ -3768,8 +3772,19 @@ jueyanArea_maxcards = sgs.CreateMaxCardsSkill{
         return 0
     end  
 }
+jueyanAreaExtraSlashMod = sgs.CreateTargetModSkill{  
+    name = "#jueyanArea_mod",  
+    pattern = "Slash",  
+    residue_func = function(self, player, card)  
+        if player:hasFlag("jueyan_hand") then
+            return 3
+        end
+        return 0
+    end  
+}
 mylukang:addSkill(jueyanArea)
 mylukang:addSkill(jueyanArea_maxcards)
+mylukang:addSkill(jueyanAreaExtraSlashMod)
 mylukang:addSkill("keshou")
 sgs.LoadTranslationTable{
     ["mychengong"] = "陈宫",
@@ -3784,7 +3799,7 @@ sgs.LoadTranslationTable{
     [":jingcePhase"] = "回合结束时，若本回合进入弃牌堆的牌数不小于X，你执行一个额外的摸牌阶段；若本回合你使用的牌数不小于X，你执行一个额外的出牌阶段。X为你的体力值",
     ["mylukang"] = "陆抗",
     ["jueyanArea"] = "决堰",
-    [":jueyanArea"] = "主将技，-1阴阳鱼。准备阶段，若你判定区有牌，你可以弃置判定区所有牌，本回合获得集智；若你装备区有牌，你可以弃置装备区所有牌，摸3张牌，令本回合手牌上限+3",
+    [":jueyanArea"] = "主将技，-1阴阳鱼。准备阶段，若你判定区有牌，你可以弃置判定区所有牌，本回合获得集智；若你手牌区有牌，你可以弃置手牌区所有牌，令本回合出杀次数+3；若你装备区有牌，你可以弃置装备区所有牌，摸3张牌，令本回合手牌上限+3",
     ["xiaoguoActive"] = "骁果",
     [":xiaoguoActive"] = "其他角色的结束阶段，你可以弃置任意数量的基本牌，然后你弃置该角色装备区X张牌（X为你弃置的基本牌数量），若该角色装备区牌数小于你弃置的基本牌数，你摸1张牌，并对其造成1点伤害",
     ["myzhujun"] = "朱儁",
