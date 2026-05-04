@@ -304,7 +304,7 @@ sgs.ai_skill_playerchosen.jieyinbing = function(self, targets)
     for _, p in sgs.qlist(targets) do
         if self.player:isFriendWith(p) then
             if p:hasSkills("diancai|jieyicheng|haoshi|zhukou|jutian|jieyin|guose") then
-                if not p:hasSkills("buqu|tianxiang") then
+                if not p:hasSkills("jiebuqu|tianxiang") then
                     return p
                 end
             end
@@ -428,7 +428,7 @@ end
 sgs.ai_skill_use_func["#jiexiechanCard"] = function(card, use, self)
     for _, enemy in pairs(self.enemies) do
         if enemy:getHandcardNum() <= 3 and not enemy:isKongcheng() and not enemy:isRemoved() and not (enemy:hasShownSkill("gongqing") 
-        and self:getAttackRange() < 3) and not enemy:hasArmorEffect("SilverLion") and not enemy:hasShownSkill("buqu") then
+        and self:getAttackRange() < 3) and not enemy:hasArmorEffect("SilverLion") and not enemy:hasShownSkill("jiebuqu") then
             if (enemy:hasShownSkill("wusheng") and enemy:getHandcardNum() > 1) or (enemy:hasShownSkill("wushuang") and 
             self:getCardsNum("Slash") < 2) then
                 continue
@@ -1424,7 +1424,7 @@ sgs.ai_skill_invoke.luachengxu = function(self, data)
                 end
             end
             if canliuli then return false end
-            if target:hasShownSkill("buqu") and target:getPile("scars"):length() <= 4 then 
+            if target:hasShownSkill("jiejiebuqu") and target:getPile("scars"):length() <= 4 then 
                 if self.player:hasSkill("mingshi") and not target:hasShownAllGenerals() then
                     return true
                 end
@@ -2517,7 +2517,7 @@ sgs.ai_skill_invoke.luazhuanxing = function(self, data)
                     return true
                 end
             end
-        elseif current:hasShownSkill("buqu") and current:getPile("scars"):length() < 4 then
+        elseif current:hasShownSkill("jiebuqu") and current:getPile("scars"):length() < 4 then
             for _, slash in sgs.qlist(slashCards) do
                 if current:hasShownSkill("jiang") then
                     if slash:isRed() and not self:slashIsEffective(slash, current) then
@@ -2732,7 +2732,10 @@ sgs.ai_skill_invoke.luazifeng = function(self, data)
     if self.player:getActualGeneral1Name() ~= "lualiuyan" and self.player:getActualGeneral2Name() ~= "lualiuyan" then
         return false
     end
-    if current:getNextAlive():objectName() == self.player:objectName() and self.player:faceUp() then return false end
+    if current:getNextAlive():objectName() == self.player:objectName() and self.player:faceUp() and
+    self:willSkipPlayPhase() then 
+        return false
+    end
     return true
 end
 
@@ -3272,7 +3275,7 @@ sgs.ai_skill_invoke.luaxiantu = function(self, data)
     if fazheng and self.player:isFriendWith(fazheng) then hasfazheng = true end
     for _, p in sgs.qlist(room:getOtherPlayers(self.player)) do
         if p:isAlive() and not self.player:isFriendWith(p) and p:getHp() < 3 and current:inMyAttackRange(p) and not (
-        p:hasShownSkill("buqu")) then
+        p:hasShownSkill("jiebuqu")) then
             hasmin = true
         end
     end
@@ -3497,33 +3500,25 @@ sgs.ai_skill_playerchosen.jieqianxun = function(self, targets, max_num, min_num)
 end
 
 --步骘
-sgs.ai_skill_invoke.luahongde = function(self, data)
+sgs.ai_skill_playerchosen.luahongde = function(self, targets)
     local room = self.player:getRoom()
     local targets = room:getOtherPlayers(self.player)
     room:sortByActionOrder(targets)
     local yuanshu = sgs.findPlayerByShownSkillName("weidi")
 	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not yuanshu:hasUsed("WeidiCard") then
-		return false
+		return {}
 	end
     for _, p in sgs.qlist(targets) do
         if p:isAlive() and self.player:isFriendWith(p) and not self:needKongcheng(p) then
-            self.luahongdeTarget = p
-            return true
+            return p
         end
     end
     for _, p in sgs.qlist(targets) do
         if p:isAlive() and self:isFriend(p) and not self:needKongcheng(p) then
-            self.luahongdeTarget = p
-            return true
+            return p
         end
     end
-    return false
-end
-sgs.ai_skill_playerchosen.luahongde = function(self, targets)
-    if self.luahongdeTarget then
-        return self.luahongdeTarget
-    end
-    return ""
+    return {}
 end
 
 local luadingpan_skill = {}
@@ -3582,13 +3577,13 @@ end
 --周泰
 sgs.ai_skill_choice.jiefenji = function(self, choices, data)
     local target = data:toPlayer()
-    if self.player:isFriendWith(target) then
+    if self.player:isFriendWith(target) and len < 3 then
         local len = self.player:getPile("scars"):length()
         if target:getWeapon() and target:getWeapon():objectName() == "Crossbow" then
             return "yes"
-        elseif target:hasShownSkills("tianxiang|liuli|xiaoji|kurou") and len <= 3 then
+        elseif target:hasShownSkills("tianxiang|liuli|xiaoji|kurou|tianyi") then
             return "yes"
-        elseif self:isWeak(target) and len <= 3 then
+        elseif self:isWeak(target) then
             return "yes"
         end
     end
@@ -3596,11 +3591,11 @@ sgs.ai_skill_choice.jiefenji = function(self, choices, data)
 end
 
 sgs.ai_skill_invoke.jiebuqu = sgs.ai_skill_invoke.buqu
-sgs.ai_skill_cardchosen.jiebuqu = function(self, who, flags, method, disable_list)
+sgs.ai_skill_cardchosen.jiejiebuqu = function(self, who, flags, method, disable_list)
     local card_ids = self.player:getPile("scars")
     local hecards = self.player:getCards("he")
     local suitTable = {spade = false, club = false, diamond = false, heart = false}
-    local buqucard = {}
+    local jiebuqucard = {}
     if not card_ids:isEmpty() then
         for _, cid in sgs.qlist(card_ids) do
             local card = sgs.Sanguosha:getCard(cid)
@@ -3612,14 +3607,14 @@ sgs.ai_skill_cardchosen.jiebuqu = function(self, who, flags, method, disable_lis
     for _, c in sgs.qlist(hecards) do
         local suit = c:getSuitString()
         if not suitTable[suit] then
-            table.insert(buqucard, c:getId())
+            table.insert(jiebuqucard, c:getId())
             break
         end
     end
 
-    if #buqucard <= 0 then
+    if #jiebuqucard <= 0 then
         local c = hecards:at(0)
-        table.insert(buqucard, c:getId())
+        table.insert(jiebuqucard, c:getId())
     end
-    return buqucard
+    return jiebuqucard
 end
