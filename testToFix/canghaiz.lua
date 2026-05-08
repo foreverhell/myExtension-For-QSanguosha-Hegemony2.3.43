@@ -1835,18 +1835,20 @@ luatuifengEffect = sgs.CreateTriggerSkill{
                 local use = data:toCardUse()
                 if use.card and use.card:isKindOf("Slash") and player:hasFlag("luatuifengUseSlash") and not 
                 player:hasFlag("luatuifengNoSlash") then
-                    room:setPlayerFlag(player, "-luatuifengUseSlash")
                     use.card:setFlags("luatuifengSlash")
                 end
             elseif event == sgs.CardFinished then
                 local use = data:toCardUse()
                 if use.card and use.card:isKindOf("Slash") and player:hasFlag("luatuifengUseSlash") then
                     room:setPlayerFlag(player, "-luatuifengUseSlash")
+                    if player:hasFlag("luatuifengDamaged") then
+                        room:askForQiaobian(player, room:getAlivePlayers(), self:objectName(), "@luatuifeng-move", true, true)
+                    end
                 end
             elseif event == sgs.Damage then
                 local damage = data:toDamage()
                 if damage.card and damage.card:isKindOf("Slash") and damage.card:hasFlag("luatuifengSlash") then
-                    room:askForQiaobian(player, room:getAlivePlayers(), self:objectName(), "@luatuifeng-move", true, true)
+                    room:setPlayerFlag(player, "luatuifengDamaged")
                 end
             end
         end
@@ -2469,7 +2471,7 @@ luazifeng = sgs.CreateTriggerSkill{
                 ask_who:obtainCard(JudgeAreaCard)
                 return true
             end
-        else
+        elseif ask_who:askForSkillInvoke(self:objectName(), data) then
             local card = nil
             if event == sgs.CardUsed then
                 local use = data:toCardUse()
@@ -2823,7 +2825,7 @@ luahuomoVS = sgs.CreateOneCardViewAsSkill{
 
 luahuomo = sgs.CreateTriggerSkill{
     name = "luahuomo",
-    events = {sgs.CardUsed, sgs.BeforeCardsMove, sgs.EventPhaseChanging},
+    events = {sgs.CardUsed, sgs.BeforeCardsMove, sgs.EventPhaseChanging, sgs.CardResponded},
     view_as_skill = luahuomoVS,
     frequency = sgs.Compulsory,
     on_record = function(self, event, room, player, data)
@@ -2840,20 +2842,32 @@ luahuomo = sgs.CreateTriggerSkill{
     end,
     
     can_trigger = function(self, event, room, player, data)  
-        if skillTriggerable(player, self:objectName()) and event == sgs.CardUsed then
-            local use = data:toCardUse()
-            if use.card and use.card:getSkillName() == self:objectName() then
-                local subcard_id = use.card:getSubcards():first()
-                local subcard = sgs.Sanguosha:getCard(subcard_id)
-                room:showCard(player, subcard_id)
-                room:moveCardTo(sgs.Sanguosha:getCard(subcard_id), nil, sgs.Player_DrawPile, true)
-                local msg = sgs.LogMessage()--显示置入牌堆顶提示
-                msg.type = "#luahuomoMove"
-                msg.from = player
-                msg.arg = subcard:getLogName()
-                msg.arg2 = self:objectName()
-                room:sendLog(msg)
+        if skillTriggerable(player, self:objectName()) and (event == sgs.CardUsed or event == sgs.CardResponded) then
+            local subcard_id, subcard
+            if event == sgs.CardUsed then
+                local use = data:toCardUse()
+                if use.card and use.card:getSkillName() == self:objectName() then
+                    subcard_id = use.card:getSubcards():first()
+                    subcard = sgs.Sanguosha:getCard(subcard_id)
+                end
+            elseif event == sgs.CardResponded then
+                local res = data:toCardResponse()
+                if res.card and res.card:getSkillName() == self:objectName() then
+                    subcard_id = res.card:getSubcards():first()
+                    subcard = sgs.Sanguosha:getCard(subcard_id)
+                end
             end
+            if not (subcard and subcard) then
+                return false
+            end
+            room:showCard(player, subcard_id)
+            room:moveCardTo(sgs.Sanguosha:getCard(subcard_id), nil, sgs.Player_DrawPile, true)
+            local msg = sgs.LogMessage()--显示置入牌堆顶提示
+            msg.type = "#luahuomoMove"
+            msg.from = player
+            msg.arg = subcard:getLogName()
+            msg.arg2 = self:objectName()
+            room:sendLog(msg)
         elseif event == sgs.BeforeCardsMove then
             if not skillTriggerable(player, self:objectName()) or player:hasFlag("luahuomo_lose") then  
                 return false  
@@ -3074,7 +3088,7 @@ luaxiantu = sgs.CreateTriggerSkill{
             if hecards:length() > 2 then
                 toGive = room:askForExchange(skill_owner, self:objectName(), 2, 2)
             end
-            if toGive:isEmpty() then --包括超时未选择和不足3张牌的情况
+            if toGive:isEmpty() or toGive:length() < 2 then --包括超时未选择和不足两张牌的情况
                 for _, c in sgs.qlist(hecards) do
                     toGive:append(c:getId())
                     if toGive:length() == 2 then break end
@@ -3172,14 +3186,19 @@ luaqinguo = sgs.CreateTriggerSkill{
             card = data:toCardUse().card
         end
 
-        if card and card:isKindOf("EquipCard") then  
+        if card and card:isKindOf("EquipCard") then
             local subtype = card:getSubtype()
-            local flag = "luaqinguo" .. subtype
+            local flag
+            if (subtype == "defensive_horse" or subtype == "offensive_horse") then
+                flag = "luaqinguohorse"
+            else
+                flag = "luaqinguo" .. subtype
+            end
             if not player:hasFlag(flag) then
-                if ((player:hasFlag("luaqinguodefensive_horse") or player:hasFlag("luaqinguooffensive_horse")) and subtype == "horse")
+                --[[if ((player:hasFlag("luaqinguodefensive_horse") or player:hasFlag("luaqinguooffensive_horse")) and subtype == "horse")
                 or (player:hasFlag("luaqinguohorse") and (subtype == "defensive_horse" or subtype == "offensive_horse")) then
                     return false
-                end
+                end]]
                 return self:objectName()
             end
         end  
@@ -3284,8 +3303,9 @@ luahongde = sgs.CreateTriggerSkill{
 		return false
 	end,
     on_cost = function(self, event, room, player, data)  
-        if player:askForSkillInvoke(self:objectName(), data) then
-            local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName())
+        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(), 
+        "弘德：请选择一名其他角色摸一张牌", true)
+        if target then
             local d = sgs.QVariant()
             d:setValue(target)
             player:setTag("luahongdeTarget", d)
@@ -3452,7 +3472,7 @@ jieqianxun = sgs.CreateTriggerSkill{
 				local pile = skill_owner:getPile("qianxun")
 				if pile:length() > 0 then
 					local dummy = sgs.DummyCard(pile) 
-					room:obtainCard(skill_owner, dummy)
+					room:obtainCard(skill_owner, dummy, false)
 					dummy:deleteLater()
                     -- 显示获得牌的提示
                     local msg = sgs.LogMessage()
@@ -3477,18 +3497,17 @@ jieqianxun = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data)
         local effect = data:toCardEffect() 
         local handcards = player:getHandcards()
-        if handcards:length() > 0 then
-            local card_ids = sgs.IntList()
-            for _, card in sgs.qlist(handcards) do
-                card_ids:append(card:getId())
-            end
-            player:addToPile("qianxun", card_ids, false)
-            room:broadcastSkillInvoke("qianxun", player)
-            local prompt = "谦逊：请选择至多" .. handcards:length() .. "名玩家摸一张牌"
-            local chosen_players = room:askForPlayersChosen(player, room:getAlivePlayers(), self:objectName(), 0, handcards:length(), prompt, false)
-            if chosen_players and not chosen_players:isEmpty() then
-                room:drawCards(chosen_players, 1)  
-            end
+        local card_ids = sgs.IntList()
+        for _, card in sgs.qlist(handcards) do
+            card_ids:append(card:getId())
+        end
+        local hLen = card_ids:length()
+        player:addToPile("qianxun", card_ids, false)
+        room:broadcastSkillInvoke("qianxun", player)
+        local prompt = "谦逊：请选择至多" .. hLen .. "名玩家摸一张牌"
+        local chosen_players = room:askForPlayersChosen(player, room:getAlivePlayers(), self:objectName(), 0, hLen, prompt, false)
+        if chosen_players and not chosen_players:isEmpty() then
+            room:drawCards(chosen_players, 1)
         end
         return false
     end  
