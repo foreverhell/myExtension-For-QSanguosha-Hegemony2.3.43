@@ -50,6 +50,9 @@ sgs.ai_skill_invoke.xibing =  function(self, data)
   if not target then
     return false
   end
+  if target:getHandcardNum() <= 1 and not self.player:isFriendWith(target) and target:getMark("@firstshow") <= 0 then
+    return false
+  end
   local draw_count = target:getHp() - target:getHandcardNum()
   if self:isFriend(target) and (draw_count > 1) then
     return true
@@ -622,13 +625,18 @@ end
 sgs.ai_skill_use_func.WeimengCard = function(card, use, self)
   local target
   local _, friend = self:getCardNeedPlayer(sgs.QList2Table(self.player:getCards("he")))
-  if friend and friend:getHandcardNum() > 1 and not friend:hasSkill("weimengzongheng") then
+  for _, p in ipairs(self.friends_noself) do
+    if p:hasShownSkill("jieshushen") and p:getHandcardNum() > 1 and self.player:getHp() > 1 then
+      target = p
+    end
+  end
+  if not target and friend and friend:getHandcardNum() > 1 and not friend:hasSkill("weimengzongheng") then
     target = friend
   end
   if not target then
     self:sort(self.friends_noself, "handcard", true)
     for _, f in ipairs(self.friends_noself) do
-      if f:getHandcardNum() > 2 or (self:isWeak(f) and not f:isKongcheng()) and not f:hasSkill("weimengzongheng") then
+      if (f:getHandcardNum() > 2 or (self:isWeak(f) and not f:isKongcheng())) and not f:hasSkill("weimengzongheng") then
         target = f
         break
       end
