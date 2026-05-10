@@ -7264,8 +7264,8 @@ shenji = sgs.CreateTriggerSkill{
         return false  
     end  
 }
-tianbian = sgs.CreateTriggerSkill{
-    name = "tianbian",
+zhuandui = sgs.CreateTriggerSkill{
+    name = "zhuandui",
     frequency = sgs.Skill_Frequent,
     events = {sgs.PindianVerifying},
     can_trigger = function(self, event, room, player, data)
@@ -7300,15 +7300,15 @@ tianbian = sgs.CreateTriggerSkill{
 }
 lvbu_hero:addSkill(fangtian)
 lvbu_hero:addSkill(shenji)
-lvbu_hero:addSkill(tianbian)
+lvbu_hero:addSkill(zhuandui)
 sgs.LoadTranslationTable{  
     ["lvbu_hero"] = "吕布",
     ["fangtian"] = "方天",
     [":fangtian"] = "你使用杀指定目标后，你可以与其拼点，若你赢，该目标不可闪避此杀。",
     ["shenji"] = "神戟",
     [":shenji"] = "你不因此法使用杀对角色造成伤害后，你可以视为对与其距离1以内的1名其他角色使用杀，每回合每名角色只能以此法选择一次",
-    ["tianbian"] = "天辩",
-    [":tianbian"] = "你的红桃拼点牌点数视为13"
+    ["zhuandui"] = "专对",
+    [":zhuandui"] = "你的红桃拼点牌点数视为13"
 }  
 
 lvbuwei = sgs.General(extension, "lvbuwei", "shu", 3)--shu,qun
@@ -9534,7 +9534,7 @@ fanji = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data) 
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
         local damage = data:toDamage()  
-        if damage.from and damage.from:isAlive() and damage.card and (damage.card:isKindOf("Slash") or damage.card:isKindOf("Duel")) then                
+        if damage.from and damage.from:isAlive() and damage.card and (damage.card:isKindOf("Slash") or damage.card:isKindOf("Duel")) and not player:willBeFriendWith(damage.from) then                
             return self:objectName()
         end  
         return ""  
@@ -14218,7 +14218,7 @@ huwei = sgs.CreateTriggerSkill{
         -- 检查是否有杀造成的伤害，且尉迟恭存活且拥有此技能  
         if damage.card and damage.card:isKindOf("Slash") then  
             local yuchigong = room:findPlayerBySkillName(self:objectName())  
-            if yuchigong and yuchigong:isAlive() and yuchigong:hasSkill(self:objectName()) and yuchigong:willBeFriendWith(damage.to) then  
+            if yuchigong and yuchigong:isAlive() and yuchigong:hasSkill(self:objectName()) and yuchigong:willBeFriendWith(damage.to) and not yuchigong:hasFlag("huwei_used") then  
                 return self:objectName(), yuchigong:objectName()
             end  
         end  
@@ -14230,7 +14230,8 @@ huwei = sgs.CreateTriggerSkill{
         local _data = sgs.QVariant()  
         _data:setValue(damage.to)  
           
-        if ask_who:askForSkillInvoke(self:objectName(), _data) then  
+        if ask_who:askForSkillInvoke(self:objectName(), _data) then
+            room:setPlayerFlag(ask_who,"huwei_used")
             -- 选择弃置装备牌或失去体力  
             if not room:askForCard(ask_who,"EquipCard","@huwei-discard",sgs.QVariant(),sgs.Card_MethodDiscard) then
                 room:loseHp(ask_who, 1)  
@@ -14266,7 +14267,7 @@ yuchigong:addSkill(huwei)
 sgs.LoadTranslationTable{  
     ["yuchigong"] = "尉迟恭",  
     ["huwei"] = "护卫",  
-    [":huwei"] = "与你势力相同的角色受到杀的伤害时，你可以弃置一张装备牌或失去一点体力，令该杀的伤害-1，然后你摸X张牌，X为你已失去的体力值。",  
+    [":huwei"] = "每回合限一次。与你势力相同的角色受到杀的伤害时，你可以弃置一张装备牌或失去一点体力，令该杀的伤害-1，然后你摸X张牌，X为你已失去的体力值。",  
     ["discard_equip"] = "弃置装备牌",  
     ["lose_hp"] = "失去体力"  
 }
