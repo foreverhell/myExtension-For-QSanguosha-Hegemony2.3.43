@@ -701,15 +701,15 @@ luawukuVS = sgs.CreateOneCardViewAsSkill{
     end,  
       
     enabled_at_play = function(self, player)   
-        return player:getMark("@luawuku") > 0 and not player:isNude()
+        return player:getMark("@luawuku") > 0 and not player:isNude() and not player:hasFlag("luawuku_used")
     end,
 
     enabled_at_response = function(self, player, pattern)
-        return player:getMark("@luawuku") > 0 and not player:isNude() 
+        return player:getMark("@luawuku") > 0 and not player:isNude() and not player:hasFlag("luawuku_used")
         and (pattern == "slash" or pattern == "jink" or string.find(pattern, "peach") or string.find(pattern, "analeptic") or pattern == "nullification" )
     end,
     enabled_at_nullification = function(self, player)  
-        return player:getMark("@luawuku") > 0 and not player:isNude()
+        return player:getMark("@luawuku") > 0 and not player:isNude() and not player:hasFlag("luawuku_used")
     end
 }
 luawuku = sgs.CreateTriggerSkill{  
@@ -728,6 +728,7 @@ luawuku = sgs.CreateTriggerSkill{
                 end
             elseif use.card:getSkillName() == self:objectName() then
                 room:setPlayerMark(use.from, "@luawuku", use.from:getMark("@luawuku")-1)
+                room:setPlayerFlag(use.from,"luawuku_used")
                 use.from:drawCards(1,self:objectName())
             end
         end
@@ -748,7 +749,7 @@ duyuluawuku:addSkill(luawuku)
 sgs.LoadTranslationTable{
 	["duyuluawuku"] = "杜预",
 	["luawuku"] = "武库",
-	[":luawuku"] = "你明置此武将后，与你势力不同的角色使用装备牌后，你获得1个“武库”标记；每回合限一次。你可以弃置1个“武库”，将一张牌当作任意基本牌或锦囊牌使用或打出，然后你摸1张牌",
+	[":luawuku"] = "你明置此武将后，与你势力不同的角色使用装备牌后，你获得1个“武库”标记；每回合限一次，你可以弃置1个“武库”，将一张牌当作任意基本牌或锦囊牌使用或打出，然后你摸1张牌",
 }
 guanluo = sgs.General(extension, "guanluo", "wei", 3)
 
@@ -1550,6 +1551,121 @@ sgs.LoadTranslationTable{
     ["zunwei"] = "尊位",  
     [":zunwei"] = "若你弃牌阶段未弃牌或受到伤害后，你可以摸1张牌，并弃置1张牌，直到你的下回合开始，你失去与弃置牌花色相同的牌时，你摸一张牌",  
     ["1r1b"] = "1黑1红"
+}
+hanfu = sgs.General(extension, "hanfu", "shu", 3)  
+
+jieyingCard = sgs.CreateSkillCard{  
+    name = "jieyingCard",
+    target_fixed = false,  
+    will_throw = false,
+    filter = function(self, targets, to_select)
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName()  
+    end,  
+      
+    feasible = function(self, targets)  
+        return #targets == 1  
+    end,  
+      
+    on_use = function(self, room, source, targets)  
+        -- 获取目标角色  
+        local target = targets[1]  
+        -- 通知技能被触发  
+        room:notifySkillInvoked(source, "jieying")  
+        -- 播放技能配音  
+        room:broadcastSkillInvoke("jieying")  
+        -- 将手牌交给目标角色  
+        local move = sgs.CardsMoveStruct()  
+        move.card_ids = self:getSubcards()  
+        move.to = target  
+        move.to_place = sgs.Player_PlaceHand  
+        move.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, source:objectName(), target:objectName(), "jieying", "")  
+        room:moveCardsAtomic(move, true)
+        room:setPlayerMark(target,"@jieying",1)
+    end  
+}
+
+jieyingVS = sgs.CreateViewAsSkill{  
+    name = "jieying",  
+    view_filter = function(self, selected, to_select)  
+        return #selected == 0
+    end,  
+    view_as = function(self, cards)  
+        if #cards == 1 then  
+            local card = jieyingCard:clone()  
+            card:addSubcard(cards[1])
+            card:setShowSkill(self:objectName())
+            return card  
+        end  
+        return nil  
+    end,  
+      
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#jieyingCard") and not player:isNude() 
+    end  
+}  
+
+jieying = sgs.CreateTriggerSkill{  
+    name = "jieying",  
+    view_as_skill = jieyingVS,  
+    events = {sgs.CardFinished},  
+    can_trigger = function(self, event, room, player, data)
+        local use = data:toCardUse()
+        if use.from and use.from:getMark("@jieying") > 0 then
+            if use.card and (use.card:isKindOf("Slash") or use.card:isNDTrick())  then
+                room:setPlayerMark(use.from,"@jieying",0)      
+            end
+        end
+        return ""  
+    end,  
+}
+
+jieyingMod = sgs.CreateTargetModSkill{  
+    name = "#jieying-mod",   
+    pattern = "Slash#SingleTargetTrick",  --同类模式用#并列，不同类用|并列  
+    extra_target_func = function(self, player, card)  
+        if player:getMark("@jieying") > 0 then  
+            return 1
+        else  
+            return 0  
+        end  
+    end  
+}
+
+weipo = sgs.CreateTriggerSkill{  
+    name = "weipo",  
+    events = {sgs.Damaged},  
+    frequency = sgs.Skill_Compulsory,
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then   
+            return ""   
+        end  
+        return self:objectName()  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data)
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        local n = player:getHp()
+        player:drawCards(n,self:objectName())
+        if n > 1 then
+            room:askForDiscard(player,self:objectName(),n-1,n-1,false,true)
+        end
+        return false  
+    end  
+}
+
+hanfu:addSkill(jieying)
+hanfu:addSkill(jieyingMod)
+hanfu:addSkill(weipo)
+extension:insertRelatedSkills("jieying","#jieying-mod")
+sgs.LoadTranslationTable{
+    ["hanfu"] = "韩馥",
+    ["jieying"] = "杰应",
+    [":jieying"] = "出牌阶段限一次，你可以交给一名其他角色一张牌，令其下一张杀或普通锦囊可以多指定一个目标",
+    ["weipo"] = "危迫",
+    [":weipo"] = "锁定技。你受到伤害后，你摸X张牌，然后弃置X-1张牌，X为你的体力值",
 }
 liubian = sgs.General(extension, "liubian", "qun", 3)  -- 吴国，4血，男性  
 shiyuan = sgs.CreateTriggerSkill{  
@@ -3749,7 +3865,7 @@ jueyanArea = sgs.CreateTriggerSkill{
                 move.card_ids = all_cards
                 move.to_place = sgs.Player_DiscardPile
                 room:moveCardsAtomic(move, true)
-                room:handleAcquireDetachSkills(player, "-jizhi")
+                room:handleAcquireDetachSkills(player, "jizhi")
             end
         end
         if not player:isKongcheng() and room:askForChoice(player,"是否移除手牌区所有牌，令本回合出杀次数+3","yes+no")=="yes" then
