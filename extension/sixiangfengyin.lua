@@ -2336,7 +2336,7 @@ cansi = sgs.CreateTriggerSkill{
                 end
             end
             if targets:isEmpty() then return false end
-            local target = room:askForPlayerChosen(player, targets, self:objectName(), "@cansi-invoke", true, true)  
+            local target = room:askForPlayerChosen(player, targets, self:objectName(), "@cansi-invoke")  
             if target then
                 if not player:isNude() then
                     local card_id = room:askForCardChosen(target, player, "he", self:objectName())
