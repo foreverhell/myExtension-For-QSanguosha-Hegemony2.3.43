@@ -7525,11 +7525,77 @@ cuipo = sgs.CreateTriggerSkill{
         return false  
     end  
 }
+huyiSummonCard = sgs.CreateArraySummonCard{
+    name = "huyi",
+    mute = true
+}
+
+-- 创建阵法召唤技能  
+huyiVS = sgs.CreateArraySummonSkill{
+    name = "huyi",
+    array_summon_card = huyiSummonCard
+}
+
+-- 创建围攻阵法技  
+huyi = sgs.CreateTriggerSkill{
+    name = "huyi",
+    is_battle_array = true,
+    battle_array_type = sgs.Siege,
+    view_as_skill = huyiVS,
+    events = {sgs.CardFinished},
+    can_preshow = false,
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        -- 检查基本条件：存活人数≥4
+        if room:alivePlayerCount() < 4 then return false end
+
+        -- 检查是否已展示技能
+        if not player:hasShownSkill(self:objectName()) then return false end
+
+        -- 获取杀的使用信息
+        local use = data:toCardUse()
+        if not use.card:isKindOf("Slash") then return false end
+
+        local from = use.from
+        local to = use.to:first()
+
+        if player:objectName() == from:objectName() then return false end
+        if player:objectName() == to:objectName() then return false end
+
+        -- 检查player是否与from是盟友，且与to是敌人
+        if not player:isFriendWith(from) then return false end
+        if player:isFriendWith(to) then return false end
+
+        -- 检查from和player是否和to在同一个围攻关系中
+        if not from:inSiegeRelation(player, to) then return false end --阵法技发起者，阵法技拥有者，被围攻角色
+
+        -- 检查player是否可以对to使用杀
+        if not player:canSlash(to, false) then return false end
+        return self:objectName()  
+    end,
+      
+    on_cost = function(self, event, room, player, data)
+        -- 询问是否发动技能
+        return player:askForSkillInvoke(self:objectName(), data)
+    end,
+      
+    on_effect = function(self, event, room, player, data)
+        local use = data:toCardUse()
+        local to = use.to:first()
+        room:askForUseSlashTo(player, to, "@huyi-slash:" .. to:objectName(), false, false, false)
+        return false
+    end
+}
+
 zhujun_canghai:addSkill(cuipo)
+zhujun_canghai:addSkill(huyi)
 sgs.LoadTranslationTable{
     ["zhujun_canghai"] = "朱儁",
     ["cuipo"] = "摧破",
-    [":cuipo"] = "锁定技。出牌阶段，你使用第X张牌（X为该牌名称的字数）造成的伤害+1"
+    [":cuipo"] = "锁定技。出牌阶段，你使用第X张牌（X为该牌名称的字数）造成的伤害+1",
+    ["huyi"] = "虎翼",  
+    [":huyi"] = "阵法技，当你为围攻关系的另一名围攻角色对被围攻角色使用【杀】结算完成后，你可以对被围攻角色使用一张【杀】。",  
+    ["@huyi"] = "你可以对 %dest 使用一张【杀】"  
 }
 --[[
 zhoutai = sgs.General(extension, "zhoutai", "wu", 4) 
