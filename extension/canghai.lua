@@ -1092,7 +1092,7 @@ guanping = sgs.General(extension, "guanping", "shu", 4)
 zuolie = sgs.CreateTriggerSkill{  
     name = "zuolie",  
     events = {sgs.CardUsed},  
-    frequency = sgs.Skill_Frequent,
+    --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
         local source = room:findPlayerBySkillName(self:objectName())  
         if not (source and source:isAlive() and source:hasSkill(self:objectName())) then  
@@ -1618,7 +1618,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：
-hejin = sgs.General(extension, "hejin", "qun", 3)  -- 吴国，4血，男性  
+hejin = sgs.General(extension, "hejin", "qun", 4)  
 
 mouzhuCard = sgs.CreateSkillCard{  
     name = "mouzhu",  
@@ -1765,7 +1765,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：
-heqi = sgs.General(extension, "heqi", "wu", 4)  -- 吴国，4血，男性  
+heqi = sgs.General(extension, "heqi", "wu", 4)
 
 ShanjiCard = sgs.CreateSkillCard{  
     name = "shanji",  
@@ -3577,7 +3577,7 @@ sgs.LoadTranslationTable{
 }  
 ]]
 
-luzhi = sgs.General(extension, "luzhi", "wei", 3) -- 吴苋，蜀势力，3血，女性
+luzhi = sgs.General(extension, "luzhi", "wei", 3)
 xianjingVS = sgs.CreateZeroCardViewAsSkill{  
     name = "xianjing",  
     response_or_use = true,  -- 关键参数，允许既主动使用又响应使用  
@@ -3896,7 +3896,7 @@ sgs.LoadTranslationTable{
     [":qinguo"] = "每回合每种副类别限一次。当你使用装备牌后，若你装备区的牌数与手牌数：相等，你可以恢复1点体力；不相等，你视为使用1张杀（有距离限制，无次数限制）",
 }
 ]]
-manchong = sgs.General(extension, "manchong", "wei", 3) -- 吴苋，蜀势力，3血，女性
+manchong = sgs.General(extension, "manchong", "wei", 3)
 
 junxing_card = sgs.CreateSkillCard{  
     name = "junxing_card",  
@@ -4289,7 +4289,7 @@ sgs.LoadTranslationTable{
     [":yinyi"] = "出牌阶段限一次。你可以发起一次判定，若判定牌是奇数，你对一名角色造成1点伤害；若判定牌是偶数，你视为使用一张铁索连环"
 }  
 
-panzhang = sgs.General(extension, "panzhang", "wu", 4) -- 3体力，男性  
+panzhang = sgs.General(extension, "panzhang", "wu", 4)  
 
 -- 夺刀技能实现  
 duodao = sgs.CreateTriggerSkill{  
@@ -4679,7 +4679,7 @@ sgs.LoadTranslationTable{
     [":quji"] = "出牌阶段限一次。你可以弃置任意张牌，并令等量距离的一名其他角色恢复1点体力，若其中包含黑色牌，你失去1点体力"
 }
 -- 创建武将：
-sunluban = sgs.General(extension, "sunluban", "wu", 3, false)  -- 吴国，4血，男性  
+sunluban = sgs.General(extension, "sunluban", "wu", 3, false)
 jianhuiCard = sgs.CreateSkillCard{  
     name = "jianhuiCard",  
     target_fixed = false,  
@@ -4841,7 +4841,7 @@ sgs.LoadTranslationTable{
 
 
 -- 创建武将：
-sunqian = sgs.General(extension, "sunqian", "shu", 3)  -- 吴国，4血，男性  
+sunqian = sgs.General(extension, "sunqian", "shu", 3)
 
 shuomengCard = sgs.CreateSkillCard{  
     name = "shuomengCard",  
@@ -4972,7 +4972,7 @@ sgs.LoadTranslationTable{
     ["#qianyaLose"] = "%from 的'%arg'被触发，%from 失去了'%arg'技能",
 }
 
-sunxiu = sgs.General(extension, "sunxiu", "wu", 3) -- 孙休，吴势力，3血
+sunxiu = sgs.General(extension, "sunxiu", "wu", 3)
 -- 宴诛技能卡  
 YanzhuCard = sgs.CreateSkillCard{  
     name = "YanzhuCard",  
@@ -5146,7 +5146,7 @@ sgs.LoadTranslationTable{
   
 
 -- 创建武将：
-wanglang = sgs.General(extension, "wanglang", "wei", 3)  -- 吴国，4血，男性  
+wanglang = sgs.General(extension, "wanglang", "wei", 3)  
 
 gushe_card = sgs.CreateSkillCard{  
     name = "gushe",  
@@ -5522,7 +5522,7 @@ sgs.LoadTranslationTable{
 }
 
 -- 创建武将：
-wangyi = sgs.General(extension, "wangyi", "wei", 3, false)  -- 吴国，4血，男性  
+wangyi = sgs.General(extension, "wangyi", "wei", 3, false)
 zhenlie = sgs.CreateTriggerSkill{  
     name = "zhenlie",  
     events = {sgs.TargetConfirming}, --sgs.CardEffected
@@ -5854,7 +5854,7 @@ sgs.LoadTranslationTable{
     ["kuoao"] = "扩鷔",
     [":kuoao"] = "你使用杀可以多指定一个攻击范围内的目标；其他角色使用杀时，若你在其攻击范围内，其可以多指定你为目标，此时若你的手牌数为偶数，你摸一张牌，然后可以令此杀对与你势力相同的目标角色和你选择的任意名目标无效"
 }
-wenyang = sgs.General(extension, "wenyang", "wei", 3) -- 吴苋，蜀势力，3血，女性
+wenyang = sgs.General(extension, "wenyang", "wei", 3)
 -- 齐力技能  
 qili = sgs.CreateTriggerSkill{  
     name = "qili",  
@@ -5953,7 +5953,7 @@ sgs.LoadTranslationTable{
     ["discard_recover"] = "弃置所有手牌并恢复体力"  
 }
 
-wuxian = sgs.General(extension, "wuxian", "shu", 3, false) -- 吴苋，蜀势力，3血，女性
+wuxian = sgs.General(extension, "wuxian", "shu", 3, false)
 
 YirongCard = sgs.CreateSkillCard{  
     name = "YirongCard",  
@@ -6067,7 +6067,7 @@ sgs.LoadTranslationTable{
     ["@guixiang"] = "贵相：选择一名角色进行判定"  
 }
 ]]
-wuyi = sgs.General(extension, "wuyi", "shu", 4) -- 吴苋，蜀势力，3血，女性
+wuyi = sgs.General(extension, "wuyi", "shu", 4)
 benxi = sgs.CreateTriggerSkill{  
     name = "benxi",  
     events = {sgs.CardFinished, sgs.EventPhaseEnd},  
@@ -6997,7 +6997,7 @@ sgs.LoadTranslationTable{
 }
 ]]
 -- 创建武将：
-zhonghui_wei = sgs.General(extension, "zhonghui_wei", "wei", 4)  -- 吴国，4血，男性  
+zhonghui_wei = sgs.General(extension, "zhonghui_wei", "wei", 4)
 
 fushuCard = sgs.CreateSkillCard{  
     name = "fushu",  
@@ -7492,13 +7492,13 @@ cuipo = sgs.CreateTriggerSkill{
             room:addPlayerMark(player,"@cuipo")
         elseif event == sgs.DamageCaused then
             local damage = data:toDamage()
-            local is_add = False
+            local is_add = false
             if damage.card then
                 if damage.card:isKindOf("Slash") and player:getMark("@cuipo") == 1 then
                     is_add = true
                 elseif damage.card:isKindOf("Duel") and player:getMark("@cuipo") == 2 then
                     is_add = true
-                elseif not (damage.card:isKindOf("Slash") and damage.card:isKindOf("Duel")) and player:getMark("@cuipo") == 4 then
+                elseif not (damage.card:isKindOf("Slash") or damage.card:isKindOf("Duel")) and player:getMark("@cuipo") == 4 then
                     is_add = true
                 end
             end
