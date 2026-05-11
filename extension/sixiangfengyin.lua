@@ -1470,7 +1470,7 @@ sunluyu_feng = sgs.General(extension, "sunluyu_feng", "wu", 3, false)
 mumuMove = sgs.CreateTriggerSkill{  
     name = "mumuMove",  
     events = {sgs.EventPhaseStart},  
-    frequency = sgs.Skill_Frequent,
+    --frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
         if event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_Start and not player:isKongcheng() then
