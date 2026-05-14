@@ -5071,7 +5071,7 @@ sgs.LoadTranslationTable{
 }  
 
 
-yuejiu = sgs.General(extension, "yuejiu", "wei", 4)  
+yuejiu = sgs.General(extension, "yuejiu", "qun", 4)  
 
 cuijin = sgs.CreateTriggerSkill{  
     name = "cuijin",  
