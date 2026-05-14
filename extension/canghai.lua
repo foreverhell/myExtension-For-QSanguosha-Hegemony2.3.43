@@ -4363,6 +4363,99 @@ sgs.LoadTranslationTable{
     ["anjian"] = "暗箭",  
     [":anjian"] = "锁定技，当你使用杀对目标造成伤害时，若你不在其攻击范围内，此伤害+1。"  
 }
+pengyang = sgs.General(extension, "pengyang", "shu", 3)
+
+xiaoni = sgs.CreateTriggerSkill{
+    name = "xiaoni",
+    events = {sgs.EventPhaseStart},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:getPhase() == sgs.Player_Play) then return ""  end
+
+        local owner = nil
+        for _, p in sgs.qlist(room:getAlivePlayers()) do
+            if p:hasSkill(self:objectName()) and p:isFriendWith(player) then
+                owner = p
+                break
+            end
+        end
+
+        if owner and owner:isAlive() then
+            return self:objectName(), owner:objectName()
+        end
+        return ""
+    end,
+      
+    on_cost = function(self, event, room, player, data, ask_who)
+        if room:askForCard(ask_who, "TrickCard", "你可以弃置一张锦囊", data, sgs.Card_MethodDiscard) then
+            return true
+        end
+        return false
+    end,
+      
+    on_effect = function(self, event, room, player, data, ask_who)
+        --令一名角色横置
+        local targets = sgs.SPlayerList()
+        for _, p in sgs.qlist(room:getAlivePlayers()) do
+            if p:canBeChainedBy() and not p:isChained() then
+                targets:append(p)
+            end
+        end
+        if targets:isEmpty() then return false end
+        local target = room:askForPlayerChosen(ask_who, targets, self:objectName(), "@xiaoni-chain")
+        if target and target:isAlive() and target:canBeChainedBy() and not target:isChained() then
+            room:setPlayerProperty(getServerPlayer(room, target:objectName()), "chained", sgs.QVariant(true))
+        end
+        --摸横置势力数张牌
+        local kingdoms = {}
+        local kingdom_count = 0
+        for _, p in sgs.qlist(room:getAlivePlayers()) do
+            if p:isChained() and p:hasShownOneGeneral() then --在明置且横置角色中选
+                if p:getRole() == 'careerist' then --野心家视为不同势力
+                    kingdom_count = kingdom_count+1
+                else
+                    kingdoms[p:getKingdom()] = true
+                end
+            end
+        end
+        for _ in pairs(kingdoms) do
+            kingdom_count = kingdom_count + 1
+        end
+        room:drawCards(ask_who,kingdom_count)
+        --令当前回合角色使用雷杀或桃
+        local choice = room:askForChoice(ask_who,self:objectName(),"slash+peach")
+        if choice == "slash" then
+            local target = room:askForPlayerChosen(ask_who, room:getOtherPlayers(player), self:objectName(), "@xiaoni-slash")
+
+            local slash = sgs.Sanguosha:cloneCard("thunder_slash")
+            slash:setSkillName(self:objectName())
+            slash:deleteLater()
+
+            local use = sgs.CardUseStruct()
+            use.card = slash
+            use.from = player
+            use.to:append(target)
+            room:useCard(use)
+        elseif choice == "peach" then
+            local peach = sgs.Sanguosha:cloneCard("peach")
+            peach:setSkillName(self:objectName())
+            peach:deleteLater()
+
+            local use = sgs.CardUseStruct()
+            use.card = peach
+            use.from = player
+            use.to:append(player)
+            room:useCard(use)
+        end
+        return false
+    end,
+}
+pengyang:addSkill(xiaoni)
+-- 添加翻译  
+sgs.LoadTranslationTable{  
+    ["xiaoni"] = "嚣逆",  
+    [":xiaoni"] = "与你势力相同的角色出牌阶段开始时，你可以弃置一张锦囊令一名角色横置，并摸X张牌（X为横置角色的势力数），然后你选择令当前回合角色（1）视为对你指定的另一名角色使用一张雷杀（2）视为使用一张桃",  
+}
 qinmi = sgs.General(extension, "qinmi", "shu", 3)  
 tianbian = sgs.CreateTriggerSkill{
     name = "tianbian",
@@ -5817,7 +5910,9 @@ kuoao = sgs.CreateTriggerSkill{
 
     on_effect = function(self, event, room, player, data)  
         local use = data:toCardUse()
+        local owner = nil
         if use.from:hasSkill(self:objectName()) then --自己使用杀，攻击范围内有其他合法目标
+            owner = use.from
             local targets = sgs.SPlayerList()
             for _,p in sgs.qlist(room:getOtherPlayers(use.from)) do
                 if not use.to:contains(p) and use.from:inMyAttackRange(p) then
@@ -5826,33 +5921,32 @@ kuoao = sgs.CreateTriggerSkill{
             end
             local target = room:askForPlayerChosen(use.from, targets, self:objectName())
             use.to:append(target)--选择一个额外目标
-            data:setValue(use)
         else --其他角色使用杀，自己在其攻击范围内
-            local owner = room:findPlayerBySkillName(self:objectName())
+            owner = room:findPlayerBySkillName(self:objectName())
             if owner and owner:isAlive() and owner:hasShownSkill(self:objectName()) and not use.to:contains(owner) and use.from:inMyAttackRange(owner) then
                 use.to:append(owner)--添加自己为额外目标
             end
-            if owner:getHandcardNum()%2 == 0 then --若手牌数为偶数，摸一张牌，减少任意目标
-                owner:drawCards(1,self:objectName())
-                for _,p in sgs.qlist(use.to) do
-                    if owner:isFriendWith(p) then
-                        use.to:removeOne(p)
-                    end
-                end
-                local chosen_players = room:askForPlayersChosen(owner, use.to, self:objectName(), 0, use.to:length(), "请选择任意名角色，令此杀对其无效", true)
-                for _,p in sgs.qlist(chosen_players) do
+        end
+        if owner:getHandcardNum()%2 == 0 then --若手牌数为偶数，摸一张牌，减少任意目标
+            owner:drawCards(1,self:objectName())
+            for _,p in sgs.qlist(use.to) do
+                if owner:isFriendWith(p) then
                     use.to:removeOne(p)
                 end
             end
-            data:setValue(use)
+            local chosen_players = room:askForPlayersChosen(owner, use.to, self:objectName(), 0, use.to:length(), "请选择任意名角色，令此杀对其无效", true)
+            for _,p in sgs.qlist(chosen_players) do
+                use.to:removeOne(p)
+            end
         end
+        data:setValue(use)
     end
 }
 wenqin_canghai:addSkill(kuoao)
 sgs.LoadTranslationTable{
     ["wenqin_canghai"] = "文钦",
     ["kuoao"] = "扩鷔",
-    [":kuoao"] = "你使用杀可以多指定一个攻击范围内的目标；其他角色使用杀时，若你在其攻击范围内，其可以多指定你为目标，此时若你的手牌数为偶数，你摸一张牌，然后可以令此杀对与你势力相同的目标角色和你选择的任意名目标无效"
+    [":kuoao"] = "你使用杀可以多指定一个攻击范围内的目标；其他角色使用杀时，若你在其攻击范围内，其可以多指定你为目标。此杀指定目标后，若你的手牌数为偶数，你摸一张牌，然后可以令此杀对与你势力相同的目标角色和你选择的任意名目标无效"
 }
 wenyang = sgs.General(extension, "wenyang", "wei", 3)
 -- 齐力技能  
