@@ -4423,8 +4423,8 @@ daming = sgs.CreateTriggerSkill{
         end
         room:drawCards(ask_who,kingdom_count)
         --令当前回合角色使用雷杀或桃
-        local choice = room:askForChoice(ask_who,self:objectName(),"slash+recover")
-        if choice == "slash" then
+        local choice = room:askForChoice(ask_who,self:objectName(),"thunder_slash+recover")
+        if choice == "thunder_slash" then
             local target = room:askForPlayerChosen(ask_who, room:getOtherPlayers(player), self:objectName(), "@daming-slash")
 
             local slash = sgs.Sanguosha:cloneCard("thunder_slash")
@@ -4435,7 +4435,7 @@ daming = sgs.CreateTriggerSkill{
             use.card = slash
             use.from = player
             use.to:append(target)
-            room:useCard(use)
+            room:useCard(use,false)
         elseif choice == "recover" then
             local recover = sgs.RecoverStruct()
             recover.who = player
@@ -4449,7 +4449,7 @@ pengyang:addSkill(daming)
 -- 添加翻译  
 sgs.LoadTranslationTable{  
     ["daming"] = "达命",  
-    [":daming"] = "与你势力相同的角色出牌阶段开始时，你可以弃置一张锦囊令一名角色横置，并摸X张牌（X为横置角色的势力数），然后你选择令当前回合角色（1）视为对你指定的另一名角色使用一张雷杀（2）恢复1点体力",  
+    [":daming"] = "与你势力相同的角色出牌阶段开始时，你可以弃置一张锦囊令一名角色横置，并摸X张牌（X为横置角色的势力数），然后你选择令当前回合角色（1）视为对你指定的另一名角色使用一张不计入次数的雷杀（2）恢复1点体力",  
 }
 qinmi = sgs.General(extension, "qinmi", "shu", 3)  
 tianbian = sgs.CreateTriggerSkill{
@@ -5109,7 +5109,7 @@ YanzhuCard = sgs.CreateSkillCard{
             use.card = slash  
             use.from = effect.from  
             use.to:append(target)  
-            room:useCard(use)  
+            room:useCard(use,false)  
             slash:deleteLater()
         end  
     end  
@@ -5174,7 +5174,7 @@ sgs.LoadTranslationTable{
     ["canghai"] = "沧海",  
     ["sunxiu"] = "孙休",  
     ["yanzhu"] = "宴诛",  
-    [":yanzhu"] = "出牌阶段限一次，你可以令一名其他角色摸一张牌，然后其选择：1.交给其上下家各一张牌；2.视为你对其使用一张【杀】。",  
+    [":yanzhu"] = "出牌阶段限一次，你可以令一名其他角色摸一张牌，然后其选择：1.交给其上下家各一张牌；2.视为你对其使用一张不计入次数的【杀】。",  
     ["xingxue"] = "兴学",   
     [":xingxue"] = "结束阶段，你可以令至多X名角色各摸一张牌，然后其中手牌数大于体力值的角色依次将一张牌置于牌堆顶（X为你的体力值）。",  
     ["@yanzhu"] = "宴诛：选择一名角色",  
