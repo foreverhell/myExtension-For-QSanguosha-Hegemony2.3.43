@@ -4365,8 +4365,8 @@ sgs.LoadTranslationTable{
 }
 pengyang = sgs.General(extension, "pengyang", "shu", 3)
 
-xiaoni = sgs.CreateTriggerSkill{
-    name = "xiaoni",
+daming = sgs.CreateTriggerSkill{
+    name = "daming",
     events = {sgs.EventPhaseStart},
     frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)
@@ -4402,7 +4402,7 @@ xiaoni = sgs.CreateTriggerSkill{
             end
         end
         if targets:isEmpty() then return false end
-        local target = room:askForPlayerChosen(ask_who, targets, self:objectName(), "@xiaoni-chain")
+        local target = room:askForPlayerChosen(ask_who, targets, self:objectName(), "@daming-chain")
         if target and target:isAlive() and target:canBeChainedBy() and not target:isChained() then
             room:setPlayerProperty(getServerPlayer(room, target:objectName()), "chained", sgs.QVariant(true))
         end
@@ -4423,9 +4423,9 @@ xiaoni = sgs.CreateTriggerSkill{
         end
         room:drawCards(ask_who,kingdom_count)
         --令当前回合角色使用雷杀或桃
-        local choice = room:askForChoice(ask_who,self:objectName(),"slash+peach")
+        local choice = room:askForChoice(ask_who,self:objectName(),"slash+recover")
         if choice == "slash" then
-            local target = room:askForPlayerChosen(ask_who, room:getOtherPlayers(player), self:objectName(), "@xiaoni-slash")
+            local target = room:askForPlayerChosen(ask_who, room:getOtherPlayers(player), self:objectName(), "@daming-slash")
 
             local slash = sgs.Sanguosha:cloneCard("thunder_slash")
             slash:setSkillName(self:objectName())
@@ -4436,25 +4436,20 @@ xiaoni = sgs.CreateTriggerSkill{
             use.from = player
             use.to:append(target)
             room:useCard(use)
-        elseif choice == "peach" then
-            local peach = sgs.Sanguosha:cloneCard("peach")
-            peach:setSkillName(self:objectName())
-            peach:deleteLater()
-
-            local use = sgs.CardUseStruct()
-            use.card = peach
-            use.from = player
-            use.to:append(player)
-            room:useCard(use)
+        elseif choice == "recover" then
+            local recover = sgs.RecoverStruct()
+            recover.who = player
+            recover.recover = 1
+            room:recover(player, recover)
         end
         return false
     end,
 }
-pengyang:addSkill(xiaoni)
+pengyang:addSkill(daming)
 -- 添加翻译  
 sgs.LoadTranslationTable{  
-    ["xiaoni"] = "嚣逆",  
-    [":xiaoni"] = "与你势力相同的角色出牌阶段开始时，你可以弃置一张锦囊令一名角色横置，并摸X张牌（X为横置角色的势力数），然后你选择令当前回合角色（1）视为对你指定的另一名角色使用一张雷杀（2）视为使用一张桃",  
+    ["daming"] = "达命",  
+    [":daming"] = "与你势力相同的角色出牌阶段开始时，你可以弃置一张锦囊令一名角色横置，并摸X张牌（X为横置角色的势力数），然后你选择令当前回合角色（1）视为对你指定的另一名角色使用一张雷杀（2）恢复1点体力",  
 }
 qinmi = sgs.General(extension, "qinmi", "shu", 3)  
 tianbian = sgs.CreateTriggerSkill{
