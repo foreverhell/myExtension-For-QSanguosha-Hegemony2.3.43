@@ -1188,14 +1188,23 @@ luajintao = sgs.CreatePhaseChangeSkill{
 
 luajintaoDraw = sgs.CreateTriggerSkill{
     name = "#luajintaoDraw",
-    events = {sgs.Damage},
+    events = {sgs.Damage, sgs.CardFinished},
     frequency = sgs.Skill_Compulsory,
     can_trigger = function(self, event, room, player, data)
         if player and player:isAlive() then
-            local damage = data:toDamage()
-            if damage.card and damage.card:isKindOf("Slash") and damage.card:getSkillName() == "luajintao" then
-                player:drawCards(damage.card:subcardsLength(), "luajintao")
+            if event == sgs.Damage and player:getPhase() == sgs.Player_Play and not player:hasFlag("luajintaoDraw") then
+                local damage = data:toDamage()
+                if damage.card and damage.card:isKindOf("Slash") and damage.card:getSkillName() == "luajintao" then
+                    room:setPlayerFlag(player, "luajintaoDraw")
+                end
+            elseif event == sgs.CardFinished then
+                if player:getPhase() == sgs.Player_Play and player:hasFlag("luajintaoDraw") then
+                    room:setPlayerFlag(player, "-luajintaoDraw")
+                    local use = data:toCardUse()
+                    player:drawCards(use.card:subcardsLength(), "luajintao")
+                end
             end
+            
         end
         return false
     end
@@ -1952,7 +1961,7 @@ luadurui = sgs.CreateTriggerSkill{
 
 luaduruiMark = sgs.CreateTriggerSkill{
     name = "#luaduruiMark",
-    events = {sgs.EventPhaseChanging, sgs.Damage, sgs.DamageInflicted},
+    events = {sgs.EventPhaseChanging, sgs.PreDamageDone, sgs.DamageInflicted},
     on_record = function(self, event, room, player, data)
         if event == sgs.EventPhaseChanging then
             local change = data:toPhaseChange()
@@ -1965,7 +1974,7 @@ luaduruiMark = sgs.CreateTriggerSkill{
                     end
                 end
             end
-        elseif event == sgs.Damage then
+        elseif event == sgs.PreDamageDone then
             local damage = data:toDamage()
             local current = room:getCurrent()
             local skill_owners = room:findPlayersBySkillName("luadurui")
