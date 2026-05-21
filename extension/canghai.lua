@@ -716,7 +716,7 @@ sgs.LoadTranslationTable{
     [":farou"] = "每回合限一次。有角色脱离濒死时，若当前回合角色或伤害源与你势力相同，你可以弃置一张牌，对其造成一点伤害"
 }
 --[[
-fengzhao = sgs.General(extension, "fengzhao", "wei", 4)  
+qianzhao = sgs.General(extension, "qianzhao", "wei", 4)  
 
 weifu3 = sgs.CreateTriggerSkill{  
     name = "weifu3",  
@@ -818,10 +818,10 @@ touxi = sgs.CreateTriggerSkill{
         return false
 	end
 }
-fengzhao:addSkill(weifu3)
-fengzhao:addSkill(touxi)
+qianzhao:addSkill(weifu3)
+qianzhao:addSkill(touxi)
 sgs.LoadTranslationTable{
-    ["fengzhao"] = "奉招",
+    ["qianzhao"] = "牵招",
     ["weifu3"] = "威抚",
     [":weifu3"] = "当你造成或受到伤害后，你可以交给一名其他角色一张牌",
     ["touxi"] = "投隙",
@@ -4423,7 +4423,11 @@ daming = sgs.CreateTriggerSkill{
         end
         room:drawCards(ask_who,kingdom_count)
         --令当前回合角色使用雷杀或桃
-        local choice = room:askForChoice(ask_who,self:objectName(),"thunder_slash+recover")
+        local choices = {"thunder_slash"}
+        if player:isWounded() then
+            table.insert(choices,"recover")
+        end
+        local choice = room:askForChoice(ask_who,self:objectName(),table.concat(choices, "+"))
         if choice == "thunder_slash" then
             local target = room:askForPlayerChosen(ask_who, room:getOtherPlayers(player), self:objectName(), "@daming-slash")
 
@@ -4665,7 +4669,7 @@ junbing = sgs.CreateTriggerSkill{
         -- 任意角色回合结束时都可能触发
         if player:getPhase() == sgs.Player_Finish then  
             local owner = room:findPlayerBySkillName(self:objectName())
-            if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+            if not (owner and owner:isAlive() and owner:hasShownSkill(self:objectName())) then return "" end
             if player:getHandcardNum()<=1 and owner:isFriendWith(player) then
                 return self:objectName() .. "->" .. player:objectName()
             end
@@ -4693,7 +4697,7 @@ junbing = sgs.CreateTriggerSkill{
         move.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GOTCARD, ask_who:objectName(), self:objectName(), "")  
         room:moveCardsAtomic(move, true)  
 
-        local to_exchange = room:askForExchange(ask_who, self:objectName(), num, num, "@junbing-exchange", "", ".|.|.|hand")  
+        local to_exchange = room:askForExchange(ask_who, self:objectName(), num, num, "@junbing-exchange", "", ".|.|.|.")  
         local move = sgs.CardsMoveStruct()  
         move.card_ids = to_exchange  
         move.to = player  
@@ -6440,7 +6444,7 @@ xuming = sgs.CreateTriggerSkill{
 -- 靖德技能  
 jingde = sgs.CreateTriggerSkill{  
     name = "jingde",  
-    frequency = sgs.Skill_Frequent,  
+    frequency = sgs.Skill_Compulsory,  
     events = {sgs.DamageInflicted},  
     can_trigger = function(self, event, room, player, data)  
         if not player or not player:hasSkill(self:objectName()) then return "" end  
