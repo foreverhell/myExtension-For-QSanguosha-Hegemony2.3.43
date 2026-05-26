@@ -1,5 +1,6 @@
 -- 创建扩展包  
 extension = sgs.Package("junba",sgs.Package_GeneralPack)
+local skills = sgs.SkillList()
 --[[
 bining = sgs.General(extension, "bining", "shu", 3)
 xiuwen = sgs.CreateTriggerSkill{  
@@ -3475,6 +3476,116 @@ sgs.LoadTranslationTable{
     ["shandao"] = "善刀",
     [":shandao"] = "出牌阶段限一次。你可将任意名角色各一张牌置于牌堆顶，视为对这些角色使用【五谷丰登】，然后视为对剩余其他角色使用【万箭齐发】",
 }
+wangrong = sgs.General(extension, "wangrong", "qun", 3, false)
+minsiCard = sgs.CreateSkillCard{  
+    name = "minsiCard",  
+    target_fixed = true,--是否需要指定目标，默认false，即需要
+    will_throw = true,
+    on_use = function(self, room, source, targets)  
+        local n = self:getSubcards():length() * 2
+        source:drawCards(n,self:objectName())
+    end  
+}  
+minsi = sgs.CreateViewAsSkill{  
+    name = "minsi",  
+    view_filter = function(self, selected, to_select)--是过滤当前可选的牌，不是是否可以继续选牌
+        local total_points = 0
+        for _, card in ipairs(selected) do  
+            total_points = total_points + card:getNumber()  
+        end  
+        return total_points + to_select:getNumber() <= 13 --不算上to_select，可能超过13
+    end,  
+    view_as = function(self, cards)  
+        local view_as_card = minsiCard:clone()
+        local number = 0
+        for _,card in ipairs(cards) do
+            number = number + card:getNumber()
+            view_as_card:addSubcard(card:getId())
+        end
+        if number ~= 13 then return nil end
+        view_as_card:setShowSkill(self:objectName())
+        return view_as_card
+    end,  
+    enabled_at_play = function(self, player)  
+        return not player:hasUsed("#minsiCard")
+    end,
+}
+
+jijing = sgs.CreateTriggerSkill{
+    name = "jijing",
+    events = {sgs.Damaged},
+    frequency = sgs.Skill_Frequent,    
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+        return self:objectName()
+    end,
+    
+    on_cost = function(self, event, room, player, data)
+        if room:askForSkillInvoke(player, self:objectName(), data) then
+            return true
+        end
+        return false
+    end,
+    
+    on_effect = function(self, event, room, player, data)
+        local judge = sgs.JudgeStruct()
+        judge.pattern = "."
+        judge.reason = self:objectName()
+        judge.who = player
+        room:judge(judge)
+
+        local n = judge.card:getNumber()
+        room:setPlayerMark(player,"@jijing_number",n)
+        local prompt = "吉境：你可以弃置点数和为"
+        room:askForUseCard(player, "@@jijingRecover", prompt .. n .. "的任意张牌，然后回复1点体力")
+        room:setPlayerMark(player,"@jijing_number",0)
+    end
+}
+
+jijingRecoverCard = sgs.CreateSkillCard{  
+    name = "jijingRecoverCard",  
+    target_fixed = true,--是否需要指定目标，默认false，即需要
+    will_throw = true,
+    on_use = function(self, room, source, targets)  
+        local recover = sgs.RecoverStruct()  
+        recover.who = source  
+        recover.recover = 1  
+        room:recover(source, recover)  
+    end  
+}  
+jijingRecover = sgs.CreateViewAsSkill{  
+    name = "jijingRecover",
+    response_pattern = "@@jijingRecover",
+    response_or_use = true,
+    view_filter = function(self, selected, to_select)--是过滤当前可选的牌，不是是否可以继续选牌
+        local total_points = 0
+        for _, card in ipairs(selected) do  
+            total_points = total_points + card:getNumber()  
+        end  
+        return total_points + to_select:getNumber() <= sgs.Self:getMark("@jijing_number") --不算上to_select，可能超过13
+    end,  
+    view_as = function(self, cards)  
+        local view_as_card = jijingRecoverCard:clone()
+        local number = 0
+        for _,card in ipairs(cards) do
+            number = number + card:getNumber()
+            view_as_card:addSubcard(card:getId())
+        end
+        if number ~= sgs.Self:getMark("@jijing_number") then return nil end
+        view_as_card:setShowSkill(self:objectName())
+        return view_as_card
+    end
+}
+wangrong:addSkill(minsi)
+wangrong:addSkill(jijing)
+if not sgs.Sanguosha:getSkill("jijingRecover") then skills:append(jijingRecover) end
+sgs.LoadTranslationTable{  
+    ["wangrong"] = "王荣",
+    ["minsi"] = "敏思",
+    [":minsi"] = "出牌阶段限一次。你可以弃置任意张点数和为13的牌，然后摸2倍的牌",
+    ["jijing"] = "吉境",
+    [":jijing"] = "当你受到伤害后，你可以判定，然后你可以弃置任意张点数和与结果相同的牌，回复一点体力。",
+}
 wangxu = sgs.General(extension, "wangxu", "wei", 3)  
 
 shepan = sgs.CreateTriggerSkill{  
@@ -5525,5 +5636,5 @@ sgs.LoadTranslationTable{
     ["$cheji2"] = "撤而复击，敌不及防。",  
     ["~zhujun"] = "江东基业，后继有人...",  
 }  
-
+sgs.Sanguosha:addSkills(skills)
 return {extension}
