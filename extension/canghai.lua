@@ -6715,6 +6715,107 @@ sgs.LoadTranslationTable{
     ["@shajue-invoke"] = "%src 进入濒死状态，体力小于0，是否发动'杀绝'获得 %arg？",
 }
 ]]
+yuantanyuanshang = sgs.General(extension, "yuantanyuanshang", "qun", 4)  
+neifa = sgs.CreateTriggerSkill{
+    name = "neifa",
+    events = {sgs.EventPhaseStart},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Play then  
+            return self:objectName()
+        end
+        return ""  
+    end,  
+
+    on_cost = function(self, event, room, player, data)  
+        if player:askForSkillInvoke(self:objectName()) then
+            return true
+        end
+        return false  
+    end,
+      
+    on_effect = function(self, event, room, player, data)
+        --摸一张牌
+        player:drawCards(1)
+        --弃置一张牌
+        local card_ids = room:askForExchange(player, self:objectName(), 1, 1, "", "", ".|.|.|.")
+        local card_id = card_ids:first()
+        room:throwCard(card_id, player, player)
+        local card = sgs.Sanguosha:getCard(card_id)
+        if card:isKindOf("BasicCard") then--是基本牌
+            room:setPlayerCardLimitation(player, "use", "^BasicCard", true)--只能使用基本牌，即不能使用非基本牌
+            room:setPlayerFlag(player,"neifa_basic")
+        else--不是基本牌
+            room:setPlayerCardLimitation(player, "use", "BasicCard", true)--只能使用非基本牌，即不能使用基本牌
+            room:setPlayerFlag(player,"neifa_non_basic")
+        end
+        return false  
+    end, 
+}
+neifaRange = sgs.CreateAttackRangeSkill{
+    name = "#neifa-range",
+    extra_func = function(self, player, include_weapon)
+        if player:hasFlag("neifa_basic") then
+            return 1
+        end
+        return 0
+    end
+} 
+neifaMod = sgs.CreateTargetModSkill{  
+    name = "#neifa-mod",
+    pattern = "Slash",--BasciCard
+    residue_func = function(self, player, card)  
+        if player:hasFlag("neifa_basic") then
+            return 1
+        end
+        return 0
+    end,
+    extra_target_func = function(self, player, card)  
+        if player:hasFlag("neifa_basic") then  
+            return 1
+        else  
+            return 0  
+        end  
+    end  
+}
+
+neifaNonBasic = sgs.CreateTriggerSkill{
+    name = "#neifa-non-basic",
+    events = {sgs.CardUsed},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:hasSkill(self:objectName()) and player:hasFlag("neifa_non_basic") then
+            local use = data:toCardUse()
+            if use.from == player then
+                if use.card:isKindOf("EquipCard") and not player:hasFlag("neifa_equip") then
+                    player:drawCards(2,self:objectName())
+                    room:setPlayerFlag(player,"neifa_equip")
+                elseif use.card:isNDTrick() then
+                    return "luasheyan"
+                end
+            end
+        end
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return true  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+        return false  
+    end,
+}
+yuantanyuanshang:addSkill(neifa)
+yuantanyuanshang:addSkill(neifaRange)
+yuantanyuanshang:addSkill(neifaMod)
+yuantanyuanshang:addSkill(neifaNonBasic)
+extension:insertRelatedSkills("neifa","#neifa-non-basic")
+sgs.LoadTranslationTable{  
+    ["yuantanyuanshang"] = "袁潭&袁尚",  
+      
+    ["neifa"] = "内伐",  
+    [":neifa"] = "出牌阶段开始时，你可以摸1张牌，然后弃置一张牌，若弃置的牌为：基本牌，本回合你只能使用基本牌，且你的攻击范围+1、使用杀的次数+1且可以额外指定一个目标；非基本牌，本回合你只能使用非基本牌，使用锦囊可以增加或减少1个目标，首次使用装备牌时摸2张牌",      
+}
+
 zhangchangpu = sgs.General(extension, "zhangchangpu", "wei", 3, false)  
 
 xingshen = sgs.CreateTriggerSkill{  
