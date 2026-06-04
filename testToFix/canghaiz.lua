@@ -3455,7 +3455,7 @@ jieduoshi_flamemap = sgs.CreateTriggerSkill{ --变相修改原君孙烽火图中
 
 jieqianxun = sgs.CreateTriggerSkill{
     name = "jieqianxun",
-    events = {sgs.CardEffected, sgs.EventPhaseEnd, sgs.TargetConfirmed},
+    events = {sgs.CardEffected, sgs.EventPhaseChanging, sgs.TargetConfirmed},
     on_record = function(self, event, room, player, data)
         if event == sgs.TargetConfirmed and skillTriggerable(player, self:objectName()) then
             local use = data:toCardUse()
@@ -3474,23 +3474,24 @@ jieqianxun = sgs.CreateTriggerSkill{
                 return self:objectName()
             end
             room:setPlayerFlag(player, "-jieqianxunOnly")
-        elseif event == sgs.EventPhaseEnd and player:getPhase() == sgs.Player_Finish then
-            local skill_owners = room:findPlayersBySkillName(self:objectName())
-            if skill_owners:isEmpty() then return false end
-            for _, skill_owner in sgs.qlist(skill_owners) do
-				local pile = skill_owner:getPile("qianxun")
-				if pile:length() > 0 then
-					local dummy = sgs.DummyCard(pile) 
-					room:obtainCard(skill_owner, dummy, false)
-					dummy:deleteLater()
-                    -- 显示获得牌的提示
-                    local msg = sgs.LogMessage()
-                    msg.type = "#jieqianxunObtain"
-                    msg.from = player
-                    msg.arg = pile:length()
-                    room:sendLog(msg)
-				end
-			end
+        elseif event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            if change.to == sgs.Player_NotActive then
+                for _, p in sgs.qlist(room:getAlivePlayers()) do
+                    local pile = p:getPile("qianxun")
+                    if pile:length() > 0 then
+                        local dummy = sgs.DummyCard(pile) 
+                        room:obtainCard(p, dummy, false)
+                        dummy:deleteLater()
+                        -- 显示获得牌的提示
+                        local msg = sgs.LogMessage()
+                        msg.type = "#jieqianxunObtain"
+                        msg.from = player
+                        msg.arg = pile:length()
+                        room:sendLog(msg)
+                    end
+                end
+            end
         end
 		return false
     end,  
