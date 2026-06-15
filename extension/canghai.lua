@@ -7900,5 +7900,156 @@ sgs.LoadTranslationTable{
     [":fenjiLose"] = "每回合限一次。一名角色不因使用或打出失去牌时，你可以失去1点体力，令其摸2张牌"
 }
 ]]
+local function canghaiGiveCards(room, from, to, card_ids, reason_name)
+    if not card_ids or card_ids:isEmpty() then return false end
+    local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, from:objectName(), to:objectName(), reason_name, "")
+    local move = sgs.CardsMoveStruct(card_ids, to, sgs.Player_PlaceHand, reason)
+    room:moveCardsAtomic(move, false)
+    return true
+end
+
+fazheng_canghai = sgs.General(extension, "fazheng_canghai", "shu", 3)
+
+dingjun = sgs.CreateTriggerSkill{
+    name = "dingjun",
+    events = {sgs.EventPhaseEnd},
+    frequency = sgs.Skill_NotFrequent,
+
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+        if player:getPhase() ~= sgs.Player_Draw then return "" end
+        if player:getHandcardNum() < 2 then return "" end
+        if room:getOtherPlayers(player):isEmpty() then return "" end
+        return self:objectName()
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        return player:askForSkillInvoke(self:objectName(), data)
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        if player:getHandcardNum() < 2 then return false end
+
+        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(), "@dingjun-target")
+        if not target then return false end
+
+        local give_ids = room:askForExchange(player, self:objectName(), 2, 2, "@dingjun-give:" .. target:objectName(), "", ".|.|.|hand")
+        if not canghaiGiveCards(room, player, target, give_ids, self:objectName()) then return false end
+        if not (target and target:isAlive()) then return false end
+
+        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+        slash:setSkillName(self:objectName())
+        slash:deleteLater()
+        local victims = sgs.SPlayerList()
+        for _, p in sgs.qlist(room:getOtherPlayers(target)) do
+            if target:canSlash(p, slash, false) then
+                victims:append(p)
+            end
+        end
+
+        if not victims:isEmpty() then
+            local victim = room:askForPlayerChosen(player, victims, self:objectName(), "@dingjun-slash:" .. target:objectName())
+            if victim and room:askForChoice(target,"是否对" .. victim:objectName() .. "使用杀","yes+no")=="yes" then
+                local use = sgs.CardUseStruct()
+                use.from = target
+                use.to:append(victim)
+                use.card = slash
+                room:useCard(use, false)
+                return false
+            end
+        end
+        if target:isAlive() and player:isAlive() and target:getHandcardNum() >= 2 then
+            local return_ids = room:askForExchange(target, self:objectName(), target:getHandcardNum(), 2, "@dingjun-return:" .. player:objectName(), "", ".|.|.|hand")
+            canghaiGiveCards(room, target, player, return_ids, self:objectName())
+            return false
+        end
+        return false
+    end
+}
+
+enyuanHeart = sgs.CreateTriggerSkill{
+    name = "enyuanHeart",
+    events = {sgs.CardsMoveOneTime, sgs.Damaged},
+    frequency = sgs.Skill_Compulsory,
+
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+
+        if event == sgs.CardsMoveOneTime then
+            local move_datas = data:toList()
+            for _, move_data in sgs.qlist(move_datas) do
+                local move = move_data:toMoveOneTime()
+                if move.to and move.to:objectName() == player:objectName()
+                    and move.from and move.from:isAlive() and move.from:objectName() ~= player:objectName()
+                    and (move.to_place == sgs.Player_PlaceHand or move.to_place == sgs.Player_PlaceEquip)
+                    and move.card_ids:length() >= 2 then
+                    return self:objectName()
+                end
+            end
+        elseif event == sgs.Damaged then
+            local damage = data:toDamage()
+            if damage.from and damage.from:isAlive() and damage.from:objectName() ~= player:objectName() and damage.damage > 0 then
+                return self:objectName()
+            end
+        end
+        return ""
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        if player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data) then
+            room:notifySkillInvoked(player, self:objectName())
+            return true
+        end
+        return false
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        if event == sgs.CardsMoveOneTime then
+            local move_datas = data:toList()
+            local drawn = {}
+            for _, move_data in sgs.qlist(move_datas) do
+                local move = move_data:toMoveOneTime()
+                if move.to and move.to:objectName() == player:objectName()
+                    and move.from and move.from:isAlive() and move.from:objectName() ~= player:objectName()
+                    and (move.to_place == sgs.Player_PlaceHand or move.to_place == sgs.Player_PlaceEquip)
+                    and move.card_ids:length() >= 2
+                    and not drawn[move.from:objectName()] then
+                    move.from:drawCards(1, self:objectName())
+                    drawn[move.from:objectName()] = true
+                end
+            end
+        elseif event == sgs.Damaged then
+            local damage = data:toDamage()
+            local source = damage.from
+            if source and source:isAlive() and source:objectName() ~= player:objectName() then
+                local card = room:askForCard(source, ".|heart|.|hand", "@enyuanHeart-give:" .. player:objectName(), data, sgs.Card_MethodNone)
+                if card then
+                    player:obtainCard(card)
+                else
+                    room:loseHp(source, 1)
+                end
+            end
+        end
+        return false
+    end
+}
+
+fazheng_canghai:addSkill(dingjun)
+fazheng_canghai:addSkill(enyuanHeart)
+
+sgs.LoadTranslationTable{
+    ["fazheng_canghai"] = "法正",
+    ["dingjun"] = "定军",
+    [":dingjun"] = "摸牌阶段结束时，你可以交给一名其他角色两张手牌，然后令其视为对你指定的另一名角色使用一张【杀】；若不能如此做，其交给你至少两张手牌。",
+    ["@dingjun-target"] = "请选择【定军】的受牌角色",
+    ["@dingjun-give"] = "请交给该角色两张手牌",
+    ["@dingjun-slash"] = "请选择令该角色视为使用【杀】的目标",
+    ["@dingjun-return"] = "请交给法正至少两张手牌",
+
+    ["enyuanHeart"] = "恩怨",
+    [":enyuanHeart"] = "锁定技。当你获得其他角色至少两张牌后，你令其摸一张牌；当你受到其他角色造成的伤害后，其需交给你一张红桃手牌，否则失去1点体力。",
+    ["@enyuanHeart-give"] = "请交给法正一张红桃手牌，否则你失去1点体力"
+}
+
 sgs.Sanguosha:addSkills(skills)
 return {extension}
