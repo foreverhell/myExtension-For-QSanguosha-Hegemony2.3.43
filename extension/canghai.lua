@@ -7966,7 +7966,6 @@ dingjun = sgs.CreateTriggerSkill{
         return false
     end
 }
-
 enyuanHeart = sgs.CreateTriggerSkill{
     name = "enyuanHeart",
     events = {sgs.CardsMoveOneTime, sgs.Damaged},
@@ -7976,14 +7975,21 @@ enyuanHeart = sgs.CreateTriggerSkill{
         if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
 
         if event == sgs.CardsMoveOneTime then
-            local move_datas = data:toList()
-            for _, move_data in sgs.qlist(move_datas) do
-                local move = move_data:toMoveOneTime()
-                if move.to and move.to:objectName() == player:objectName()
-                    and move.from and move.from:isAlive() and move.from:objectName() ~= player:objectName()
-                    and (move.to_place == sgs.Player_PlaceHand or move.to_place == sgs.Player_PlaceEquip)
-                    and move.card_ids:length() >= 2 then
-                    return self:objectName()
+            if skillTriggerable(player, self:objectName()) then
+                local current = room:getCurrent()
+                if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+                    local move_datas = data:toList()
+                    for _, move_data in sgs.qlist(move_datas) do
+                        local move = move_data:toMoveOneTime()
+                        if move.to_place == sgs.Player_PlaceHand or move.to_place == sgs.Player_PlaceEquip then
+                            if move.to and move.to:isAlive() and player:objectName()==move.to:objectName() 
+                                and move.from and move.from:isAlive() and move.from:objectName() ~= player:objectName() then
+                                if move.card_ids:length() >= 2 then
+                                    return self:objectName()
+                                end
+                            end
+                        end
+                    end
                 end
             end
         elseif event == sgs.Damaged then
