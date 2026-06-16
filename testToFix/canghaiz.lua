@@ -3626,15 +3626,7 @@ luadingjun = sgs.CreateTriggerSkill{
                     room:useCard(sgs.CardUseStruct(slash, target, slashTarget), false)
                     slash:deleteLater()
                 else
-                    local toGive = {}
-                    toGive = Table2IntList(toGive)
-                    local handcards = target:getHandcards()
-                    for _, card in sgs.qlist(handcards) do
-                        toGive:append(card:getId())
-                    end
-                    if toGive:length() > 2 then
-                        toGive = room:askForExchange(target, self:objectName(), -1, 2)
-                    end
+                    local toGive = room:askForExchange(target, self:objectName(), -1, 2)
                     if toGive:isEmpty() or toGive:length() < 2 then --超时未选择
                         for _, c in sgs.qlist(handcards) do
                             toGive:append(c:getId())
