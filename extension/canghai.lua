@@ -7899,7 +7899,7 @@ sgs.LoadTranslationTable{
     ["fenjiLose"] = "奋激",
     [":fenjiLose"] = "每回合限一次。一名角色不因使用或打出失去牌时，你可以失去1点体力，令其摸2张牌"
 }
-]]
+
 local function canghaiGiveCards(room, from, to, card_ids, reason_name)
     if not card_ids or card_ids:isEmpty() then return false end
     local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, from:objectName(), to:objectName(), reason_name, "")
@@ -7966,6 +7966,7 @@ dingjun = sgs.CreateTriggerSkill{
         return false
     end
 }
+
 enyuanHeart = sgs.CreateTriggerSkill{
     name = "enyuanHeart",
     events = {sgs.CardsMoveOneTime, sgs.Damaged},
@@ -8056,6 +8057,6 @@ sgs.LoadTranslationTable{
     [":enyuanHeart"] = "锁定技。当你获得其他角色至少两张牌后，你令其摸一张牌；当你受到其他角色造成的伤害后，其需交给你一张红桃手牌，否则失去1点体力。",
     ["@enyuanHeart-give"] = "请交给法正一张红桃手牌，否则你失去1点体力"
 }
-
+]]
 sgs.Sanguosha:addSkills(skills)
 return {extension}
