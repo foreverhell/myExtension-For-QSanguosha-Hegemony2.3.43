@@ -759,7 +759,8 @@ jiezhiren = sgs.CreateTriggerSkill{
 				end
 			end
 			if card and card:isRed() and card:getTypeId() ~= sgs.Card_TypeSkill and (card:getSkillName() == "" or 
-			card:objectName() == "AoZhan") then 
+			card:objectName() == "AoZhan") then
+				room:setPlayerFlag(player, "First_card_use")
 				return self:objectName()
 			end
 		end
@@ -802,7 +803,6 @@ jiezhiren = sgs.CreateTriggerSkill{
 			end
 		end
 		if card_use == nil then return false end
-		room:setPlayerFlag(player, "First_card_use")
 		local choices = {"jiezhiren_guanxing", "jiezhiren_discardEquip"}
 		local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"), data)
 		if choice == "jiezhiren_guanxing" then
@@ -1022,6 +1022,7 @@ sgs.LoadTranslationTable{
 jieyinbing = sgs.CreateTriggerSkill{
 	name = "jieyinbing",
 	events = {sgs.EventPhaseEnd, sgs.EventPhaseStart, sgs.EventLoseSkill},
+	priority = -1,
 	on_record = function(self, event, room, player, data)
 		if event == sgs.EventLoseSkill and data:toString():split(":")[1] == self:objectName() and player then
 			player:clearOnePrivatePile("pileOfYinbing")
@@ -1177,10 +1178,10 @@ sgs.LoadTranslationTable{
 	["@jieyinbing-remove"] = "引兵：移去 %arg 张“引兵”牌以减少等量的伤害",
 	["pileOfYinbing"] = "引兵",
 	["#jieyinbing_damaged"] = "引兵",
-	["#jieyinbingReduceDamage"] = "%from 发动了“%arg2”减少了 “%agr1” 点伤害",
+	["#jieyinbingReduceDamage"] = "%from 发动了“%arg2”减少了 “%arg1” 点伤害",
 }
 
-taipingShow = sgs.CreateZeroCardViewAsSkill{
+--[[taipingShow = sgs.CreateZeroCardViewAsSkill{
 	name = "taipingShow",
 	view_as = function(self)
 		local card = sgs.cloneSkillCard("ShowMashu")
@@ -1191,12 +1192,12 @@ taipingShow = sgs.CreateZeroCardViewAsSkill{
 	enabled_at_play = function(self, player)
 		return not player:hasShownSkill("taidan")
 	end
-}
+}]]
 
 taidan = sgs.CreateTriggerSkill{
 	name = "taidan",
 	frequency = sgs.Skill_Compulsory,
-	view_as_skill = taipingShow,
+	--view_as_skill = taipingShow,
 	can_trigger = function(self, event, room, player, data)
 		return false
 	end
@@ -1313,7 +1314,7 @@ sgs.LoadTranslationTable{
 
 jienuzhan = sgs.CreateTriggerSkill{
 	name = "jienuzhan",
-	events = {sgs.CardUsed, sgs.DamageCaused, sgs.EventPhaseChanging, sgs.CardFinished},
+	events = {sgs.CardUsed, sgs.DamageCaused, sgs.EventPhaseChanging},
 	frequency = sgs.Skill_Compulsory,
 	on_record = function(self, event, room, player, data)
 		if event == sgs.EventPhaseChanging then
@@ -2474,7 +2475,7 @@ jiebuqu = sgs.CreateTriggerSkill{
         room:drawCards(player, 1)
         --选择一张牌
         --local card_id = room:askForCardChosen(player,player, "he", self:objectName())
-		local card_idex = room:askForExchange(player, self:objectName(), 1, 1)
+		local card_idex = room:askForExchange(player, self:objectName(), 1, 1, "@jiebuqu-put", "", ".|.|.|hand")
 		local card_id = card_idex:at(0)
         local card = sgs.Sanguosha:getCard(card_id)
 		local pile = player:getPile("scars")
@@ -2514,7 +2515,7 @@ jiefenji = sgs.CreateTriggerSkill{
 					local move = move_data:toMoveOneTime()
 					local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
 					if reasonx ~= sgs.CardMoveReason_S_REASON_USE and reasonx ~= sgs.CardMoveReason_S_REASON_RESPONSE then
-                        if move.from and move.from:isAlive() and (move.from_places:contains(sgs.Player_PlaceHand) or move.from_places:contains(sgs.Player_PlaceEquip)) then
+                        if move.from and move.from:isAlive() and move.from_places:contains(sgs.Player_PlaceHand) then
                             return self:objectName()
                         end
 					end
@@ -2537,7 +2538,8 @@ jiefenji = sgs.CreateTriggerSkill{
 				move_from:objectName(), "yes+no")
 				if choice == "yes" then
 					room:broadcastSkillInvoke("fenji", player)
-					room:setPlayerFlag(player,"fenji_used")
+					room:doAnimate(1, player:objectName(), move_from:objectName())
+					room:setPlayerFlag(player, "fenji_used")
 					room:loseHp(player, 1)
 					player:setTag("@jiefenji_target", d)
 					return true
@@ -2561,10 +2563,11 @@ jiezhoutai:addSkill(jiebuqu)
 sgs.LoadTranslationTable{
 	["jiezhoutai"] = "周泰",
     ["jiebuqu"] = "不屈",
-    [":jiebuqu"] = "锁定技，你进入濒死状态时，你摸一张牌，并将一张牌置入“创”，若“创”的花色均不相同，你回复体力至1点。",
+    [":jiebuqu"] = "锁定技，你进入濒死状态时，你摸一张牌，并将一张手牌置入“创”，若“创”的花色均不相同，你回复体力至1点。",
     ["jiefenji"] = "奋激",
-    [":jiefenji"] = "每回合限一次，一名角色不因使用或打出失去牌时，你可以失去1点体力，令其摸两张牌。",
+    [":jiefenji"] = "每回合限一次，一名角色不因使用或打出失去手牌时，你可以失去1点体力，令其摸两张牌。",
 	["@jiefenji-draw"] = "奋激：是否失去1点体力令%dest摸两张牌",
+	["@jiebuqu-put"] = "不屈：请选择一张手牌置入“创”",
 }
 
 sgs.Sanguosha:addSkills(skills)
