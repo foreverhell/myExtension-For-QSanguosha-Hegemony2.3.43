@@ -372,7 +372,33 @@ sgs.LoadTranslationTable{
     ["@xianzhou-damage"] = "献州：请选择攻击范围内的一名角色造成1点伤害",
 }
 
-
+caoren = sgs.General(extension, "caoren", "wei", 4)
+jiewei = sgs.CreateOneCardViewAsSkill{  
+    name = "jiewei",  
+    filter_pattern = ".|.|.|equipped",  -- 梅花手牌  
+    view_as = function(self, card)  
+        local Nullification = sgs.Sanguosha:cloneCard("nullification", card:getSuit(), card:getNumber())  
+        Nullification:addSubcard(card:getId())  
+        Nullification:setSkillName(self:objectName())  --设置转化牌的技能名
+        Nullification:setShowSkill(self:objectName())  --使用时亮将
+        return Nullification  
+    end,
+    enabled_at_play = function(self, player)  
+        return false  -- 出牌阶段不能主动使用  
+    end,  
+    enabled_at_response = function(self, player, pattern)  
+        return pattern == "nullification" and player:getHandcardNum() > player:getHp() and not player:getEquips():isEmpty() -- 只在需要无懈可击时可用  
+    end,  
+    enabled_at_nullification = function(self, player)
+        return player:getHandcardNum() > player:getHp() and not player:getEquips():isEmpty()
+    end
+}  
+caoren:addSkill("jushou")
+caoren:addSkill(jiewei)
+sgs.LoadTranslationTable{
+    ["jiewei"] = "解围",
+    [":jiewei"] = "若你的手牌数大于体力值，你可以将装备区的牌当【无懈可击】使用"
+}
 caoshuang = sgs.General(extension, "caoshuang", "wei", 4)
 anjin = sgs.CreateTriggerSkill{  
     name = "anjin",  
@@ -7878,6 +7904,7 @@ huyi = sgs.CreateTriggerSkill{
 zhujun_canghai:addSkill(cuipo)
 zhujun_canghai:addSkill(huyi)
 sgs.LoadTranslationTable{
+    ["zuoci"] = "左慈",
     ["zhujun_canghai"] = "朱儁",
     ["cuipo"] = "摧破",
     [":cuipo"] = "锁定技。出牌阶段，你使用第X张牌（X为该牌名称的字数）造成的伤害+1",
