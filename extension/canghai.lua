@@ -371,6 +371,100 @@ sgs.LoadTranslationTable{
     ["@xianzhou"] = "献州",  
     ["@xianzhou-damage"] = "献州：请选择攻击范围内的一名角色造成1点伤害",
 }
+
+
+caoshuang = sgs.General(extension, "caoshuang", "wei", 4)
+anjin = sgs.CreateTriggerSkill{  
+    name = "anjin",  
+    events = {sgs.Damage, sgs.EventPhaseStart, sgs.EventPhaseEnd},  
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        local owner = room:findPlayerBySkillName(self:objectName())
+        if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
+        if event == sgs.Damage then
+            local damage = data:toDamage()
+            if damage.from and owner:isFriendWith(damage.from) then
+                room:setPlayerFlag(damage.from,"anjin_damage")
+            end
+        elseif event == sgs.EventPhaseStart then
+            if player:getPhase() == sgs.Player_Discard and owner:isFriendWith(player) and not player:hasFlag("anjin_damage") then
+                return self:objectName(), owner:objectName()
+            end
+        elseif event == sgs.EventPhaseEnd then
+            if player:getPhase() == sgs.Player_Discard and owner:isFriendWith(player) then
+                local n = player:getMark("@anjin_slash_count")
+                if n > 0 then
+                    room:loseHp(player, n)
+                    room:setPlayerMark(player, "@anjin_slash_count", 0)
+                end
+            end
+        end
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        return ask_who:askForSkillInvoke(self:objectName(), data)  
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)
+        --摸至多3张牌
+        local choices = {"anjin_draw1", "anjin_draw2", "anjin_draw3"}
+        local choice = room:askForChoice(ask_who, self:objectName(), table.concat(choices, "+"))
+        local draw_num = tonumber(choice:sub(-1))
+        player:drawCards(draw_num)
+        --对等量距离内的角色使用一张【杀】
+        local targets = room:getOtherPlayers(player)
+        local valid_targets = sgs.SPlayerList()
+        for _, p in sgs.qlist(targets) do
+            if player:distanceTo(p) <= draw_num then
+                valid_targets:append(p)
+            end
+        end
+        if not valid_targets:isEmpty() then
+            local target = room:askForPlayerChosen(ask_who, valid_targets, self:objectName(), "@anjin-slash", true)
+            if target then
+                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                slash:setSkillName(self:objectName())
+                slash:deleteLater()
+                local use = sgs.CardUseStruct()
+                use.from = player
+                use.to:append(target)
+                use.card = slash
+                room:useCard(use)
+            end
+        end
+        --弃牌
+        num = player:getHandcardNum() - player:getMaxCards()
+        if num > 0 then
+            local card_ids = room:askForExchange(player, self:objectName(),   
+                                                num, num,   
+                                                "@anjin-discard", "", ".|.|.|hand")
+            --计算杀的数量
+            local slash_count = 0
+            for _, id in sgs.qlist(card_ids) do
+                local card = sgs.Sanguosha:getCard(id)
+                if card:isKindOf("Slash") then
+                    slash_count = slash_count + 1
+                end
+            end
+            room:setPlayerMark(player, "@anjin_slash_count", slash_count)
+            --弃牌
+            local dummy = sgs.DummyCard(card_ids)
+            room:throwCard(dummy, player, player)  
+            dummy:deleteLater()
+        end
+    end
+}
+caoshuang:addSkill(anjin)    
+sgs.LoadTranslationTable{
+    ["caoshuang"] = "曹爽",
+    ["#caoshuang"] = "骄愎权臣",
+    ["anjin"] = "黯进",
+    [":anjin"] = "与你势力相同的角色弃牌阶段开始时，若其本回合未造成过伤害，你可以令其摸至多3张牌并视为对等量距离内你指定的另一名角色使用一张【杀】，然后此阶段结束时，其于此阶段每弃置过一张【杀】便失去1点体力。",
+    ["anjin_draw1"] = "摸1张牌",
+    ["anjin_draw2"] = "摸2张牌",
+    ["anjin_draw3"] = "摸3张牌",
+}
 --[[
 -- 创建董允武将  
 dongyun = sgs.General(extension, "dongyun", "shu", 3)
