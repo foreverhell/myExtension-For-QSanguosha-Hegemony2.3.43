@@ -1843,6 +1843,139 @@ sgs.LoadTranslationTable{
 	["~chengpu"] = "汝等叛逆之贼，安敢索命于我！啊……",
 }
 
+local qinzhong_deputy_piles = {
+	zhoutai = {"scars"},
+	jiezhoutai = {"scars"},
+}
+
+local function qinzhongValidDeputyName(name)
+	return name and name ~= "" and name ~= "anjiang" and not string.find(name, "sujiang") and sgs.Sanguosha:getGeneral(name)
+end
+
+local function qinzhongCanExchange(player1, player2)
+	if not player1 or not player2 or player1 == player2 or not player1:isAlive() or not player2:isAlive() then return false end
+	if not player1:isFriendWith(player2) then return false end
+	local player1Name = player1:getActualGeneral2Name()
+	local player2Name = player2:getActualGeneral2Name()
+	return qinzhongValidDeputyName(player1Name) and qinzhongValidDeputyName(player2Name) and player1Name ~= player2Name
+end
+
+local function qinzhongDeputySkillList(generalName)
+	local general = sgs.Sanguosha:getGeneral(generalName)
+	if general then
+		return general:getVisibleSkillList(true, false)
+	end
+	return sgs.SkillList()
+end
+
+local function qinzhongHeadLimitMarks(player)
+	local marks = {}
+	local general = sgs.Sanguosha:getGeneral(player:getActualGeneral1Name())
+	if general then
+		for _, skill in sgs.qlist(general:getVisibleSkillList(true, true)) do
+			if skill:getFrequency() == sgs.Skill_Limited and skill:getLimitMark() ~= "" then
+				marks[skill:getLimitMark()] = true
+			end
+		end
+	end
+	return marks
+end
+
+local function qinzhongDeputyLimitMarks(player, generalName)
+	local marks = {}
+	for _, skill in sgs.qlist(qinzhongDeputySkillList(generalName)) do
+		if skill:getFrequency() == sgs.Skill_Limited and skill:getLimitMark() ~= "" then
+			marks[skill:getLimitMark()] = player:getMark(skill:getLimitMark())
+		end
+	end
+	return marks
+end
+
+local function qinzhongSetLimitMarks(room, player, incomingMarks, oldMarks)
+	local headMarks = qinzhongHeadLimitMarks(player)
+	for mark, _ in pairs(oldMarks) do
+		if incomingMarks[mark] == nil and not headMarks[mark] then
+			room:setPlayerMark(player, mark, 0)
+		end
+	end
+	for mark, value in pairs(incomingMarks) do
+		room:setPlayerMark(player, mark, value)
+	end
+end
+
+local function qinzhongCopyPile(player, pileName)
+	local ids = sgs.IntList()
+	for _, id in sgs.qlist(player:getPile(pileName)) do
+		ids:append(id)
+	end
+	return ids
+end
+
+local function qinzhongDeputyPileSnapshot(player, generalName)
+	local pileNames = qinzhong_deputy_piles[generalName] or {}
+	local piles = {}
+	for _, pileName in ipairs(pileNames) do
+		local ids = qinzhongCopyPile(player, pileName)
+		if not ids:isEmpty() then
+			table.insert(piles, {name = pileName, ids = ids})
+		end
+	end
+	return piles
+end
+
+local function qinzhongMoveDeputyPilesToTemp(to, piles)
+	for _, pile in ipairs(piles) do
+		pile.tempName = "qinzhong_temp_" .. to:objectName() .. "_" .. pile.name
+		to:addToPile(pile.tempName, pile.ids, true)
+	end
+end
+
+local function qinzhongRestoreDeputyPiles(player, piles)
+	for _, pile in ipairs(piles) do
+		local ids = qinzhongCopyPile(player, pile.tempName)
+		if not ids:isEmpty() then
+			player:addToPile(pile.name, ids, true)
+		end
+	end
+end
+
+local function qinzhongDetachDeputySkills(room, player, generalName)
+	for _, skill in sgs.qlist(qinzhongDeputySkillList(generalName)) do
+		room:detachSkillFromPlayer(player, skill:objectName(), false, false, false)
+	end
+end
+
+local function qinzhongAddDeputySkills(player, generalName)
+	if player:isDuanchang(false) then return end
+	for _, skill in sgs.qlist(qinzhongDeputySkillList(generalName)) do
+		player:addSkill(skill:objectName(), false)
+	end
+	if player:hasShownGeneral2() then
+		player:sendSkillsToOthers(false)
+	end
+end
+
+local function qinzhongSetGeneralTag(room, player, deputyName)
+	local names = sgs.VariantList()
+	names:append(sgs.QVariant(player:getActualGeneral1Name()))
+	names:append(sgs.QVariant(deputyName))
+	room:setTag(player:objectName(), sgs.QVariant(names))
+end
+
+local function qinzhongSetDeputyGeneral(room, player, deputyName, shown)
+	player:setActualGeneral2Name(deputyName)
+	qinzhongSetGeneralTag(room, player, deputyName)
+	if shown then
+		room:setPlayerProperty(player, "general2_showed", sgs.QVariant(true))
+		room:changePlayerGeneral2(player, deputyName)
+	else
+		room:changePlayerGeneral2(player, "anjiang")
+		room:notifyProperty(player, player, "actual_general2")
+		room:notifyProperty(player, player, "general2", deputyName)
+		room:setPlayerProperty(player, "general2_showed", sgs.QVariant(false))
+	end
+end
+
 qinzhong = sgs.CreateTriggerSkill{
 	name = "qinzhong" ,
 	events = {sgs.EventPhaseStart},
@@ -1852,7 +1985,35 @@ qinzhong = sgs.CreateTriggerSkill{
 		local room = player1:getRoom()
 		local player1Name = player1:getActualGeneral2Name()
 		local player2Name = player2:getActualGeneral2Name()
-		local relatedName = {"ganning", "sunjian", "zhoutai", "lingtong", "luyusheng", "zumao", "panjun"}
+		if not qinzhongCanExchange(player1, player2) then return false end
+
+		local player1Shown = player1:hasShownGeneral2()
+		local player2Shown = player2:hasShownGeneral2()
+		local player1Marks = qinzhongDeputyLimitMarks(player1, player1Name)
+		local player2Marks = qinzhongDeputyLimitMarks(player2, player2Name)
+		local player1Piles = qinzhongDeputyPileSnapshot(player1, player1Name)
+		local player2Piles = qinzhongDeputyPileSnapshot(player2, player2Name)
+
+		qinzhongMoveDeputyPilesToTemp(player2, player1Piles)
+		qinzhongMoveDeputyPilesToTemp(player1, player2Piles)
+
+		qinzhongDetachDeputySkills(room, player1, player1Name)
+		qinzhongDetachDeputySkills(room, player2, player2Name)
+
+		qinzhongSetDeputyGeneral(room, player1, player2Name, player1Shown)
+		qinzhongSetDeputyGeneral(room, player2, player1Name, player2Shown)
+		qinzhongRestoreDeputyPiles(player1, player2Piles)
+		qinzhongRestoreDeputyPiles(player2, player1Piles)
+
+		qinzhongAddDeputySkills(player1, player2Name)
+		qinzhongAddDeputySkills(player2, player1Name)
+
+		qinzhongSetLimitMarks(room, player1, player2Marks, player1Marks)
+		qinzhongSetLimitMarks(room, player2, player1Marks, player2Marks)
+
+		room:filterCards(player1, player1:getCards("he"), true)
+		room:filterCards(player2, player2:getCards("he"), true)
+		return true
 	end,
 	
 	can_trigger = function(self, event, room, player, data)
@@ -1861,7 +2022,7 @@ qinzhong = sgs.CreateTriggerSkill{
 			== sgs.Player_RoundStart then
 				local hasFriend = false
 				for _, p in sgs.qlist(room:getAlivePlayers()) do
-					if player:isFriendWith(p) and p ~= player then
+					if qinzhongCanExchange(player, p) then
 						hasFriend = true
 						break
 					end
@@ -1885,15 +2046,14 @@ qinzhong = sgs.CreateTriggerSkill{
 	on_effect = function(self, event, room, player, data)
 		local same_kingdom_players = sgs.SPlayerList()
 		for _, p in sgs.qlist(room:getOtherPlayers(player)) do  --获得其他同势力角色
-			if p:isFriendWith(player) then
+			if qinzhongCanExchange(player, p) then
 				same_kingdom_players:append(p)
 			end
 		end
 		if not same_kingdom_players:isEmpty() then
 			local dePlayer = room:askForPlayerChosen(player, same_kingdom_players, self:objectName(), "@qinzhong-invoke", true ,true)
-			local playerName = player:getActualGeneral2Name()
 			if dePlayer then
-				
+				self:exchangeDeputyGeneral(player, dePlayer)
 			end
 		end
 		return false
@@ -1907,12 +2067,12 @@ zhaofu = sgs.CreateTriggerSkill{
 	can_trigger = function(self, event, room, player, data)
 		if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Play and not player:isNude() then
 			local rewardNum = 0
-			for _, p in sgs.qlist(room:getOtherPlayers()) do
+			for _, p in sgs.qlist(room:getOtherPlayers(player)) do
 				if p:getMark("@reward") > 0 then
 					rewardNum = rewardNum + p:getMark("@reward")
 				end
 			end
-			if rewardNum < 3 and room:getOtherPlayers():length() > rewardNum then --“赏”标记数少于3且其他角色数量比“赏”标记数多
+			if rewardNum < 3 and room:getOtherPlayers(player):length() > rewardNum then --“赏”标记数少于3且其他角色数量比“赏”标记数多
 				return self:objectName()
 			end
 		end
@@ -1929,7 +2089,7 @@ zhaofu = sgs.CreateTriggerSkill{
 
 	on_effect = function(self, event, room, player, data)
 		local target_to = sgs.SPlayerList()
-		for _, p in sgs.qlist(room:getOtherPlayers()) do
+		for _, p in sgs.qlist(room:getOtherPlayers(player)) do
 			if p:getMark("@reward") == 0 then
 				target_to:append(p)
 			end
@@ -1945,24 +2105,35 @@ zhaofu = sgs.CreateTriggerSkill{
 	end
 }
 
+zhaofuUse = sgs.CreateZeroCardViewAsSkill{
+	name = "zhaofuUse",
+	response_pattern = "@@zhaofu2",
+	response_or_use = true,
+	view_as = function(self)
+		local card_id = sgs.Self:getMark("zhaofuCardid") - 1
+		if card_id < 0 then return nil end
+		return sgs.Sanguosha:getCard(card_id)
+	end,
+}
+
 zhaofuUseCard = sgs.CreateTriggerSkill{
 	name = "#zhaofuUseCard",
 	events = {sgs.CardFinished},
 	frequency = sgs.Skill_Compulsory,
 	can_trigger = function(self, event, room, player, data)
 		if player and player:isAlive() and player:getMark("@reward") == 1 then
-			local effect = data:toCardEffect()
-			if effect and effect.card and effect.card:getTypeId() ~= sgs.Card_TypeSkill and effect.from == player then
-				local card = effect.card
-				if card:isKindOf("Jink") or card:isKindOf("Nullification") or card:isNDTrick() or card:getTypeId() == 
-				sgs.Card_TypeEquip then
+			local use = data:toCardUse()
+			if use and use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill and use.from == player then
+				local card = use.card
+				if card:isKindOf("Jink") or card:isKindOf("Nullification") or card:getTypeId() == sgs.Card_TypeEquip
+					or not (card:isKindOf("BasicCard") or card:isNDTrick()) then
 					return false
 				end
 				local skill_list = {}
 				local name_list = {}
 				local skill_owners = room:findPlayersBySkillName("zhaofu")
 				for _, skill_owner in sgs.qlist(skill_owners) do
-					if skillTriggerable(skill_owner, self:objectName()) then
+					if skillTriggerable(skill_owner, "zhaofu") and card:getEffectiveId() >= 0 then
 						table.insert(skill_list, self:objectName())
 						table.insert(name_list, skill_owner:objectName())
 					end
@@ -1974,7 +2145,14 @@ zhaofuUseCard = sgs.CreateTriggerSkill{
 	end,
 
 	on_cost = function(self, event, room, player, data, skill_owner)
-		if skill_owner:askForSkillInvoke(self:objectName(), data) then
+		if not player or player:getMark("@reward") == 0 then return false end
+		local use = data:toCardUse()
+		if not use or not use.card or use.card:getEffectiveId() < 0 then return false end
+		room:setPlayerMark(skill_owner, "zhaofuCardid", use.card:getEffectiveId() + 1)
+		local prompt = "@zhaofu2:::" .. use.card:objectName()
+		local invoke = room:askForUseCard(skill_owner, "@@zhaofu2", prompt, -1, sgs.Card_MethodUse, false)
+		room:setPlayerMark(skill_owner, "zhaofuCardid", 0)
+		if invoke then
 			room:broadcastSkillInvoke("zhaofu", skill_owner)
 			return true
 		end
@@ -1982,13 +2160,17 @@ zhaofuUseCard = sgs.CreateTriggerSkill{
 	end,
 
 	on_effect = function(self, event, room, player, data, skill_owner)
-		local effect = data:toCardEffect()
-
+		if player and player:isAlive() and player:getMark("@reward") > 0 then
+			room:removePlayerMark(player, "@reward")
+		end
 		return false
 	end
 }
---quancong:addSkill(qinzhong)
---quancong:addSkill(zhaofu)
+quancong:addSkill(qinzhong)
+quancong:addSkill(zhaofu)
+quancong:addSkill(zhaofuUseCard)
+xiliang:insertRelatedSkills("zhaofu", "#zhaofuUseCard")
+if not sgs.Sanguosha:getSkill("zhaofuUse") then skills:append(zhaofuUse) end
 
 sgs.LoadTranslationTable{
 	["#quancong"] = "慕势耀族",
