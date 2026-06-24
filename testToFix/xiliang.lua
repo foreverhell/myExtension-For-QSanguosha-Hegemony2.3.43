@@ -2019,7 +2019,7 @@ qinzhong = sgs.CreateTriggerSkill{
 	can_trigger = function(self, event, room, player, data)
 		if skillTriggerable(player, self:objectName()) and event == sgs.EventPhaseStart then
 			if (player:hasShownGeneral1() or player:hasShownGeneral2()) and player:getRole() ~= "careerist" and player:getPhase() 
-			== sgs.Player_RoundStart then
+			== sgs.Player_Start then
 				local hasFriend = false
 				for _, p in sgs.qlist(room:getAlivePlayers()) do
 					if qinzhongCanExchange(player, p) then
@@ -2148,10 +2148,13 @@ zhaofuUseCard = sgs.CreateTriggerSkill{
 		if not player or player:getMark("@reward") == 0 then return false end
 		local use = data:toCardUse()
 		if not use or not use.card or use.card:getEffectiveId() < 0 then return false end
-		room:setPlayerMark(skill_owner, "zhaofuCardid", use.card:getEffectiveId() + 1)
+		if use.card:isKindOf("Jink") or use.card:isKindOf("Nullification") or use.card:isKindOf("ThreatenEmperor") then
+			return false
+		end
+		room:setPlayerMark(skill_owner, "zhuikongCardid", use.card:getEffectiveId() + 1)
 		local prompt = "@zhaofu2:::" .. use.card:objectName()
-		local invoke = room:askForUseCard(skill_owner, "@@zhaofu2", prompt, -1, sgs.Card_MethodUse, false)
-		room:setPlayerMark(skill_owner, "zhaofuCardid", 0)
+		local invoke = room:askForUseCard(skill_owner, "@@zhuikongUse", prompt)
+		room:setPlayerMark(skill_owner, "zhuikongCardid", 0)
 		if invoke then
 			room:broadcastSkillInvoke("zhaofu", skill_owner)
 			return true
@@ -2166,7 +2169,7 @@ zhaofuUseCard = sgs.CreateTriggerSkill{
 		return false
 	end
 }
-quancong:addSkill(qinzhong)
+--quancong:addSkill(qinzhong)
 quancong:addSkill(zhaofu)
 quancong:addSkill(zhaofuUseCard)
 xiliang:insertRelatedSkills("zhaofu", "#zhaofuUseCard")
