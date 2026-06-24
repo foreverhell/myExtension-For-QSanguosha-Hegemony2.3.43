@@ -8179,5 +8179,182 @@ sgs.LoadTranslationTable{
     ["@enyuanHeart-give"] = "请交给法正一张红桃手牌，否则你失去1点体力"
 }
 ]]
+
+zhangwen = sgs.General(extension, "zhangwen", "wu", 3)
+local function heyi_is_transferable(player, card)
+    if card:isTransferable() then return true end
+
+    -- 兼容“弘援”这类用 view_as_transferable 属性临时添加合纵标识的实现
+    local str = player:property("view_as_transferable"):toString()
+    if str and str ~= "" then
+        for _, id in ipairs(str:split("+")) do
+            if tonumber(id) == card:getEffectiveId() then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+heyiVS = sgs.CreateViewAsSkill{
+    name = "heyi",
+    n = 3,
+
+    view_filter = function(self, selected, to_select)
+        if #selected >= 3 then return false end
+        if to_select:isEquipped() then return false end
+        return heyi_is_transferable(sgs.Self, to_select)
+    end,
+
+    view_as = function(self, cards)
+        if #cards == 0 then return nil end
+
+        local ids = {}
+        for _, card in ipairs(cards) do
+            table.insert(ids, card:getEffectiveId())
+        end
+
+        local transfer = sgs.Card_Parse("@TransferCard=" .. table.concat(ids, "+") .. "&heyi")
+        if transfer then
+            transfer:setSkillName(self:objectName())
+            transfer:setShowSkill(self:objectName())
+        end
+        return transfer
+    end,
+
+    enabled_at_play = function(self, player)
+        if player:usedTimes("TransferCard") >= 2 then return false end
+
+        for _, card in sgs.qlist(player:getHandcards()) do
+            if heyi_is_transferable(player, card) then
+                return true
+            end
+        end
+
+        return false
+    end
+}
+
+heyi = sgs.CreateTriggerSkill{
+    name = "heyi",
+    events = {sgs.CardFinished},
+    --frequency = sgs.Skill_Compulsory,
+    view_as_skill = heyiVS,
+
+    can_trigger = function(self, event, room, player, data)
+        if not player or not player:isAlive() then return "" end
+        if not skillTriggerable(player, self:objectName()) then return "" end
+
+        local use = data:toCardUse()
+        if use.card and use.card:isKindOf("TransferCard") then
+            if use.to and not use.to:isEmpty() and use.to:first():hasShownOneGeneral() then
+                return self:objectName()
+            end
+        end
+
+        return ""
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data)
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        player:drawCards(1, self:objectName())
+        return false
+    end
+}
+--实现1：不需要转化“合纵”标识的牌可以直接用方法1. 张温若增加合纵次数，则最好用方法2
+songshu = sgs.CreateViewAsSkill{
+    name = "songshu",
+    n = 3,
+
+    view_filter = function(self, selected, to_select)
+        if #selected >= 3 then return false end
+        if to_select:isEquipped() then return false end
+        return to_select:isRed() or to_select:isTransferable()
+    end,
+
+    view_as = function(self, cards)
+        if #cards == 0 then return nil end
+
+        local ids = {}
+        for _, card in ipairs(cards) do
+            table.insert(ids, card:getId())
+        end
+
+        local transfer = sgs.Card_Parse("@TransferCard=" .. table.concat(ids, "+"))--等价于克隆“合纵”技能卡，并添加子卡
+        if transfer then
+            transfer:setSkillName(self:objectName())
+            transfer:setShowSkill(self:objectName())
+        end
+        return transfer
+    end,
+
+    enabled_at_play = function(self, player)
+        if player:hasUsed("TransferCard") then return false end
+
+        for _, card in sgs.qlist(player:getHandcards()) do
+            if card:isRed() or card:isTransferable() then
+                return true
+            end
+        end
+        return false
+    end
+}
+sgs.LoadTranslationTable{
+    ["zhangwen"] = "张温",
+    ["heyi"] = "合异",
+    [":heyi"] = "锁定技，你出牌阶段“合纵”次数+1；你因合纵摸牌后摸一张牌。",
+    ["songshu"] = "颂蜀",
+    [":songshu"] = "你的红色手牌视为带有“合纵”标识。",
+}
+--实现2：袁绍另一个技能是转化带有“合纵”的牌，因此不能用方法1
+shiziCard = sgs.CreateSkillCard{
+    name = "shizi",
+    target_fixed = true,
+    on_use = function(self, room, source, targets)
+        local ids = self:getSubcards()
+        --将选中的装备牌的id拼接成字符串，并设置为玩家的“view_as_transferable”属性
+        room:setPlayerProperty(source, "view_as_transferable", sgs.QVariant(table.concat(ids, "+")))
+        --[[
+        local transfer_card = sgs.Card_Parse("@TransferCard=" .. table.concat(ids, "+"))
+        if transfer_card then
+            room:useCard(sgs.CardUseStruct(transfer_card, source, targets[1]))
+        end
+        ]]
+    end
+}
+shizi = sgs.CreateViewAsSkill{
+    name = "shizi",
+    view_filter = function(self, selected, to_select)
+        if to_select:isEquipped() then return false end
+        return to_select:isKindOf("EquipCard") and not to_select:isTransferable()
+    end,
+
+    view_as = function(self, cards)
+        if #cards == 0 then return nil end
+        local skill_card = shiziCard:clone()
+        for _, card in ipairs(cards) do
+            skill_card:addSubcards(card:getId())
+        end
+        skill_card:setSkillName(self:objectName())
+        skill_card:setShowSkill(self:objectName())
+        return skill_card
+    end,
+
+    enabled_at_play = function(self, player)
+        return true
+    end
+}
+sgs.LoadTranslationTable{
+    ["shizi"] = "世资",
+    [":shizi"] = "你手牌中的装备牌视为带有“合纵”标识。",
+}
+zhangwen:addSkill(heyi)
+zhangwen:addSkill(songshu)
+zhangwen:addSkill(shizi)
+
 sgs.Sanguosha:addSkills(skills)
 return {extension}
