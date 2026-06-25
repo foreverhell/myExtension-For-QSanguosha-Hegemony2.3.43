@@ -8180,5 +8180,108 @@ sgs.LoadTranslationTable{
 }
 ]]
 
+zhangwen = sgs.General(extension, "zhangwen", "wu", 3)
+
+heyi = sgs.CreateTriggerSkill{
+    name = "heyi",
+    events = {sgs.CardFinished},
+    frequency = sgs.Skill_Frequent,
+
+    can_trigger = function(self, event, room, player, data)
+        if not player or not player:isAlive() then return "" end
+        if not skillTriggerable(player, self:objectName()) then return "" end
+
+        local use = data:toCardUse()
+        if use.card and use.card:isKindOf("TransferCard") then
+            if use.to and not use.to:isEmpty() and use.to:first():hasShownOneGeneral() then
+                return self:objectName()
+            end
+        end
+
+        return ""
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data)
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        player:drawCards(1, self:objectName())
+        return false
+    end
+}
+
+songshu = sgs.CreateViewAsSkill{
+    name = "songshu",
+    view_filter = function(self, selected, to_select)
+        if to_select:isEquipped() then return false end
+        return to_select:isRed() and not to_select:isTransferable()
+    end,
+
+    view_as = function(self, cards)
+        if #cards == 0 then return nil end
+        local skill_card = shiziCard:clone()
+        for _, card in ipairs(cards) do
+            skill_card:addSubcard(card:getId())
+        end
+        skill_card:setSkillName(self:objectName())
+        skill_card:setShowSkill(self:objectName())
+        return skill_card
+    end,
+
+    enabled_at_play = function(self, player)
+        return true
+    end
+}
+sgs.LoadTranslationTable{
+    ["heyi"] = "合异",
+    [":heyi"] = "你因合纵摸牌后摸一张牌。",
+    ["songshu"] = "颂蜀",
+    [":songshu"] = "你的红色手牌视为带有“合纵”标识。",
+}
+
+shiziCard = sgs.CreateSkillCard{
+    name = "shizi",
+    target_fixed = true,
+    will_throw = false,
+    on_use = function(self, room, source, targets)
+        local ids = self:getSubcards()
+        for id in sgs.qlist(ids) do
+            local wrapped = sgs.Sanguosha:getWrappedCard(id)--临时卡设置属性，是否可以这样？
+            wrapped:setTransferable(true)--设置可合纵
+            room:broadcastUpdateCard(room:getPlayers(), id, wrapped)--服务端读取临时卡的属性显示可合纵，并通知客户端
+        end
+    end
+}
+shizi = sgs.CreateViewAsSkill{
+    name = "shizi",
+    view_filter = function(self, selected, to_select)
+        if to_select:isEquipped() then return false end
+        return to_select:isKindOf("EquipCard") and not to_select:isTransferable()
+    end,
+
+    view_as = function(self, cards)
+        if #cards == 0 then return nil end
+        local skill_card = shiziCard:clone()
+        for _, card in ipairs(cards) do
+            skill_card:addSubcard(card:getId())
+        end
+        skill_card:setSkillName(self:objectName())
+        skill_card:setShowSkill(self:objectName())
+        return skill_card
+    end,
+
+    enabled_at_play = function(self, player)
+        return true
+    end
+}
+sgs.LoadTranslationTable{
+    ["shizi"] = "世资",
+    [":shizi"] = "你手牌中的装备牌视为带有“合纵”标识。",
+}
+zhangwen:addSkill(heyi)
+zhangwen:addSkill(songshu)
+zhangwen:addSkill(shizi)
+
 sgs.Sanguosha:addSkills(skills)
 return {extension}
