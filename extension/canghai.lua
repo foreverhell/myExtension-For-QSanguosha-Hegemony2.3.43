@@ -8180,5 +8180,118 @@ sgs.LoadTranslationTable{
 }
 ]]
 
+guanxinzhangbao = sgs.General(extension, "guanxinzhangbao", "shu", 4)
+
+fuhunVS = sgs.CreateOneCardViewAsSkill{
+    name = "fuhun",
+    response_or_use = true,
+
+    view_filter = function(self, to_select)
+        if sgs.Self:isJilei(to_select) then return false end
+
+        local last_suit = sgs.Self:getMark("fuhun_last_suit")
+        local last_number = sgs.Self:getMark("fuhun_last_number")
+        if last_suit < 0 and last_number <= 0 then return false end
+
+        return to_select:getSuit() == last_suit or to_select:getNumber() == last_number
+    end,
+
+    view_as = function(self, card)
+        local slash = sgs.Sanguosha:cloneCard("slash", card:getSuit(), card:getNumber())
+        slash:addSubcard(card:getId())
+        slash:setSkillName(self:objectName())
+        slash:setShowSkill(self:objectName())
+        return slash
+    end,
+
+    enabled_at_play = function(self, player)
+        return not player:isNude() and player:getMark("fuhun_last_number") > 0 
+        --开局没有设标记时，花色为0，实际有含义（黑桃），因此不能用花色判断
+        --之后，花色、点数标记同时变，因此只用点数判断即可
+    end,
+
+    enabled_at_response = function(self, player, pattern)
+        return pattern == "slash"
+            and not player:isNude()
+            and player:getMark("fuhun_last_number") > 0
+    end
+}
+
+fuhun = sgs.CreateTriggerSkill{
+    name = "fuhun",
+    events = {sgs.CardUsed, sgs.EventPhaseChanging},
+    view_as_skill = fuhunVS,
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            if change.to == sgs.Player_NotActive then
+                for _, p in sgs.qlist(room:getAlivePlayers()) do
+                    room:setPlayerMark(p, "fuhun_last_suit", -1)
+                    room:setPlayerMark(p, "fuhun_last_number", 0)
+                end
+            end
+            return ""
+        end
+
+        if event == sgs.CardUsed then
+            local current = room:getCurrent()
+            if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+                local use = data:toCardUse()
+                if use.card and use.card:getTypeId() ~= sgs.Card_TypeSkill then
+                    local suit = use.card:getSuit()
+                    local number = use.card:getNumber()
+
+                    -- 同步到所有角色身上，ViewAsSkill 中可直接通过 sgs.Self:getMark 读取。
+                    for _, p in sgs.qlist(room:getAlivePlayers()) do
+                        room:setPlayerMark(p, "fuhun_last_suit", suit)
+                        room:setPlayerMark(p, "fuhun_last_number", number)
+                    end
+                end
+            end
+        end
+
+        return ""
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        return false
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        return false
+    end
+}
+
+fuhunTargetMod = sgs.CreateTargetModSkill{
+    name = "#fuhun-targetmod",
+    pattern = "Slash",
+
+    distance_limit_func = function(self, player, card)
+        if card and card:getSkillName() == "fuhun"
+            and card:getSuit() == player:getMark("fuhun_last_suit") then
+            return 1000
+        end
+        return 0
+    end,
+
+    residue_func = function(self, player, card)
+        if card and card:getSkillName() == "fuhun"
+            and card:getNumber() == player:getMark("fuhun_last_number") then
+            return 1000
+        end
+        return 0
+    end
+}
+
+guanxinzhangbao:addSkill(fuhun)
+guanxinzhangbao:addSkill(fuhunTargetMod)
+
+sgs.LoadTranslationTable{
+    ["guanxinzhangbao"] = "关兴张苞",
+    ["fuhun"] = "父魂",
+    [":fuhun"] = "你可以将一张牌当【杀】使用或打出，须与本回合被使用的上一张牌花色或点数相同。若花色相同，此【杀】无距离限制；若点数相同，此【杀】无次数限制。",
+    ["fuhun_last_suit"] = "父魂-上一张牌花色",
+    ["fuhun_last_number"] = "父魂-上一张牌点数",
+}
 sgs.Sanguosha:addSkills(skills)
 return {extension}
