@@ -2009,7 +2009,7 @@ sgs.ai_skill_cardask["archery-attack-jink"] = function(self, data, pattern, targ
 	return sgs.ai_skill_cardask.aoe(self, data, pattern, target, "archery_attack")
 end
 
-sgs.ai_keep_value.Nullification = 3.8
+sgs.ai_keep_value.Nullification = 7
 sgs.ai_use_value.Nullification = 5.5
 
 function SmartAI:useCardAmazingGrace(card, use)
@@ -3157,6 +3157,9 @@ function SmartAI:useCardIndulgence(card, use)
 		if enemy:hasShownSkills("keji|lirang|shengxi|xingzhao|tongdu") then value = value - 4 end
 		if enemy:hasShownSkills("guanxing|tuxi|tianxiang|"..sgs.wizard_skill) then value = value - 3 end
 		if not sgs.isGoodTarget(enemy, self.enemies, self) then value = value - 1 end
+		if not enemy:faceUp() then
+			value = value - 10
+		end
 		if getKnownCard(enemy, self.player, "Dismantlement", true) > 0 then value = value + 2 end
 		value = value + (self.room:alivePlayerCount() - self:playerGetRound(enemy)) / 2
 		return value
@@ -3868,50 +3871,66 @@ end
 function SmartAI:useCardKnownBoth(KnownBoth, use)
 	self.knownboth_choice = {}
 	if not KnownBoth:isAvailable(self.player) then return false end
-	local targets = sgs.PlayerList()
-	local total_num = 1 + sgs.Sanguosha:correctCardTarget(sgs.TargetModSkill_ExtraTarget, self.player, KnownBoth)
-	for _, player in sgs.qlist(self.room:getOtherPlayers(self.player)) do
-		if KnownBoth:targetFilter(targets, player, self.player) and sgs.isAnjiang(player) and not targets:contains(player)
-			and player:getMark(("KnownBoth_%s_%s"):format(self.player:objectName(), player:objectName())) == 0 and self:trickIsEffective(KnownBoth, player, self.player) then
-			use.card = KnownBoth
-			targets:append(player)
-			if use.to then use.to:append(player) end
-			self.knownboth_choice[player:objectName()] = "head_general"
-		end
-	end
-
-	if total_num > targets:length() then
-		self:sort(self.enemies, "handcard", true)
-		for _, enemy in ipairs(self.enemies) do
-			if KnownBoth:targetFilter(targets, enemy, self.player) and enemy:getHandcardNum() - self:getKnownNum(enemy, self.player) > 3 and not targets:contains(enemy)
-				and self:trickIsEffective(KnownBoth, enemy, self.player) then
+	if self.player:getSeemingKingdom() == "wei" and not self.player:hasSkill("daoshu") then
+		use.card = KnownBoth
+		if use.to then use.to = sgs.SPlayerList() end
+	else
+		local targets = sgs.PlayerList()
+		local total_num = 1 + sgs.Sanguosha:correctCardTarget(sgs.TargetModSkill_ExtraTarget, self.player, KnownBoth)
+		for _, player in sgs.qlist(self.room:getOtherPlayers(self.player)) do
+			if player:hasShownSkill("jieqianxun") and self.player:isFriendWith(player) and not player:isKongcheng() and
+			self:trickIsEffective(KnownBoth, player, self.player) then
 				use.card = KnownBoth
-				targets:append(enemy)
-				if use.to then use.to:append(enemy) end
-				self.knownboth_choice[enemy:objectName()] = "handcards"
+				targets:append(player)
+				if use.to then use.to:append(player) end
+				self.knownboth_choice[player:objectName()] = "handcards"
+				break
+			elseif player:hasShownSkill("jieqianxun") and not self.player:isFriendWith(player) then
+				continue
+			end
+			if KnownBoth:targetFilter(targets, player, self.player) and sgs.isAnjiang(player) and not targets:contains(player)
+				and player:getMark(("KnownBoth_%s_%s"):format(self.player:objectName(), player:objectName())) == 0 and self:trickIsEffective(KnownBoth, player, self.player) then
+				use.card = KnownBoth
+				targets:append(player)
+				if use.to then use.to:append(player) end
+				self.knownboth_choice[player:objectName()] = "head_general"
 			end
 		end
-	end
-	if total_num > targets:length() and not targets:isEmpty() then
-		self:sort(self.friends_noself, "handcard", true)
-		for _, friend in ipairs(self.friends_noself) do
-			if self:getKnownNum(friend, self.player) ~= friend:getHandcardNum() and KnownBoth:targetFilter(targets, friend, self.player) and not targets:contains(friend)
-				and self:trickIsEffective(KnownBoth, friend, self.player) then
-				targets:append(friend)
-				if use.to then use.to:append(friend) end
-				self.knownboth_choice[friend:objectName()] = "handcards"
-			end
-		end
-	end
 
-	if not use.card then
-		--[[targets = sgs.PlayerList()
-		local canRecast = KnownBoth:targetsFeasible(targets, self.player)]]
-		if not self.player:isCardLimited(KnownBoth, sgs.Card_MethodRecast) and KnownBoth:canRecast() then
-			use.card = KnownBoth
-			if use.to then use.to = sgs.SPlayerList() end
+		if total_num > targets:length() then
+			self:sort(self.enemies, "handcard", true)
+			for _, enemy in ipairs(self.enemies) do
+				if KnownBoth:targetFilter(targets, enemy, self.player) and enemy:getHandcardNum() - self:getKnownNum(enemy, self.player) > 3 and not targets:contains(enemy)
+					and self:trickIsEffective(KnownBoth, enemy, self.player) then
+					use.card = KnownBoth
+					targets:append(enemy)
+					if use.to then use.to:append(enemy) end
+					self.knownboth_choice[enemy:objectName()] = "handcards"
+				end
+			end
+		end
+		if total_num > targets:length() and not targets:isEmpty() then
+			self:sort(self.friends_noself, "handcard", true)
+			for _, friend in ipairs(self.friends_noself) do
+				if self:getKnownNum(friend, self.player) ~= friend:getHandcardNum() and KnownBoth:targetFilter(targets, friend, self.player) and not targets:contains(friend)
+					and self:trickIsEffective(KnownBoth, friend, self.player) then
+					targets:append(friend)
+					if use.to then use.to:append(friend) end
+					self.knownboth_choice[friend:objectName()] = "handcards"
+				end
+			end
+		end
+
+		if not use.card then
+			--[[targets = sgs.PlayerList()
+			local canRecast = KnownBoth:targetsFeasible(targets, self.player)]]
+			if not self.player:isCardLimited(KnownBoth, sgs.Card_MethodRecast) and KnownBoth:canRecast() then
+				use.card = KnownBoth
+				if use.to then use.to = sgs.SPlayerList() end
+			end
 		end
 	end
+	
 end
 sgs.ai_skill_choice.known_both = function(self, choices, data)
 	local target = data:toPlayer()
