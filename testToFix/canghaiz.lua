@@ -2280,7 +2280,6 @@ luazhuanxing = sgs.CreateTriggerSkill{
 			local name_list = {}
 			if skill_owners:isEmpty() then return false end
             for _, skill_owner in sgs.qlist(skill_owners) do
-                if skill_owner:isNude() then continue end
                 if skillTriggerable(skill_owner, self:objectName()) and skill_owner:isFriendWith(player) then
                     local jcards = player:getCards("j")
                     local isSelf, hasShortage = false, false
