@@ -163,7 +163,7 @@ function SetInitialTables()
 							"zhukou|jinghe|guowu|shenwei|wanggui|boyan|kuangcai|"..
 							"miewu|guishu|sidi|danlao|wanglie|zhuidu|jiejinghe"
 	sgs.masochism_skill = "yiji|fankui|jieming|ganglie|fangzhu|jianxiong|qianhuan|zhiyu|jihun|fudi|huashen|luashibei|" ..
-						  "bushi|shicai|quanji|zhaoxin|fankui_simazhao|wanggui|sidi|shangshi|benyu|jiehengjiang|fangzhu_lordcaopi"
+						  "bushi|shicai|quanji|zhaoxin|fankui_simazhao|wanggui|sidi|shangshi|benyu|jiehengjiang|fangzhu_lordcaopi|luoyingTurn"
 	sgs.defense_skill = "qingguo|longdan|kongcheng|niepan|bazhen|kanpo|xiangle|tianxiang|liuli|qianxun|leiji|duanchang|beige|weimu|" ..
 						"tuntian|shoucheng|yicheng|qianhuan|jizhao|wanwei|enyuan|buyi|keshou|qiuan|biluan|jiancai|aocai|jieyicheng|" ..
 						"xibing|zhente|qiao|shejian|yusui|deshao|yuanyu|mingzhe|jilei|shigong|dingke|shefu|taidan"
@@ -187,7 +187,7 @@ function SetInitialTables()
 									"qice|jili|fengshix|zaoyun|huaiyi|shilu|baolie|lianpian|tongdu|juejue|duannian|jinghe|yanzheng|kuangcai|guishu"
 	sgs.notActive_cardneed_skill =	"guicai|xiaoguo|kanpo|guidao|beige|jijiu|liuli|tianxiang|zhendu|qianhuan|keshou|fudi|shejian|huanshi"
 	sgs.cardneed_skill =  	sgs.Active_cardneed_skill .. "|" .. sgs.notActive_cardneed_skill
-	sgs.use_lion_skill =	"duanliang|guicai|guidao|lijian|qingcheng|zhiheng|qixi|fenxun|kurou|diaogui|quanji|jinfa|xishe"
+	sgs.use_lion_skill =	"duanliang|guicai|guidao|lijian|qingcheng|zhiheng|qixi|fenxun|kurou|diaogui|quanji|jinfa|xishe|jiezhengbing|luachenyin|luahuomo"
 	sgs.need_equip_skill = 	"shensu|huyuan|beige|qingcheng|xiaoji|xuanlue|diaodu|biluan|xishe"
 	sgs.judge_reason =		"bazhen|EightDiagram|supply_shortage|indulgence|lightning|leiji|beige|tieqi|luoshen|ganglie|tuntian"
 
@@ -3223,7 +3223,8 @@ function SmartAI:askForNullification(trick, from, to, positive) --from对to使�
 		local menghuo = sgs.findPlayerByShownSkillName("huoshou")
 		if menghuo and self:isFriend(to, menghuo) and menghuo:hasShownSkill("zhiman") then return nil end
 	end
-	if from and self:isFriend(to, from) and self:isFriend(to) and positive and from:hasShownSkill("zhiman") then return nil end
+	--if from and self:isFriend(to, from) and self:isFriend(to) and positive and from:hasShownSkill("zhiman") then return nil end
+	if from and self:isFriend(to, from) and positive and from:hasShownSkill("zhiman") then return nil end
 	local nullcards = self.player:getCards("Nullification")
 	local null_num = self:getCardsNum("Nullification")
 	local null_card = self:getCardId("Nullification")
@@ -6900,7 +6901,18 @@ function SmartAI:useEquipCard(card, use)
 				if not friend:getArmor() then return end
 			end
 		end
-		if self.player:hasSkills("bazhen|jgyizhong|taidan|luayixing") then return end
+		if self.player:hasSkills("bazhen|jgyizhong|taidan") then return end
+		if self.player:hasSkill("luayixing") then
+			local allhas = true
+			for _, p in ipairs(self.friends) do
+				if self.player:isFriendWith(p) and (p:getMark("@companion") <= 0 or not p:getArmor()) then
+					allhas = false
+				end
+			end
+			if allhas then
+				return
+			end
+		end
 		if self:evaluateArmor(card) > self:evaluateArmor() or (isenemy_zzzh and self:getOverflow() > 1) then use.card = card end
 		return
 	elseif card:isKindOf("OffensiveHorse") then
