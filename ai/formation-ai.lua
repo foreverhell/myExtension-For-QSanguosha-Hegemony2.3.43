@@ -413,9 +413,9 @@ sgs.ai_card_intention.ShangyiCard = 50
 --徐盛
 sgs.ai_skill_invoke.jieyicheng = function(self, data)
 	--local friend = data:toPlayer()
-	if not self:willShowForDefence() and not self:willShowForAttack() then
+	--[[if not self:willShowForDefence() and not self:willShowForAttack() then
 		return false
-	end
+	end]]
 	local yuanshu = sgs.findPlayerByShownSkillName("weidi")
 	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() == sgs.Player_Play then return false end
 	return true
@@ -571,6 +571,9 @@ local invoke_qianhuan = function(self, use)
 		end
 		if (use.card:isKindOf("Indulgence") and self:getOverflow(to) > 1)
 		or (use.card:isKindOf("SupplyShortage") and to:getHandcardNum() < 2) then--乐、兵
+			if to:hasShownSkill("luajuxian") then
+				return false
+			end
 			return true
 		end
 		if (use.card:isKindOf("Snatch") or use.card:isKindOf("Dismantlement")) then--拆顺暂时不处理
