@@ -274,9 +274,9 @@ sgs.ai_skill_use["@@rende_basic"] = function(self, prompt, method)
 	end
 	
 	if self.enemies then
-		self:sort(self.enemies, "defenseSlash")
+		self:sort(self.enemies, "hp")
 		for _, slash in ipairs(clone_slashes) do
-			for _, enemy in ipairs(self:sort(self.enemies, "hp")) do
+			for _, enemy in ipairs(self.enemies) do
 				if self.player:canSlash(enemy, slash, true) and not self:slashProhibit(slash, enemy)
 						and self:slashIsEffective(slash, enemy) and sgs.isGoodTarget(enemy, self.enemies, self)
 						and not (self.player:hasFlag("slashTargetFix") and not enemy:hasFlag("SlashAssignee")) then
@@ -1336,8 +1336,12 @@ sgs.ai_skill_playerchosen.zaiqi = function(self, targets, max_num, min_num)
 end
 
 sgs.ai_skill_choice.zaiqi = function(self, choices)
-	local menghuo = sgs.findPlayerByShownSkillName("zaiqi")
+	--[[local menghuo = sgs.findPlayerByShownSkillName("zaiqi")
 	if menghuo and string.find(choices, "recover") and menghuo:getHp() < 3 and menghuo:canRecover() then
+		return "recover"
+	end]]
+	local current = self.room:getCurrent()
+	if string.find(choices, "recover") and current:getHp() < 3 and current:canRecover() then
 		return "recover"
 	end
 	return "drawcard"
@@ -1405,9 +1409,9 @@ function sgs.ai_skill_pindian.jielieren(minusecard, self, requestor)
 end
 
 --甘夫人
-sgs.ai_skill_invoke.shushen = true
+sgs.ai_skill_invoke.jieshushen = true
 
-sgs.ai_skill_playerchosen.shushen = function(self, targets)
+sgs.ai_skill_playerchosen.jieshushen = function(self, targets)
 	if #self.friends_noself == 0 then return nil end
 	local yuanshu = sgs.findPlayerByShownSkillName("weidi")
 	if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not 
@@ -1418,7 +1422,11 @@ sgs.ai_skill_playerchosen.shushen = function(self, targets)
 	friendsByAction = room:getAlivePlayers()
 	room:sortByActionOrder(friendsByAction)
 	for _, p in sgs.qlist(friendsByAction) do
-		if self.player:isFriendWith(p) and p:hasShownSkills("kanpo|paoxiao|luajintao|jili|jizhi|kuanggu|tieqi|wusheng|liegong") and
+		if self:willSkipPlayPhase(p) then
+			if p:hasShownSkill("kanpo") then
+				return p
+			end
+		elseif self.player:isFriendWith(p) and p:hasShownSkills("kanpo|paoxiao|luajintao|jili|jizhi|kuanggu|tieqi|wusheng|liegong|guose|tianxiang") and
 		not self:needKongcheng(p) and self.player:objectName() ~= p:objectName() then
 			return p
 		end
@@ -1436,7 +1444,7 @@ sgs.ai_skill_playerchosen.shushen = function(self, targets)
 	return self:findPlayerToDraw(false, 1)
 end
 
-sgs.ai_card_intention.ShushenCard = -80
+sgs.ai_card_intention.jieShushenCard = -80
 
 sgs.ai_skill_invoke.shenzhi = function(self, data)
 	if not self.player:canRecover() then return false end
