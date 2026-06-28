@@ -3062,7 +3062,7 @@ sgs.ai_skill_exchange["provinceSeal_give"] = function(self, pattern, max_num, mi
     if self.provinceSealCard > 0 then
         return self.provinceSealCard
     end
-    return ""
+    return {}
 end
 sgs.ai_skill_choice["proSeal_choose1"] = function(self, choices)
     local hasPeace, hasCross = false, false
@@ -3147,7 +3147,7 @@ sgs.ai_skill_exchange.luazhudian = function(self, pattern, max_num, min_num, exp
     if self.luazhudianRecast then
         return self.luazhudianRecast
     end
-    return ""
+    return {}
 end
 sgs.ai_skill_choice.luazhudian = function(self, choices)
     return "yes"
@@ -3496,7 +3496,7 @@ sgs.ai_skill_playerchosen.jieqianxun = function(self, targets, max_num, min_num)
     self.room:sortByActionOrder(targets)
     local drawtargets = {}
     for _, p in sgs.qlist(targets) do
-        if self.player:isFriendWith(p) and not self:needKongcheng(p) then
+        if (self.player:isFriendWith(p) or self.player:willBeFriendWith(p)) and not self:needKongcheng(p) then
             if self.player:objectName() == p:objectName() and self.player:hasFlag("jieqianxunNoself") then
                 self.room:setPlayerFlag(self.player, "-jieqianxunNoself")
                 continue
@@ -3622,9 +3622,9 @@ sgs.ai_skill_choice.jiefenji = function(self, choices, data)
 end
 
 sgs.ai_skill_invoke.jiebuqu = sgs.ai_skill_invoke.buqu
-sgs.ai_skill_cardchosen.jiebuqu = function(self, who, flags, method, disable_list)
+sgs.ai_skill_exchange["jiebuqu"] = function(self, pattern, max_num, min_num, expand_pile)
     local card_ids = self.player:getPile("scars")
-    local hecards = self.player:getCards("he")
+    local hcards = self.player:getCards("h")
     local suitTable = {spade = false, club = false, diamond = false, heart = false}
     if not card_ids:isEmpty() then
         for _, cid in sgs.qlist(card_ids) do
@@ -3633,14 +3633,43 @@ sgs.ai_skill_cardchosen.jiebuqu = function(self, who, flags, method, disable_lis
             suitTable[suit] = true
         end
     end
-    self.room:sortByKeepValue(hecards, true)
-    for _, c in sgs.qlist(hecards) do
+    self:sortByKeepValue(hcards, true)
+    for _, c in sgs.qlist(hcards) do
         local suit = c:getSuitString()
         if not suitTable[suit] then
             return c:getEffectiveId()
         end
     end
 
-    local c = hecards:at(0)
+    local c = hcards:at(0)
     return c:getEffectiveId()
 end
+
+--法正
+sgs.ai_skill_choice["luadingjun"] = function(self, choices, data)
+    local target = data:toPlayer()
+    local room = self.player:getRoom()
+    local current = room:getCurrent()
+    local hcards = self.player:getCards("h")
+    local toGive = {}
+
+    return "cancel"
+end
+--[[sgs.ai_skill_use["@@luaenyuangive"] = function(self, prompt)
+    local hcards = self.player:getCards("h")
+    for _, c in sgs.qlist(hcards) do
+        if c:getSuit() == sgs.suit_heart then
+            return "#luaenyuanCard=" .. c:getEffectiveId() .. ":&luaenyuan"
+        end
+    end
+    return ""
+end]]
+--[[sgs.ai_skill_exchange["luaenyuan"] = function(self, pattern, max_num, min_num, expand_pile)
+    local hcards = self.player:getCards("h")
+    for _, c in sgs.qlist(hcards) do
+        if c:getSuit() == sgs.suit_heart then
+            return c:getEffectiveId()
+        end
+    end
+    return {}
+end]]
