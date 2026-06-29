@@ -34,7 +34,7 @@ jieluxun:addCompanion("sunhuan")
 luajushou = sgs.General(canghaiz, "luajushou", "qun", 3)
 luahuangfusong = sgs.General(canghaiz, "luahuangfusong", "qun")
 luachengong = sgs.General(canghaiz, "luachengong", "qun", 3)
-lualiuyan = sgs.General(canghaiz, "lualiuyan", "qun", 3)
+lualiuyan = sgs.General(canghaiz, "lualiuyan", "qun")
 luacaiyong = sgs.General(canghaiz, "luacaiyong", "qun", 3)
 
 local skills = sgs.SkillList()
