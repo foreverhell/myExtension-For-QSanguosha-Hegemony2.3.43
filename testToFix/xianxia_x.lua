@@ -155,9 +155,11 @@ qiuyuan = sgs.CreateTriggerSkill{
             end  
         end  
           
-        if targets:isEmpty() then return false end  
+        if targets:isEmpty() then return false end
+        player:setTag("qiuyuanData", data) --给AI传数据
           
         local target = room:askForPlayerChosen(player, targets, self:objectName(), "@qiuyuan-choose", true)  
+        player:removeTag("qiuyuanData")
         if target then  
             player:setTag("qiuyuan_target", sgs.QVariant(target:objectName()))  
             return true  
@@ -257,17 +259,13 @@ linlang = sgs.CreateTriggerSkill{
         if not targets:isEmpty() then
             table.insert(choices, "linlang_move")
         end
-        local choice
-        if #choices > 1 then
-            local prompt = "琳琅：请选择一项"
-            choice = room:askForChoice(ask_who, self:objectName(), table.concat(choices, "+"), sgs.QVariant(), prompt,
-            "linlang_obtainCard+linlang_move")
-        else
-            choice = choices[1]
-        end
+
+        local prompt = "琳琅：请选择一项"
+        local choice = room:askForChoice(ask_who, self:objectName(), table.concat(choices, "+"), data, prompt,
+        "linlang_obtainCard+linlang_move")
 
         if choice == "linlang_move" then
-            local from_player = room:askForPlayerChosen(ask_who, targets, self:objectName(), "@linlang-move-from")
+            local from_player = room:askForPlayerChosen(ask_who, targets, "linlang_move", "@linlang-move-from")
             if not from_player then return false end
             local card_ids = {}
             for _, c in sgs.qlist(from_player:getCards("ej")) do
@@ -287,7 +285,7 @@ linlang = sgs.CreateTriggerSkill{
                     end
                 end
                 if to_players:isEmpty() then return false end
-                local to_player = room:askForPlayerChosen(ask_who, to_players, self:objectName(), "@linlang-move-to")
+                local to_player = room:askForPlayerChosen(ask_who, to_players, "linlang_moveto", "@linlang-move-to")
                 if from_player and to_player then
                     if card:isKindOf("EquipCard") then
                         -- 移动装备牌  
@@ -313,16 +311,12 @@ luoyingTurn = sgs.CreateTriggerSkill{
             local change = data:toPhaseChange()
             if change.to == sgs.Player_RoundStart then
                 for _, p in sgs.qlist(room:getAlivePlayers()) do
-                    local isCurrent = room:getCurrent() == p
                     if p:getMark("luoyingTurnget") > 0 then
                         room:removePlayerMark(p, "luoyingTurnget")
                         local phases = sgs.PhaseList()
                         phases:append(sgs.Player_Play)
                         p:play(phases)
                         room:broadcastProperty(p, "phase")
-                        if isCurrent then
-                            p:gainAnExtraTurn()
-                        end
                     end
                 end
             elseif change.from == sgs.Player_Play then
@@ -357,15 +351,14 @@ luoyingTurn = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data)
-        if event == sgs.Damaged then  
-            local lost_hp = player:getLostHp()  
-            if lost_hp > 0 then  
+        if event == sgs.Damaged then
+            local lost_hp = player:getLostHp()
+            if lost_hp > 0 then
                 -- 摸X张牌  
-                player:drawCards(lost_hp, self:objectName())  
-                
+                player:drawCards(lost_hp, self:objectName())
+            end
                 -- 叠置  
-                player:turnOver()  
-            end  
+            player:turnOver()
         elseif event == sgs.TurnedOver then
             local judge = sgs.JudgeStruct()  
             judge.pattern = ".|club"  
