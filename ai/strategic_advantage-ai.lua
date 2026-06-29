@@ -208,8 +208,8 @@ sgs.ai_skill_use_func.TransferCard = function(transferCard, use, self)
 						break
 					end
 				end
-				if self_use then
-					Global_room:writeToConsole("火烧联营自己用")
+				if self_use or card:isKindOf("Peach") or card:isKindOf("Analeptic") then
+					Global_room:writeToConsole("合纵牌自己用")
 					continue
 				end
 				table.insert(card_list, card:getEffectiveId())
@@ -278,10 +278,10 @@ function SmartAI:useCardDrowning(card, use)
 		if card:targetFilter(players, enemy, self.player) and not players:contains(enemy) and enemy:hasEquip()
 			and self:trickIsEffective(card, enemy) and self:damageIsEffective(enemy, sgs.DamageStruct_Thunder, self.player, card) and self:canAttack(enemy)
 			and not self:needDamagedEffects(enemy, self.player) and not self:needToLoseHp(enemy, self.player) and not self:needToThrowArmor(enemy)
-			and not (enemy:hasArmorEffect("PeaceSpell") and (enemy:getHp() > 1 or self:needToLoseHp(enemy, self.player)))--太平考虑张鲁？
-			and not (enemy:hasArmorEffect("Breastplate") and enemy:getHp() == 1) then
-			local dangerous
+			and not (enemy:hasArmorEffect("PeaceSpell") and (enemy:getHp() > 1 or self:needToLoseHp(enemy, self.player))) then--太平考虑张鲁?			local dangerous
 			local chained = {}
+			if enemy:hasShownSkills(sgs.lose_equip_skill) and (enemy:getEquips():length() == 1 or (enemy:hasArmorEffect("BreastPlate") and
+			enemy:getHp() == 1)) then return end
 			if enemy:isChained() then
 				for _, p in sgs.qlist(self.room:getOtherPlayers(enemy)) do
 					if not self:isGoodChainTarget(enemy, p, sgs.DamageStruct_Thunder) and self:damageIsEffective(p, sgs.DamageStruct_Thunder, self.player, card) and self:isFriend(p) then
@@ -480,7 +480,7 @@ function SmartAI:useCardBurningCamps(card, use)
 		damage.damage = 1
 		if self:damageIsEffective_(damage) then
 			if SelfisTarget then
-				local goodHp = target:getHp() > 1 or not self:isWeak(target)
+				--[[local goodHp = target:getHp() > 1 or not self:isWeak(target)
 					or getCardsNum("Peach", target, self.player) >= 1 or getCardsNum("Analeptic", target, self.player) >= 1
 				if not goodHp then
 					return
@@ -496,7 +496,8 @@ function SmartAI:useCardBurningCamps(card, use)
 					value = value + 2
 				else
 					value = value - 2
-				end
+				end]]
+				return
 			else
 				if target:isChained() and self:isGoodChainTarget_(damage) then
 					shouldUse = true
@@ -1037,7 +1038,8 @@ function SmartAI:useCardFightTogether(card, use)
 				use.card = card
 				if use.to and #bigs > 0 then use.to:append(bigs[1]) end
 				return
-			elseif win == v_small and not (#smalls == 1 and chained_num == 0) then
+			elseif win == v_small and not (#smalls == 1 and chained_num == 0) and (not IamSmall or (IamSmall and 
+			self.player:hasArmorEffect("IronArmor"))) then
 				use.card = card
 				if use.to and #smalls > 0 then use.to:append(smalls[1]) end
 				return
@@ -1388,7 +1390,9 @@ sgs.ai_skill_cardask["@imperial_order-equip"] = function(self)
 	local selfIsCareerist = self.role == "careerist" or (sgs.shown_kingdom[self_kingdom] >= upperlimit and not self.player:hasShownOneGeneral()) 
 		or (self.player:getActualGeneral1():getKingdom() == "careerist" and not (self.player:hasShownGeneral1() and self.role ~= "careerist"))
 	--势力首亮
-	if sgs.shown_kingdom[self_kingdom] <= 0 then return "." end
+	local room = self.player:getRoom()
+	if sgs.shown_kingdom[self_kingdom] <= 0 or (room:getCurrent():getSeemingKingdom() == self_kingdom and 
+	room:getCurrent():getNextAlive():objectName() == self.player:objectName()) then return "." end
 	--开团与反开团
 	if string.find(gameProcess, ">>>") and not selfIsCareerist then return "." end
 	

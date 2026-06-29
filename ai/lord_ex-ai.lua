@@ -2326,7 +2326,10 @@ end
 --潘濬
 sgs.ai_skill_invoke.congcha = true
 
-sgs.ai_skill_playerchosen.congcha = sgs.ai_skill_playerchosen.damage
+--sgs.ai_skill_playerchosen.congcha = sgs.ai_skill_playerchosen.damage
+sgs.ai_skill_playerchosen.congcha = function(self, targets, data)
+  return targets:at(0)
+end
 
 sgs.ai_skill_invoke.gongqing = function(self, data)
   local damage = data:toDamage()

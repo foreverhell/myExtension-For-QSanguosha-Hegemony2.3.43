@@ -20,7 +20,15 @@
 --纵横捭阖
 
 --华歆
-sgs.ai_skill_invoke.wanggui = true
+sgs.ai_skill_invoke.wanggui = function(self, data)
+  if self.player:hasShownAllGenerals() then
+    local yuanshu = sgs.findPlayerByShownSkillName("weidi")
+    if yuanshu and self:isEnemy(yuanshu) and yuanshu:getPhase() <= sgs.Player_Play and not yuanshu:hasUsed("#WeidiCardrd") then 
+        return false
+    end
+  end
+  return true
+end
 
 sgs.ai_skill_playerchosen.wanggui = sgs.ai_skill_playerchosen.damage
 
@@ -41,7 +49,7 @@ sgs.ai_need_damaged.wanggui = function(self, attacker, player)
 	return false
 end
 
-sgs.ai_skill_invoke.xibing =  function(self, data)
+sgs.ai_skill_invoke.xibing = function(self, data)
   self.xibing_skill = nil
   if not self:willShowForDefence() then
     return false
@@ -569,7 +577,7 @@ sgs.ai_skill_use_func.BoyanCard = function(card, use, self)
   end
 end
 
-sgs.ai_use_priority.BoyanCard = 5--优先度多少合适？
+sgs.ai_use_priority.BoyanCard = 6--优先度多少合适？
 
 sgs.ai_skill_choice.boyan = function(self, choices, data)
   local target = data:toPlayer()
@@ -609,7 +617,7 @@ sgs.ai_skill_use_func.BoyanZonghengCard = function(card, use, self)
   end
 end
 
-sgs.ai_use_priority.BoyanZonghengCard = 5
+sgs.ai_use_priority.BoyanZonghengCard = 8.1
 
 --邓芝
 sgs.ai_skill_invoke.jianliang = true
