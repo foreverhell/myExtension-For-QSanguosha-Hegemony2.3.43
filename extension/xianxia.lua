@@ -1091,7 +1091,7 @@ sgs.LoadTranslationTable{
     ["~qinggong"] = "选择一名其他角色→点击确定",  
     ["~shangya"] = "选择一名武将牌均明置的角色→点击确定",
 }
-]]
+
 guansuo_xianxia = sgs.General(extension, "guansuo_xianxia", "shu", 4) -- 蜀势力，4血，男性（默认）  
 guansuo_xianxia:setDeputyMaxHpAdjustedValue(-1)
 
@@ -1231,7 +1231,7 @@ sgs.LoadTranslationTable{
 ["muyang"] = "募养",  
 [":muyang"] = "副将技，-1阴阳鱼。你的结束阶段开始时，你可以亮出牌堆顶2张牌，获得其中的红色牌和杀。",
 }
-
+]]
 guanyinping = sgs.General(extension, "guanyinping", "shu", 4, false)
 guanyinping:setDeputyMaxHpAdjustedValue(-1)
 
@@ -2527,7 +2527,7 @@ sgs.LoadTranslationTable{
     ["shuangguan"] = "双关",  
     [":shuangguan"] = "你可以将2张颜色相同花色不同的牌当杀或闪使用或打出，你因此失去所有手牌后摸一张牌",  
 }
-wangyun = sgs.General(extension, "wangyun", "qun", 3) -- 蜀势力，4血，男性（默认）  
+wangyun = sgs.General(extension, "wangyun", "qun", 3)  
 
 ShelunCard = sgs.CreateSkillCard{  
     name = "ShelunCard",  
@@ -2827,12 +2827,12 @@ yangqiu:addSkill(saojian)
 
 sgs.LoadTranslationTable{
 ["#yangqiu"] = "扫除奸佞",  
-["yangqiu"] = "杨球",   
+["yangqiu"] = "阳球",   
 ["illustrator:yangqiu"] = "插画师名称",  
 ["saojian"] = "扫奸",  
 [":saojian"] = "出牌阶段限一次，你可以观看一名其他角色的手牌并选择一张，该角色重复弃置1张手牌直到弃置你选择的牌；此时若其手牌数大于你，你失去1点体力。",
 }
-
+--[[
 zhangyi_xianxia = sgs.General(extension, "zhangyi_xianxia", "shu", 4) 
 
 wujieCard = sgs.CreateSkillCard{  
@@ -2925,7 +2925,7 @@ sgs.LoadTranslationTable{
 	["shizhi"] = "矢志",
 	[":shizhi"] = "当你体力值为1时，你的闪可以视为杀，你以此法使用的杀无次数限制",
 }
-
+]]
 zhonghuiQuan = sgs.General(extension, "zhonghuiQuan", "wei", 3)
 quanji = sgs.CreateTriggerSkill{  
     name = "jiequanji",  
@@ -2960,6 +2960,7 @@ sgs.LoadTranslationTable{
     ["jiequanji"] = "权计",
     [":jiequanji"] = "你受到伤害后，你可以摸1张牌并将1张牌置于“权”牌堆；你的手牌上限+X，X为“权”的数量"
 }
+--[[
 zhoucang = sgs.General(extension, "zhoucang", "shu", 4)  
 zhongyong = sgs.CreateTriggerSkill{
     name = "zhongyong",
@@ -3047,7 +3048,7 @@ sgs.LoadTranslationTable{
 	["zhongyong"] = "忠勇",
 	[":zhongyong"] = "每回合限一次。你使用杀结算后，你可以将此杀或响应此杀的闪交给一名其他角色，若其获得的牌为红色，其可以对你攻击范围内一名角色使用一张杀",
 }
---[[
+
 zhugeguo = sgs.General(extension, "zhugeguo", "shu", 3, false)  
 qidao = sgs.CreateTriggerSkill{
 	name = "qidao",
