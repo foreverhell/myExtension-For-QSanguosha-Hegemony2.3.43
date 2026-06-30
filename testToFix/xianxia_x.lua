@@ -9,7 +9,8 @@ sgs.LoadTranslationTable{
 caozhi_xianxia = sgs.General(xianxia_x, "caozhi_xianxia", "wei", 3)
 
 --蜀势力
-
+guansuo_xianxia = sgs.General(xianxia_x, "guansuo_xianxia", "shu")
+guansuo_xianxia:setDeputyMaxHpAdjustedValue(-1)
 
 --吴势力
 
@@ -155,9 +156,11 @@ qiuyuan = sgs.CreateTriggerSkill{
             end  
         end  
           
-        if targets:isEmpty() then return false end  
+        if targets:isEmpty() then return false end
+        player:setTag("qiuyuanData", data) --给AI传数据
           
         local target = room:askForPlayerChosen(player, targets, self:objectName(), "@qiuyuan-choose", true)  
+        player:removeTag("qiuyuanData")
         if target then  
             player:setTag("qiuyuan_target", sgs.QVariant(target:objectName()))  
             return true  
@@ -257,17 +260,13 @@ linlang = sgs.CreateTriggerSkill{
         if not targets:isEmpty() then
             table.insert(choices, "linlang_move")
         end
-        local choice
-        if #choices > 1 then
-            local prompt = "琳琅：请选择一项"
-            choice = room:askForChoice(ask_who, self:objectName(), table.concat(choices, "+"), sgs.QVariant(), prompt,
-            "linlang_obtainCard+linlang_move")
-        else
-            choice = choices[1]
-        end
+
+        local prompt = "琳琅：请选择一项"
+        local choice = room:askForChoice(ask_who, self:objectName(), table.concat(choices, "+"), data, prompt,
+        "linlang_obtainCard+linlang_move")
 
         if choice == "linlang_move" then
-            local from_player = room:askForPlayerChosen(ask_who, targets, self:objectName(), "@linlang-move-from")
+            local from_player = room:askForPlayerChosen(ask_who, targets, "linlang_move", "@linlang-move-from")
             if not from_player then return false end
             local card_ids = {}
             for _, c in sgs.qlist(from_player:getCards("ej")) do
@@ -287,7 +286,7 @@ linlang = sgs.CreateTriggerSkill{
                     end
                 end
                 if to_players:isEmpty() then return false end
-                local to_player = room:askForPlayerChosen(ask_who, to_players, self:objectName(), "@linlang-move-to")
+                local to_player = room:askForPlayerChosen(ask_who, to_players, "linlang_moveto", "@linlang-move-to")
                 if from_player and to_player then
                     if card:isKindOf("EquipCard") then
                         -- 移动装备牌  
@@ -313,16 +312,12 @@ luoyingTurn = sgs.CreateTriggerSkill{
             local change = data:toPhaseChange()
             if change.to == sgs.Player_RoundStart then
                 for _, p in sgs.qlist(room:getAlivePlayers()) do
-                    local isCurrent = room:getCurrent() == p
                     if p:getMark("luoyingTurnget") > 0 then
                         room:removePlayerMark(p, "luoyingTurnget")
                         local phases = sgs.PhaseList()
                         phases:append(sgs.Player_Play)
                         p:play(phases)
                         room:broadcastProperty(p, "phase")
-                        if isCurrent then
-                            p:gainAnExtraTurn()
-                        end
                     end
                 end
             elseif change.from == sgs.Player_Play then
@@ -357,15 +352,14 @@ luoyingTurn = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data)
-        if event == sgs.Damaged then  
-            local lost_hp = player:getLostHp()  
-            if lost_hp > 0 then  
+        if event == sgs.Damaged then
+            local lost_hp = player:getLostHp()
+            if lost_hp > 0 then
                 -- 摸X张牌  
-                player:drawCards(lost_hp, self:objectName())  
-                
+                player:drawCards(lost_hp, self:objectName())
+            end
                 -- 叠置  
-                player:turnOver()  
-            end  
+            player:turnOver()
         elseif event == sgs.TurnedOver then
             local judge = sgs.JudgeStruct()  
             judge.pattern = ".|club"  
@@ -388,11 +382,11 @@ caozhi_xianxia:addSkill(linlang)
 caozhi_xianxia:addSkill(luoyingTurn)
 
 sgs.LoadTranslationTable{
-    ["#caozhi_xianxia"] = "八斗之才",  
-    ["caozhi_xianxia"] = "曹植",   
-    ["linlang"] = "琳琅",  
-    [":linlang"] = "当一名角色的判定牌生效后，若判定牌为锦囊牌，你可以选择一项：1.获得该判定牌；\n2.移动场上一张与此牌颜色相同的牌。",  
-    ["luoyingTurn"] = "落英",  
+    ["#caozhi_xianxia"] = "八斗之才",
+    ["caozhi_xianxia"] = "曹植",
+    ["linlang"] = "琳琅",
+    [":linlang"] = "当一名角色的判定牌生效后，若判定牌为锦囊牌，你可以选择一项：1.获得该判定牌；\n2.移动场上一张与此牌颜色相同的牌。",
+    ["luoyingTurn"] = "落英",
     [":luoyingTurn"] = "当你受到伤害后，你可以摸X张牌并叠置（X为你已失去的体力值）。当你从叠置状态恢复时，你可以进行一次判定，若判定牌为梅花，此回合结束后你获得一个额外的出牌阶段。",
     ["@linlang-move-from"] = "落英：请选择要移动的角色",
     ["@linlang-move-to"] = "落英：请选择要移动至装备区/判定区的角色",
@@ -403,6 +397,141 @@ sgs.LoadTranslationTable{
     ["$luoyingTurn1"] = "花落断情伤，心碎斩痴妄。",
     ["$luoyingTurn2"] = "流水不言恨，落英难解愁。",
     ["~caozhi_xianxia"] = "一生轻松待来生。",
+}
+
+zhengfeng = sgs.CreateTriggerSkill{
+    name = "zhengfeng",
+    events = {sgs.EventPhaseStart},
+    can_trigger = function(self, event, room, player, data)
+        if player and player:isAlive() and player:getPhase() == sgs.Player_Start then
+            local skill_owners = room:findPlayersBySkillName(self:objectName())
+            local skill_list = {}
+            local name_list = {}
+            if skill_owners:isEmpty() then return false end
+            local current = room:getCurrent()
+            for _, p in sgs.qlist(skill_owners) do
+                if current:isFriendWith(p) then
+                    table.insert(skill_list, self:objectName())
+                    table.insert(name_list, p:objectName())
+                end
+            end
+            return table.concat(skill_list, "|"), table.concat(name_list, "|")
+        end
+        return false
+    end,
+
+    on_cost = function(self, event, room, player, data, ask_who)
+        if room:askForUseCard(ask_who, "slash", "你可以使用一张杀", -1, sgs.Card_MethodUse, false) then
+            return true
+        end
+        return false
+    end,
+
+    on_effect = function(self, event, room, player, data)   
+        return false
+    end,
+}
+
+lvjin = sgs.CreateTriggerSkill{  
+    name = "lvjin",
+    relate_to_place = "head",
+    events = {sgs.Damage},
+    can_trigger = function(self, event, room, player, data)
+        if not skillTriggerable(player, self:objectName()) then
+            return false
+        end
+
+        local damage = data:toDamage()
+        if damage.card and damage.card:isKindOf("Slash") and not player:hasFlag("lvjin_used") then
+            return self:objectName()
+        end
+        return false
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        return player:askForSkillInvoke(self:objectName(),data)
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        local damage = data:toDamage()
+        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(), "@lvjin-give", true)
+        local card = damage.card
+
+        if target and target:isAlive() and card then
+            room:broadcastSkillInvoke(self:objectName(), player)
+            -- 将杀交给目标角色  
+            target:obtainCard(card)
+
+            if target:hasShownOneGeneral() and target:isFemale() then
+                room:addPlayerMark(target, "@halfmaxhp")
+            end
+
+            -- 标记本回合已使用  
+            room:setPlayerFlag(player,"lvjin_used")
+        end
+
+        return false
+    end,
+}
+
+muyang = sgs.CreateTriggerSkill{
+    name = "muyang",
+    relate_to_place = "deputy",
+    events = {sgs.EventPhaseStart},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Finish then
+            return self:objectName()
+        end
+        return false
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        if player:askForSkillInvoke(self:objectName(), data) then
+            room:broadcastSkillInvoke(self:objectName(), player)
+            return true
+        end
+        return false
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        local card_ids = room:getNCards(2)
+        room:showCard(player, card_ids)
+        local getcards = sgs.IntList()
+        for _, id in sgs.qlist(card_ids) do
+            local card = sgs.Sanguosha:getCard(id)
+            if card:isRed() or card:isKindOf("Slash") then
+                getcards:append(id)
+            end
+        end
+        if getcards:isEmpty() then return false end
+        local dummy = sgs.DummyCard(getcards)
+        player:obtainCard(dummy)
+        dummy:deleteLater()
+        return false
+    end,
+}
+guansuo_xianxia:addSkill(zhengfeng)
+guansuo_xianxia:addSkill(lvjin)
+guansuo_xianxia:addSkill(muyang)
+
+sgs.LoadTranslationTable{
+    ["#guansuo_xianxia"] = "蜀汉虎将",
+    ["guansuo_xianxia"] = "关索",
+    ["zhengfeng"] = "征锋",
+    [":zhengfeng"] = "与你势力相同的角色的准备阶段，你可以使用一张杀。",
+    ["lvjin"] = "旅进",
+    [":lvjin"] = "主将技，每回合限一次，当你使用【杀】造成伤害后，你可将该牌交给一名其他角色，若其为女性角色，其获得一枚阴阳鱼标记。",
+    ["@lvjin-give"] = "旅进：请选择一名其他角色获得此【杀】",
+    ["muyang"] = "募养",
+    [":muyang"] = "副将技，此武将牌上单独的阴阳鱼个数-1，回合结束时，你可以亮出牌堆顶两张牌，获得其中的红色牌和【杀】。",
+    ["$zhengfeng1"] = "索全凭丞相差遣，万死不辞！",
+    ["$zhengfeng2"] = "末将愿承父志，随丞相出征！",
+    ["$lvjin1"] = "花落断情伤，心碎斩痴妄。",
+    ["$lvjin2"] = "流水不言恨，落英难解愁。",
+    ["$muyang1"] = "花落断情伤，心碎斩痴妄。",
+    ["$muyang2"] = "流水不言恨，落英难解愁。",
+    ["~guansuo_xianxia"] = "只恨天下未平，空留遗志。",
 }
 
 sgs.Sanguosha:addSkills(skills)

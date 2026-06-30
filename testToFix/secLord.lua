@@ -1122,7 +1122,7 @@ luajpzzg = sgs.CreateTriggerSkill{
               
             if event == sgs.Death and player:getPhase() < sgs.Player_NotActive then
                 local death = data:toDeath()
-                if death.who:getGeneralName() == "lord_caopi" or death.who:getGeneralName() == "lord_caopi$" or
+                --[[if death.who:getGeneralName() == "lord_caopi" or death.who:getGeneralName() == "lord_caopi$" or
                 (not hasAnjiang and player:getPlayerNumWithSameKingdom("AI", "wei", 1) <= 1) then
                     for _, p in sgs.qlist(room:getAlivePlayers()) do
                         room:setPlayerMark(p, "##luajpzzg_peach", 0)
@@ -1130,7 +1130,7 @@ luajpzzg = sgs.CreateTriggerSkill{
                         room:setPlayerMark(p, "##luajpzzg_handcards", 0)
                     end
                     return false
-                end
+                end]]
 
                 if death.damage and death.damage.from then
                     for _, p in sgs.qlist(room:getAlivePlayers()) do--先清标记
@@ -1157,7 +1157,7 @@ luajpzzg = sgs.CreateTriggerSkill{
                     if #weiMax < 2 or weiMax[1] == weiMax[2] or skill_owners1 == nil then return false end
                     for _, p in sgs.qlist(room:getAlivePlayers()) do
                         if p:getSeemingKingdom() == "wei" and p:getMark("luajpzzg_killCount") == weiMax[1] then
-                            if weiMax[1] >= allMax[1] then
+                            if weiMax[1] > allMax[1] then
                                 room:setPlayerMark(p, "##luajpzzg_killer", 2)
                             else
                                 room:setPlayerMark(p, "##luajpzzg_killer", 1)
@@ -1446,6 +1446,28 @@ luahuandou = sgs.CreatePhaseChangeSkill{
     end
 }
 
+luaclearjpzzg = sgs.CreateTriggerSkill{
+    name = "luaclearjpzzg",
+    events = {sgs.Death},
+    can_trigger = function(self, event, room, player, data)
+        local hasAnjiang = false
+        for _, p in sgs.qlist(room:getAlivePlayers()) do
+            if sgs.isAnjiang(p) then
+                hasAnjiang = true
+                break
+            end
+        end
+        if death.who:getGeneralName() == "lord_caopi" or death.who:getGeneralName() == "lord_caopi$" then
+            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                room:setPlayerMark(p, "##luajpzzg_peach", 0)
+                room:setPlayerMark(p, "##luajpzzg_killer", 0)
+                room:setPlayerMark(p, "##luajpzzg_handcards", 0)
+            end
+            return false
+        end
+    end,
+}
+
 lord_caopi:addSkill(luahuangchu)
 lord_caopi:addSkill(luajpzzg)
 lord_caopi:addSkill(luajpzzg_markEffect)
@@ -1456,6 +1478,7 @@ secLordGe:insertRelatedSkills("luahuangchu", "#luajpzzg_markEffect")
 
 if not sgs.Sanguosha:getSkill("luajpzzgSlashTimes") then skills:append(luajpzzgSlashTimes) end
 if not sgs.Sanguosha:getSkill("fangzhu_lordcaopi") then skills:append(fangzhu_lordcaopi) end
+if not sgs.Sanguosha:getSkill("luaclearjpzzg") then skills:append(luaclearjpzzg) end
 
 sgs.LoadTranslationTable{
     ["#lord_caopi"] = "挣罗的负屭",
