@@ -2422,12 +2422,17 @@ zhiyi = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)
         if event == sgs.CardUsed then
             local use = data:toCardUse()
-            if use.card:isKindOf("Slash") and use.from:hasSkill(self:objectName()) then
-                room:setPlayerFlag(use.from,"zhiyi_used_slash")
+            if use.from:hasSkill(self:objectName()) and use.card:isKindOf("BasicCard") then
+                room:setPlayerFlag(use.from,"zhiyi_used_basic")
+                if use.card:isKindOf("Slash") then
+                    room:setPlayerFlag(use.from,"zhiyi_used_slash")
+                elseif use.card:isKindOf("Peach") then
+                    room:setPlayerFlag(use.from,"zhiyi_used_peach")                 
+                end
             end
         elseif event == sgs.EventPhaseEnd and player:getPhase()==sgs.Player_Finish then
             local owner = room:findPlayerBySkillName(self:objectName())
-            if owner and owner:isAlive() and owner:hasSkill(self:objectName()) and owner:hasFlag("zhiyi_used_slash") then 
+            if owner and owner:isAlive() and owner:hasSkill(self:objectName()) and owner:hasFlag("zhiyi_used_basic") then 
                 return self:objectName(),owner:objectName()
             end  
         end
@@ -2442,10 +2447,13 @@ zhiyi = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data, ask_who)
-        local choice = room:askForChoice(ask_who, self:objectName(), "draw+slash")
+        local choices = {"draw"}
+        if ask_who:hasFlag("zhiyi_used_slash") then table.insert(choices,"slash") end
+        if ask_who:hasFlag("zhiyi_used_peach") then table.insert(choices,"peach") end
+        local choice = room:askForChoice(ask_who, self:objectName(), table.concat(choices,"+"))
         if choice == "draw" then
             ask_who:drawCards(1,self:objectName())
-        else
+        elseif choice == "slash" then
             local targets = sgs.SPlayerList()  
             for _, p in sgs.qlist(room:getOtherPlayers(ask_who)) do  
                 if ask_who:inMyAttackRange(p) then  
@@ -2465,6 +2473,15 @@ zhiyi = sgs.CreateTriggerSkill{
             else
                 ask_who:drawCards(1,self:objectName())
             end
+        elseif choice == "peach" then
+            local peach = sgs.Sanguosha:cloneCard("peach", sgs.Card_NoSuit, 0)  
+            peach:setSkillName(self:objectName())  
+            local use = sgs.CardUseStruct()  
+            use.card = peach  
+            use.from = ask_who  
+            use.to:append(ask_who)  
+            room:useCard(use) 
+            peach:deleteLater()
         end
     end
 }
@@ -2472,7 +2489,7 @@ zhangyi_feng:addSkill(zhiyi)
 sgs.LoadTranslationTable{
     ["zhangyi_feng"] = "张翼",
     ["zhiyi"] = "执义",
-    [":zhiyi"] = "你使用过杀的回合结束时，你摸1张牌或视为使用一张杀",
+    [":zhiyi"] = "你使用过基本牌的回合结束时，你摸1张牌或视为使用一张本回合使用过的基本牌",
 }
 
 zhaoyan_feng = sgs.General(extension, "zhaoyan_feng", "wu", 3, false)
