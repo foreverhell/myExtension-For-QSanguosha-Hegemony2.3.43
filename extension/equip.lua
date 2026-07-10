@@ -1475,7 +1475,7 @@ kuangzhanshi:setParent(extension) --通过
 QiyiShouhu:setParent(extension)
 --xinlingganying:setParent(extension) --用的不多
 --ZhiyuZhijian:setParent(extension) --用的不多
-sanchaji:setParent(extension)
+--sanchaji:setParent(extension)
 
 if not sgs.Sanguosha:getSkill("qiankundai") then
     skills:append(qiankundai_skill)
@@ -1516,9 +1516,11 @@ end
 if not sgs.Sanguosha:getSkill("QiyiShouhu") then
     skills:append(QiyiShouhuSkill)
 end
+--[[
 if not sgs.Sanguosha:getSkill("sanchaji") then
     skills:append(sanchajiSkill)
 end
+]]
 sgs.Sanguosha:addSkills(skills)
 -- 添加翻译  
 sgs.LoadTranslationTable{  
