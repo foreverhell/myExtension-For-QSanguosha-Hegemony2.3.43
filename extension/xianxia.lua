@@ -179,7 +179,163 @@ sgs.LoadTranslationTable{
     [":fujian"] = "结束阶段或你受到伤害后，你可以将一张牌置于“谋”牌堆，然后摸一张牌",
     ["mou"] = "谋"
 }
+caozhi_wu = sgs.General(extension, "caozhi_wu", "wu", 3)
 
+zongshu = sgs.CreateTriggerSkill{
+    name = "zongshu",
+    events = {sgs.CardsMoveOneTime},
+    frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+        if skillTriggerable(player, self:objectName()) then
+            local move_datas = data:toList()
+            for _, move_data in sgs.qlist(move_datas) do
+                local move = move_data:toMoveOneTime()
+                local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+                if move.from and move.from:objectName() == player:objectName() then return "" end
+                if reasonx ~= sgs.CardMoveReason_S_REASON_USE then
+                    if move.to_place == sgs.Player_DiscardPile then
+                        for _, card_id in sgs.qlist(move.card_ids) do
+                            local card = sgs.Sanguosha:getCard(card_id)
+                            if room:getCardPlace(card_id) == sgs.Player_DiscardPile and 
+                            (card:isKindOf("TrickCard") or card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse") or card:isKindOf("SixDragons")) then
+                                return self:objectName()
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return false
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        if player:askForSkillInvoke(self:objectName(), data) then
+            room:broadcastSkillInvoke(self:objectName(), player)
+            return true
+        end
+        return false
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        local move_datas = data:toList()
+        for _, move_data in sgs.qlist(move_datas) do
+            local move = move_data:toMoveOneTime()
+            local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
+            if reasonx ~= sgs.CardMoveReason_S_REASON_USE then
+                local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                for _, card_id in sgs.qlist(move.card_ids) do
+                    local card = sgs.Sanguosha:getCard(card_id)
+                    if room:getCardPlace(card_id) == sgs.Player_DiscardPile and card_id ~= 144 and  --敕令弃牌时应直接进入弃牌堆替换成诏令
+                    (card:isKindOf("TrickCard") or card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse") or card:isKindOf("SixDragons")) then
+                        dummy:addSubcard(card_id)
+                    end
+                end
+                room:obtainCard(player, dummy, true)
+            end
+        end
+        return false
+    end
+}
+
+jiushi1Card = sgs.CreateSkillCard{
+	name = "jiushi1Card",
+	skill_name = "jiushi1Recast",
+    target_fixed = true,
+	will_throw = true,
+	handling_method = sgs.Card_MethodRecast,
+    on_use = function(self, room, source)
+        local n = self:getSubcards():length()
+        source:drawCards(n, "jiushi1")
+    end
+}
+
+jiushi1Recast = sgs.CreateViewAsSkill{
+	name = "jiushi1Recast",
+	response_pattern = "@@jiushi1Recast",
+	view_filter = function(self, selected, to_select)
+		return to_select:getSuitString() == "club"
+	end,
+	view_as = function(self, cards)
+		if #cards ~= 0 then
+			local card = jiushi1Card:clone()
+			for var=1,#cards do 
+				card:addSubcard(cards[var]) 
+				card:setSkillName(self:objectName())
+				card:setShowSkill(self:objectName())
+			end
+			return card
+		end
+	end,
+}
+
+jiushi1 = sgs.CreateMasochismSkill{
+	name = "jiushi1",
+	frequency = sgs.Skill_Frequent,
+	can_trigger = function(self, event, room, player, data)
+		if skillTriggerable(player, self:objectName()) and player:hasShownAllGenerals() and not player:isNude() then
+			return self:objectName()
+		end
+		return ""
+	end,
+	on_cost = function(self, event, room, player, data)
+		if player:askForSkillInvoke(self:objectName()) then
+			room:broadcastSkillInvoke(self:objectName(), player)
+			return true
+		end
+		return false
+	end,
+	on_damaged = function(self, player, damage)
+		local room = player:getRoom()
+		local invoke = (room:askForUseCard(player, "@@jiushi1Recast", "@jiushi1-recast") ~= nil)
+        if player:inHeadSkills(self:objectName()) then
+            player:hideGeneral()
+        else
+            player:hideGeneral(false)
+        end
+    end,
+}
+jiushi1Showed = sgs.CreateTriggerSkill{
+	name = "#jiushi1-showed",
+	events = {sgs.GeneralShowed},
+	frequency = sgs.Skill_Frequent,
+    can_trigger = function(self, event, room, player, data)
+		if player:cheakSkillLocation("jiushi1", data) then
+            local current = room:getCurrent()
+            if sgs.Analeptic_IsAvailable(current) then
+                return self:objectName()
+            end
+		end
+		return ""
+	end,
+    on_cost = function(self, event, room, player, data)
+        return player:askForSkillInvoke(self:objectName(), data)
+	end,
+    on_effect = function(self, event, room, player, data)
+        local current = room:getCurrent()
+        if sgs.Analeptic_IsAvailable(current) then
+            local analeptic = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
+            local use = sgs.CardUseStruct()
+            use.card = analeptic
+            use.from = current
+            room:useCard(use, false)
+        end
+		return false
+	end,
+}
+
+caozhi_wu:addSkill(zongshu)
+caozhi_wu:addSkill(jiushi1)
+caozhi_wu:addSkill(jiushi1Showed)
+extension:insertRelatedSkills("jiushi1", "#jiushi1-showed")
+if not sgs.Sanguosha:getSkill("jiushi1Recast") then skills:append(jiushi1Recast) end
+sgs.LoadTranslationTable{
+    ["caozhi_wu"] = "曹植",
+    ["zongshu"] = "纵书",
+    [":zongshu"] = "其他角色的牌不因使用进入弃牌堆后，你可以获得其中的锦囊牌和坐骑牌。",
+    ["jiushi1"] = "酒诗",
+    [":jiushi1"] = "你明置该武将牌后，若当前回合角色可以使用酒，你可以令其视为使用之；当你受到伤害后，若你的武将均明置，你可以重铸任意张梅花牌并暗置此武将牌",
+    ["jiushi1-recast"] = "你可以重铸任意张梅花牌并暗置此武将牌",
+}
 --[[
 chenqun = sgs.General(extension, "chenqun", "wei", 3)
 
