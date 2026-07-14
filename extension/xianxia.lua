@@ -193,10 +193,10 @@ zongshu = sgs.CreateTriggerSkill{
                 local reasonx = bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
                 if move.from and move.from:objectName() == player:objectName() then return "" end
                 if reasonx ~= sgs.CardMoveReason_S_REASON_USE then
-                    if move.to_place == sgs.Player_DiscardPile then
+                    if (move.from_places:contains(sgs.Player_PlaceHand) or move.from_places:contains(sgs.Player_PlaceEquip)) and move.to_place == sgs.Player_DiscardPile then
                         for _, card_id in sgs.qlist(move.card_ids) do
                             local card = sgs.Sanguosha:getCard(card_id)
-                            if room:getCardPlace(card_id) == sgs.Player_DiscardPile and 
+                            if room:getCardPlace(card_id) == sgs.Player_DiscardPile and card_id ~= 144 and  --敕令弃牌时应直接进入弃牌堆替换成诏令
                             (card:isKindOf("TrickCard") or card:isKindOf("OffensiveHorse") or card:isKindOf("DefensiveHorse") or card:isKindOf("SixDragons")) then
                                 return self:objectName()
                             end
@@ -252,7 +252,8 @@ jiushi1Card = sgs.CreateSkillCard{
 jiushi1Recast = sgs.CreateViewAsSkill{
 	name = "jiushi1Recast",
 	response_pattern = "@@jiushi1Recast",
-	view_filter = function(self, selected, to_select)
+    filter_pattern = ".|club|.|.",  -- 梅花
+    view_filter = function(self, selected, to_select)
 		return to_select:getSuitString() == "club"
 	end,
 	view_as = function(self, cards)
