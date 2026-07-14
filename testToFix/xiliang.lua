@@ -2491,12 +2491,12 @@ haokuieffect = sgs.CreateTriggerSkill{
 			end
 		end
 		if event == sgs.EventPhaseEnd then
-			if player:getGeneral():ownSkill("haokui") and player:hasShownAllGenerals() then
+			if player:getGeneral() and player:getGeneral():ownSkill("haokui") then
                 if room:askForChoice(player, "haokui_hide", "yes+no", data, "@haokui-hide1") == "yes" then
                     player:hideGeneral()
                 end
             end
-			if player:getGeneral2() and player:getGeneral2():ownSkill("haokui") and player:hasShownAllGenerals() then
+			if player:getGeneral2() and player:getGeneral2():ownSkill("haokui") then
                 if room:askForChoice(player, "haokui_hide", "yes+no", data, "@haokui-hide2") == "yes" then
                     player:hideGeneral(false)
                 end
