@@ -251,11 +251,12 @@ jiushi1Card = sgs.CreateSkillCard{
 
 jiushiRecast = sgs.CreateViewAsSkill{
 	name = "jiushiRecast",
-	response_pattern = "@@jiushiRecast",
+	response_pattern = "@@jiushiRecast",--响应技能数字只能出现在最后，否则识别不到
     filter_pattern = ".|club|.|.",  -- 梅花
     response_or_use = true,
     view_filter = function(self, selected, to_select)
-		return to_select:getSuitString() == "club"
+		--return to_select:getSuit() == sgs.Card_Club
+        return to_select:getSuitString() == "club"
 	end,
 	view_as = function(self, cards)
 		if #cards ~= 0 then
