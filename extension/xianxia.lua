@@ -3987,7 +3987,7 @@ xiaoguoActive = sgs.CreateTriggerSkill{
     end
 }
 yuejin:addSkill(xiaoguoActive)
-]]
+
 mylukang = sgs.General(extension, "mylukang", "wu", 4)
 mylukang:setHeadMaxHpAdjustedValue(-1)
 jueyanArea = sgs.CreateTriggerSkill{  
@@ -4082,5 +4082,6 @@ sgs.LoadTranslationTable{
     ["kuimang"] = "溃蟒",
     [":kuimang"] = "锁定技。你杀死一名与你势力不同且处于队列的角色时，你摸2张牌"
 }
+]]
 sgs.Sanguosha:addSkills(skills)
 return {extension}
