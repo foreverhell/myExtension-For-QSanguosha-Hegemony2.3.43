@@ -251,10 +251,11 @@ jiushi1Card = sgs.CreateSkillCard{
 
 jiushiRecast = sgs.CreateViewAsSkill{
 	name = "jiushiRecast",
-	response_pattern = "@@jiushiRecast",--响应技能数字只能出现在最后，否则识别不到
+	response_pattern = "@@jiushiRecast",
     filter_pattern = ".|club|.|.",  -- 梅花
+    response_or_use = true,
     view_filter = function(self, selected, to_select)
-		return to_select:getSuit() == sgs.Card_Club
+		return to_select:getSuitString() == "club"
 	end,
 	view_as = function(self, cards)
 		if #cards ~= 0 then
@@ -2684,141 +2685,6 @@ sgs.LoadTranslationTable{
     ["shuangguan"] = "双关",  
     [":shuangguan"] = "你可以将2张颜色相同花色不同的牌当杀或闪使用或打出，你因此失去所有手牌后摸一张牌",  
 }
-wangyun = sgs.General(extension, "wangyun", "qun", 3)  
-
-ShelunCard = sgs.CreateSkillCard{  
-    name = "ShelunCard",  
-    target_fixed = false,  
-    will_throw = false,  
-    filter = function(self, targets, to_select)  
-        if #targets > 0 then return false end  
-        if to_select:objectName() == sgs.Self:objectName() then return false end  
-        --if to_select:isAllNude() then return false end
-        -- 检查攻击范围  
-        return sgs.Self:inMyAttackRange(to_select)  
-    end,  
-    feasible = function(self, targets)  
-        return #targets == 1  
-    end,  
-    on_use = function(self, room, source, targets)  
-        local target = targets[1]  
-          
-        -- 找出所有手牌数小于等于source的角色（除了target）  
-        local participants = {}  
-        table.insert(participants, source) -- 王允自己参与  
-          
-        for _, p in sgs.qlist(room:getAlivePlayers()) do  
-            if p:objectName() ~= source:objectName() and p:objectName() ~= target:objectName() then  
-                if not p:isKongcheng() and p:getHandcardNum() <= source:getHandcardNum() then  
-                    table.insert(participants, p)  
-                end  
-            end  
-        end  
-          
-        -- 所有参与者展示一张手牌  
-        local shown_cards = {}  
-        local red_count = 0  
-        local black_count = 0  
-          
-        for _, p in ipairs(participants) do  
-            if not p:isKongcheng() then  
-                local card = room:askForCardShow(p, source, "shelun")  
-                if card then  
-                    shown_cards[p:objectName()] = card
-                    --room:showCard(p, card_id)  
-                    if card:isRed() then  
-                        red_count = red_count + 1  
-                    else  
-                        black_count = black_count + 1  
-                    end  
-                end  
-            end  
-        end  
-        for player_name,card in pairs(shown_cards) do
-            room:showCard(room:findPlayer(player_name), card:getEffectiveId()) 
-        end
-        -- 根据颜色统计结果执行效果  
-        if red_count > black_count then  
-            -- 红色牌更多，弃置目标1张牌  
-            if not target:isAllNude() then  
-                local card_id = room:askForCardChosen(source, target, "hej", "shelun", false, sgs.Card_MethodDiscard)  
-                room:throwCard(card_id, target, source)  
-            end  
-        elseif black_count > red_count then  
-            -- 黑色牌更多，对目标造成1点伤害  
-            room:damage(sgs.DamageStruct("shelun", source, target, 1, sgs.DamageStruct_Normal))  
-        end  
-          
-        -- 对展示颜色和王允不同的角色造成1点伤害  
-        local source_card = shown_cards[source:objectName()]
-        if source_card then  
-            local different_color_players = sgs.SPlayerList()  
-              
-            for player_name, card in pairs(shown_cards) do  
-                if player_name ~= source:objectName() then  
-                    local p = room:findPlayer(player_name)  
-                    if p and p:isAlive() then  
-                        local source_is_red = source_card:isRed()  
-                        local card_is_red = card:isRed()  
-                          
-                        if source_is_red ~= card_is_red then  
-                            -- 颜色不同的角色  
-                            different_color_players:append(p)  
-                        end  
-                    end  
-                end  
-            end   
-            chosen_player = room:askForPlayerChosen(source, different_color_players, "shelun", "@shelun-damage")                    
-            if chosen_player and source:askForSkillInvoke("@shelun-damage", sgs.QVariant()) then  
-                room:damage(sgs.DamageStruct("shelun", source, chosen_player, 1, sgs.DamageStruct_Normal))  
-            end  
-        end  
-
-        --[[
-        if source_card then  
-            for player_name, card in pairs(shown_cards) do  
-                if player_name ~= source:objectName() then  
-                    local p = room:findPlayer(player_name)  
-                    if p and p:isAlive() then  
-                        local source_is_red = source_card:isRed()  
-                        local card_is_red = card:isRed()  
-                          
-                        if source_is_red ~= card_is_red then  
-                            -- 颜色不同，造成伤害  
-                            if source:askForSkillInvoke("shelun", sgs.QVariant()) then  
-                                room:damage(sgs.DamageStruct("shelun", source, p, 1, sgs.DamageStruct_Normal))  
-                            end  
-                        end  
-                    end  
-                end  
-            end  
-        end  
-        ]]
-    end  
-}  
-  
--- 赦论技能  
-shelun = sgs.CreateZeroCardViewAsSkill{  
-    name = "shelun",  
-    view_as = function(self, cards)  
-        card = ShelunCard:clone()  
-        card:setSkillName(self:objectName())
-        card:setShowSkill(self:objectName())
-        return card
-    end,  
-    enabled_at_play = function(self, player)  
-        return not player:hasUsed("#ShelunCard") and not player:isKongcheng()
-    end,  
-}
-
-wangyun:addSkill(shelun)
-sgs.LoadTranslationTable{
-["#wangyun"] = "忠义之士",  
-["wangyun"] = "王允",   
-["illustrator:wangyun"] = "插画师名称",  
-["shelun"] = "赦论",  
-[":shelun"] = "出牌阶段限一次，你可以选择一名你攻击范围内的其他角色，然后你和除其之外所有手牌数小于等于你的角色同时展示一张手牌。若展示的红色牌数更多，你弃置其1张牌；若展示的黑色牌数更多，你对其造成1点伤害；你可以选择一名展示颜色和你不同的角色，对其造成1点伤害。",
-}
 
 xinxianying = sgs.General(extension, "xinxianying", "wei", 3, false)
 
@@ -2927,68 +2793,6 @@ sgs.LoadTranslationTable{
     [":qingshi2"] = "你受到伤害后，你可以选择一名有明置武将的角色：若其与你势力相同，你与其各摸1张牌；若其与你势力不同，你弃置你与其各1张牌"
 }
 
-yangqiu = sgs.General(extension, "yangqiu", "qun", 4) -- 蜀势力，4血，男性（默认）  
-
-SaojianCard = sgs.CreateSkillCard{  
-    name = "SaojianCard",  
-    target_fixed = false,  
-    will_throw = false,  
-    filter = function(self, targets, to_select)  
-        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName() and not to_select:isKongcheng()  
-    end,  
-    on_use = function(self, room, source, targets)  
-        local target = targets[1]  
-        --[[
-        -- 观看目标手牌并选择一张  
-        local handcards = target:handCards()  
-        if handcards:isEmpty() then return end  
-          
-        room:fillAG(sgs.QList2Table(handcards), source)  
-        local card_id = room:askForAG(source, sgs.QList2Table(handcards), false, "saojian")  
-        room:clearAG(source)  
-        ]]
-        local card_id = room:askForCardChosen(source, target, "h", self:objectName(), true)
-        if card_id == -1 then return end  
-                    
-        -- 目标角色重复弃置手牌直到弃置选择的牌  
-        while not target:isKongcheng() do  
-            local discarded_id = room:askForCardChosen(target, target, "h", self:objectName())
-            room:throwCard(discarded_id, target, target)              
-            if discarded_id == card_id then  
-                break  
-            end  
-        end  
-          
-        -- 检查手牌数差异  
-        if target:getHandcardNum() > source:getHandcardNum() then  
-            room:loseHp(source, 1)  
-        end  
-    end  
-}  
-  
--- 扫奸技能  
-saojian = sgs.CreateZeroCardViewAsSkill{  
-    name = "saojian",  
-    view_as = function(self)  
-        card = SaojianCard:clone()  
-        card:setSkillName(self:objectName())
-        card:setShowSkill(self:objectName())
-        return card
-    end,  
-    enabled_at_play = function(self, player)  
-        return not player:hasUsed("#SaojianCard")  
-    end,  
-}
-
-yangqiu:addSkill(saojian)
-
-sgs.LoadTranslationTable{
-["#yangqiu"] = "扫除奸佞",  
-["yangqiu"] = "阳球",   
-["illustrator:yangqiu"] = "插画师名称",  
-["saojian"] = "扫奸",  
-[":saojian"] = "出牌阶段限一次，你可以观看一名其他角色的手牌并选择一张，该角色重复弃置1张手牌直到弃置你选择的牌；此时若其手牌数大于你，你失去1点体力。",
-}
 --[[
 zhangyi_xianxia = sgs.General(extension, "zhangyi_xianxia", "shu", 4) 
 
