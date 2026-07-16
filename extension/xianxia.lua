@@ -239,7 +239,7 @@ zongshu = sgs.CreateTriggerSkill{
 
 jiushi1Card = sgs.CreateSkillCard{
 	name = "jiushi1Card",
-	skill_name = "jiushi1Recast",
+	skill_name = "jiushiRecast",
     target_fixed = true,
 	will_throw = true,
 	handling_method = sgs.Card_MethodRecast,
@@ -249,12 +249,12 @@ jiushi1Card = sgs.CreateSkillCard{
     end
 }
 
-jiushi1Recast = sgs.CreateViewAsSkill{
-	name = "jiushi1Recast",
-	response_pattern = "@@jiushi1Recast",
+jiushiRecast = sgs.CreateViewAsSkill{
+	name = "jiushiRecast",
+	response_pattern = "@@jiushiRecast",--响应技能数字只能出现在最后，否则识别不到
     filter_pattern = ".|club|.|.",  -- 梅花
     view_filter = function(self, selected, to_select)
-		return to_select:getSuitString() == "club"
+		return to_select:getSuit() == sgs.Card_Club
 	end,
 	view_as = function(self, cards)
 		if #cards ~= 0 then
@@ -287,7 +287,7 @@ jiushi1 = sgs.CreateMasochismSkill{
 	end,
 	on_damaged = function(self, player, damage)
 		local room = player:getRoom()
-		local invoke = (room:askForUseCard(player, "@@jiushi1Recast", "@jiushi1-recast") ~= nil)
+		local invoke = (room:askForUseCard(player, "@@jiushiRecast", "@jiushi-recast") ~= nil)
         if player:inHeadSkills(self:objectName()) then
             player:hideGeneral()
         else
@@ -328,7 +328,7 @@ caozhi_wu:addSkill(zongshu)
 caozhi_wu:addSkill(jiushi1)
 caozhi_wu:addSkill(jiushi1Showed)
 extension:insertRelatedSkills("jiushi1", "#jiushi1-showed")
-if not sgs.Sanguosha:getSkill("jiushi1Recast") then skills:append(jiushi1Recast) end
+if not sgs.Sanguosha:getSkill("jiushiRecast") then skills:append(jiushiRecast) end
 sgs.LoadTranslationTable{
     ["caozhi_wu"] = "曹植",
     ["zongshu"] = "纵书",
