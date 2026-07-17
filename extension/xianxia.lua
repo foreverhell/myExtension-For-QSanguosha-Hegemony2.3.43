@@ -320,7 +320,7 @@ jiushi1Showed = sgs.CreateTriggerSkill{
             local use = sgs.CardUseStruct()
             use.card = analeptic
             use.from = current
-            room:useCard(use, false)
+            room:useCard(use)
         end
 		return false
 	end,
