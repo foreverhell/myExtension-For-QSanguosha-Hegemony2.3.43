@@ -2782,5 +2782,89 @@ sgs.LoadTranslationTable{
 	["duwuDamage"] = "黩武",
 	[":duwuDamage"] = "出牌阶段限一次。你可以弃置所有手牌，对攻击范围内一名角色造成1点伤害",
 }
+--以下为珍藏封印，非四象封印
+panglin = sgs.General(extension, "panglin", "shu", 3)
+
+zhuying = sgs.CreateTriggerSkill{
+    name = "zhuying",
+    events = {sgs.DamageInflicted},
+    frequency = sgs.Skill_NotFrequent,
+
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive()) then return "" end
+        if player:isChained() or not player:canBeChainedBy() then return "" end
+
+        local damage = data:toDamage()
+        if damage.nature ~= sgs.DamageStruct_Normal then return "" end
+
+        for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
+            if p and p:isAlive() and p:objectName() ~= player:objectName() then
+                return self:objectName(), p:objectName()
+            end
+        end
+
+        return ""
+    end,
+
+    on_cost = function(self, event, room, player, data, ask_who)
+        if ask_who and ask_who:askForSkillInvoke(self:objectName(), data) then
+            room:broadcastSkillInvoke(self:objectName(), ask_who)
+            return true
+        end
+        return false
+    end,
+
+    on_effect = function(self, event, room, player, data, ask_who)
+        if player and player:isAlive() and player:canBeChainedBy() and not player:isChained() then
+            room:setPlayerProperty(player, "chained", sgs.QVariant(true))
+        end
+        return false
+    end
+}
+
+zhongshi = sgs.CreateTriggerSkill{
+    name = "zhongshi",
+    events = {sgs.DamageCaused},
+    frequency = sgs.Skill_Compulsory,
+
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+
+        local damage = data:toDamage()
+        if not (damage.to and damage.to:isAlive()) then return "" end
+        if player:isChained() == damage.to:isChained() then return "" end
+
+        return self:objectName()
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        if player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data) then
+            room:sendCompulsoryTriggerLog(player, self:objectName())
+            room:broadcastSkillInvoke(self:objectName(), player)
+            return true
+        end
+        return false
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        local damage = data:toDamage()
+        damage.damage = damage.damage + 1
+        data:setValue(damage)
+        return false
+    end
+}
+
+panglin:addSkill(zhuying)
+panglin:addSkill(zhongshi)
+
+sgs.LoadTranslationTable{
+    ["panglin"] = "庞林",
+    ["#panglin"] = "忠肃从事",
+    ["zhuying"] = "驻营",
+    [":zhuying"] = "其他角色受到非属性伤害时，若其未横置，你可以令其横置。",
+    ["zhongshi"] = "忠事",
+    [":zhongshi"] = "锁定技。你对横置状态与你不同的角色造成伤害时，此伤害+1。"
+}
+
 sgs.Sanguosha:addSkills(skills)
 return {extension}
