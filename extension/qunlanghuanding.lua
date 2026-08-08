@@ -178,7 +178,7 @@ wanweiQunlang = sgs.CreateTriggerSkill{
         return false
     end
 }
-
+--[[
 yuejianQunlang = sgs.CreateMaxCardsSkill{
     name = "yuejianQunlang",
     frequency = sgs.Skill_Compulsory,
@@ -193,9 +193,9 @@ yuejianQunlang = sgs.CreateMaxCardsSkill{
         return 0
     end
 }
-
+]]
 bianfuren_qunlang:addSkill(wanweiQunlang)
-bianfuren_qunlang:addSkill(yuejianQunlang)
+--bianfuren_qunlang:addSkill(yuejianQunlang)
 
 ganfuren_qunlang = sgs.General(extension, "ganfuren_qunlang", "shu", 3, false)
 
@@ -762,8 +762,7 @@ mieyi = sgs.CreateTriggerSkill{
 
 simayu:addSkill(mieyi)
 
-
-
+--[[
 simayue = sgs.General(extension, "simayue", "jin", 4)
 simayue:setHeadMaxHpAdjustedValue(-1)
 
@@ -986,9 +985,9 @@ yinfu = sgs.CreateTriggerSkill{
 
 simayue:addSkill(huluan)
 simayue:addSkill(yinfu)
+]]
 
-
-simajiong = sgs.General(extension, "simajiong", "jin", 3)
+simajiong = sgs.General(extension, "simajiong", "wei", 3)
 
 local function chuchongSameKingdomTargets(room, player)
     local targets = sgs.SPlayerList()
@@ -1111,7 +1110,7 @@ dufu = sgs.CreateTriggerSkill{
     end
 }
 
-simajiong:addSkill(chuchong)
+--simajiong:addSkill(chuchong)
 simajiong:addSkill(dufu)
 
 sgs.LoadTranslationTable{
