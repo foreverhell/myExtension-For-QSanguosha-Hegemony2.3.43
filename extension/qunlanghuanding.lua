@@ -1023,37 +1023,26 @@ end
 
 chuchong = sgs.CreateTriggerSkill{
     name = "chuchong",
-    events = {sgs.BuryVictim, sgs.DeathFinished},
+    events = {sgs.Death},
     frequency = sgs.Skill_Compulsory,
 
-    can_trigger = function(self, event, room, player, data)
-        if event == sgs.BuryVictim then
-            if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
-            local death = data:toDeath()
-            local killer = death.damage and death.damage.from
-            if killer and killer:objectName() == player:objectName()
-                and death.who and death.who:objectName() ~= player:objectName()
-                and player:isFriendWith(death.who) then
-                return self:objectName()
-            end
-        elseif event == sgs.DeathFinished then
-            local death = data:toDeath()
-            local killer = death.damage and death.damage.from
-            if killer and killer:hasFlag("chuchong_skip_game_rule_reward") then
-                room:setPlayerFlag(killer, "-skip_game_rule_reward")
-                room:setPlayerFlag(killer, "-chuchong_skip_game_rule_reward")
-            end
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
+        local death = data:toDeath()  
+        if death.damage and death.damage.from and death.damage.from:hasSkill(self:objectName()) 
+        and death.damage.from:isFriendWith(death.who) and death.damage.from ~= death.who then
+            return self:objectName()
         end
-        return ""
-    end,
-
-    on_cost = function(self, event, room, player, data)
-        return player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data)
-    end,
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        if player:hasShownSkill(self:objectName()) or player:askForSkillInvoke(self:objectName(), data) then  
+            room:broadcastSkillInvoke(self:objectName())  
+            return true  
+        end  
+        return false  
+    end,  
 
     on_effect = function(self, event, room, player, data)
-        room:setPlayerFlag(player, "skip_game_rule_reward")
-        room:setPlayerFlag(player, "chuchong_skip_game_rule_reward")
         local targets = chuchongSameKingdomTargets(room, player)
         for _, target in sgs.qlist(targets) do
             chuchongRewardTarget(room, player, target, self:objectName(), data)
@@ -1110,7 +1099,7 @@ dufu = sgs.CreateTriggerSkill{
     end
 }
 
---simajiong:addSkill(chuchong)
+simajiong:addSkill(chuchong)
 simajiong:addSkill(dufu)
 
 sgs.LoadTranslationTable{
@@ -1184,7 +1173,7 @@ sgs.LoadTranslationTable{
     ["simajiong"] = "司马冏",
     ["#simajiong"] = "齐武闵王",
     ["chuchong"] = "除虫",
-    [":chuchong"] = "锁定技。你杀死与你势力相同的其他角色时，奖惩改为所有与你势力相同的角色依次回复所有体力、将手牌摸至5张、可以变更一次副将。",
+    [":chuchong"] = "锁定技。你杀死与你势力相同的其他角色时，所有与你势力相同的角色依次回复所有体力、将手牌摸至5张、可以变更一次副将。",
     ["chuchong:transform"] = "变更副将",
     ["chuchong:cancel"] = "取消",
     ["dufu"] = "独夫",
