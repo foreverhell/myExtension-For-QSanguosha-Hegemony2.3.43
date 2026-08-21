@@ -5008,6 +5008,177 @@ sgs.LoadTranslationTable{
     ["quji"] = "去疾",
     [":quji"] = "出牌阶段限一次。你可以弃置任意张牌，并令等量距离的一名其他角色恢复1点体力，若其中包含黑色牌，你失去1点体力"
 }
+sunjun = sgs.General(extension, "sunjun", "wu", 4)
+
+SuchaoCard = sgs.CreateSkillCard{
+    name = "SuchaoCard",
+    target_fixed = false,
+    will_throw = false,
+
+    filter = function(self, selected, to_select)
+        return #selected < 3
+            and to_select:objectName() ~= sgs.Self:objectName()
+            and to_select:getHandcardNum() > sgs.Self:getHandcardNum()
+    end,
+
+    feasible = function(self, targets)
+        return #targets > 0 and #targets <= 3
+    end,
+
+    on_use = function(self, room, source, targets)
+        local mark = "suchao_target_" .. source:objectName()
+        for _, target in ipairs(targets) do
+            if source:isAlive() and target:isAlive() then
+                room:setPlayerMark(target, mark, 1)
+                room:damage(sgs.DamageStruct("suchao", source, target, 1))
+            end
+        end
+    end
+}
+
+suchaoVS = sgs.CreateZeroCardViewAsSkill{
+    name = "suchao",
+
+    view_as = function(self)
+        local card = SuchaoCard:clone()
+        card:setShowSkill(self:objectName())
+        return card
+    end,
+
+    enabled_at_play = function(self, player)
+        if player:hasUsed("#SuchaoCard") then return false end
+
+        for _, target in sgs.qlist(player:getAliveSiblings()) do
+            if target:getHandcardNum() > player:getHandcardNum() then
+                return true
+            end
+        end
+        return false
+    end
+}
+
+suchao = sgs.CreateTriggerSkill{
+    name = "suchao",
+    events = {sgs.EventPhaseEnd},
+    view_as_skill = suchaoVS,
+
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Play) then return "" end
+
+        local mark = "suchao_target_" .. player:objectName()
+        for _, target in sgs.qlist(room:getAllPlayers()) do
+            if target:getMark(mark) > 0 then
+                return self:objectName()
+            end
+        end
+        return ""
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        return true
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        local mark = "suchao_target_" .. player:objectName()
+        local targets = {}
+
+        for _, target in sgs.qlist(room:getAllPlayers()) do
+            if target:getMark(mark) > 0 then
+                room:setPlayerMark(target, mark, 0)
+                table.insert(targets, target)
+            end
+        end
+
+        for _, target in ipairs(targets) do
+            if target:isAlive() then
+                local recover = sgs.RecoverStruct()
+                recover.who = player
+                recover.recover = 1
+                room:recover(target, recover)
+            end
+        end
+
+        for _, target in ipairs(targets) do
+            if target:isAlive() and player:isAlive() then
+                room:askForUseSlashTo(target, player,
+                    "@suchao-slash:" .. player:objectName(), false, false, false)
+            end
+        end
+        return false
+    end
+}
+
+zhulian = sgs.CreateTriggerSkill{
+    name = "zhulian",
+    events = {sgs.CardUsed, sgs.DamageInflicted, sgs.EventPhaseChanging},
+    frequency = sgs.Skill_Compulsory,
+
+    on_record = function(self, event, room, player, data)
+        if event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            if change.to == sgs.Player_NotActive then
+                for _, p in sgs.qlist(room:getAllPlayers()) do
+                    room:setPlayerMark(p, "zhulian_peach-Clear", 0)
+                end
+            end
+            return
+        end
+
+        if event ~= sgs.CardUsed then return end
+        local current = room:getCurrent()
+        if not current or not current:isAlive() or not current:hasSkill(self:objectName()) then return end
+
+        local use = data:toCardUse()
+        if not use.card or not use.card:isKindOf("Peach") then return end
+
+        if use.from then
+            room:setPlayerMark(use.from, "zhulian_peach-Clear", 1)
+        end
+        for _, target in sgs.qlist(use.to) do
+            room:setPlayerMark(target, "zhulian_peach-Clear", 1)
+        end
+    end,
+
+    can_trigger = function(self, event, room, player, data)
+        if event ~= sgs.DamageInflicted or not player or not player:isAlive() then return "" end
+        if player:getMark("zhulian_peach-Clear") == 0 then return "" end
+
+        local current = room:getCurrent()
+        if current and current:isAlive() and current:hasSkill(self:objectName())
+            and current:getPhase() ~= sgs.Player_NotActive then
+            return self:objectName(), current:objectName()
+        end
+        return ""
+    end,
+
+    on_cost = function(self, event, room, player, data, ask_who)
+        room:sendCompulsoryTriggerLog(ask_who, self:objectName())
+        return true
+    end,
+
+    on_effect = function(self, event, room, player, data, ask_who)
+        local damage = data:toDamage()
+        damage.damage = damage.damage + 1
+        data:setValue(damage)
+        return false
+    end
+}
+
+sunjun:addSkill(suchao)
+sunjun:addSkill(zhulian)
+
+sgs.LoadTranslationTable{
+    ["sunjun"] = "孙峻",
+    ["#sunjun"] = "骄矜凶臣",
+
+    ["suchao"] = "素朝",
+    [":suchao"] = "出牌阶段限一次。你可以对至多三名手牌数大于你的角色各造成1点伤害。若如此做，此阶段结束时，这些角色各回复1点体力，然后可以对你使用一张【杀】。",
+    ["SuchaoCard"] = "素朝",
+    ["@suchao-slash"] = "你可以对 %src 使用一张【杀】",
+
+    ["zhulian"] = "诛连",
+    [":zhulian"] = "锁定技。你的回合内，与本回合使用过【桃】或成为过【桃】目标的角色受到的伤害+1。",
+}
 -- 创建武将：
 sunluban = sgs.General(extension, "sunluban", "wu", 3, false)
 jianhuiCard = sgs.CreateSkillCard{  
