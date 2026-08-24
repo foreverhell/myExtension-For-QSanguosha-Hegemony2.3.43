@@ -1855,26 +1855,25 @@ bingxin = sgs.CreateTriggerSkill{
     events = {sgs.CardsMoveOneTime, sgs.HpChanged},  
     frequency = sgs.Skill_Frequent, 
     can_trigger = function(self, event, room, player, data)  
-        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
             return ""  
         end  
           
         -- 检查手牌数是否等于体力值  
-        if player:getHandcardNum() ~= player:getHp() or player:getHandcardNum() == 0 then  
+        if player:getHandcardNum() ~= player:getHp() then  
             return ""  
         end  
           
         -- 检查手牌颜色是否相同  
-        local handcards = player:getHandcards()  
-        if handcards:isEmpty() then return "" end  
-          
-        local first_color = handcards:first():getColor()  
-        for _, card in sgs.qlist(handcards) do  
-            if card:getColor() ~= first_color then  
-                return ""  
-            end  
-        end  
-          
+        local handcards = player:getHandcards()
+        if not handcards:isEmpty() then
+            local first_color = handcards:first():getColor()  
+            for _, card in sgs.qlist(handcards) do  
+                if card:getColor() ~= first_color then  
+                    return ""  
+                end  
+            end
+        end
         return self:objectName()  
     end,  
       
@@ -1947,7 +1946,89 @@ bingxin = sgs.CreateTriggerSkill{
         return false  
     end  
 }
+bingxinVS = sgs.CreateZeroCardViewAsSkill{  
+    name = "bingxin",  
+    response_or_use = true,  -- 关键参数，允许既主动使用又响应使用  
+    view_as = function(self)
+        local card_name = sgs.Self:getTag(self:objectName()):toString()
+		if card_name ~= "" then
+			local view_as_card = sgs.Sanguosha:cloneCard(card_name)
+			view_as_card:setCanRecast(false)
+			view_as_card:setSkillName(self:objectName())
+			view_as_card:setShowSkill(self:objectName())
+			return view_as_card
+		end
+    end,  
+      
+    enabled_at_play = function(self, player)
+        if player:getHandcardNum() ~= player:getHp() then
+            return false
+        end
+        if player:isKongcheng() then return true end--手牌数等于体力值，且等于0，满足条件
+        local color = player:getHandcards():first():getColor()
+        for _, card in sgs.qlist(player:getHandcards()) do
+            if card:getColor() ~= color then
+                return false
+            end
+        end
+        return true
+    end,  
+      
+    enabled_at_response = function(self, player, pattern)
+        if pattern == "slash" or pattern == "jink" or pattern == "peach" or pattern == "analeptic" then
+            if player:getHandcardNum() ~= player:getHp() then
+                return false
+            end
+            if player:isKongcheng() then return true end--手牌数等于体力值，且等于0，满足条件
+            local color = player:getHandcards():first():getColor()
+            for _, card in sgs.qlist(player:getHandcards()) do
+                if card:getColor() ~= color then
+                    return false
+                end
+            end
+            return true
+        end
+        return false
+    end,
 
+    vs_card_names = function(self, selected)
+		if #selected == 0 then
+			return "slash+fire_slash+thunder_slash+jink+peach+analeptic"
+		end
+		return ""
+	end,
+}  
+bingxin = sgs.CreateTriggerSkill{  
+    name = "bingxin",  
+    events = {sgs.CardUsed, sgs.CardResponded},  
+    view_as_skill = bingxinVS,
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end  
+        -- 当使用衔镜技能时设置标记  
+        local card = nil
+        if event == sgs.CardUsed then  
+            local use = data:toCardUse()  
+            card = use.card  
+        else -- sgs.CardResponded  
+            local response = data:toCardResponse()  
+            card = response.m_card  
+        end  
+        if card:getSkillName() == self:objectName() then  
+            return self:objectName()  
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        return true -- 自动触发  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)
+        room:showAllCards(player)--展示所有手牌，视为使用之
+        room:drawCards(player, 1, self:objectName())--摸一张牌
+        return false  
+    end  
+}
 wangxiang:addSkill(bingxin)
 sgs.LoadTranslationTable{
 ["#wangxiang"] = "卧冰求鲤",  
@@ -1955,6 +2036,7 @@ sgs.LoadTranslationTable{
 ["illustrator:wangxiang"] = "画师名",  
 ["bingxin"] = "冰心",  
 [":bingxin"] = "你手牌数或体力值变化时，若你的手牌数量等于体力值且颜色相同，你可以展示所有手牌并摸一张牌，视为使用一张基本牌。",
+[":bingxin"] = "当你需要使用或打出基本牌时，若你的手牌数量等于体力值且颜色相同，你可以展示所有手牌并摸一张牌，视为使用之。",
 }
 weiguan = sgs.General(extension, "weiguan", "jin", 3)  
 weiguan_ol = sgs.General(extension, "weiguan_ol", "jin", 3)  
