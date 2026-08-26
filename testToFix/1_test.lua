@@ -2509,7 +2509,7 @@ jiefenji = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)
         if skillTriggerable(player, self:objectName()) and not player:hasFlag("fenji_used") then
 			local current = room:getCurrent()
-			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive then
+			if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive and player:getHp() > 0 then
 				local move_datas = data:toList()
 				for _, move_data in sgs.qlist(move_datas) do
 					local move = move_data:toMoveOneTime()
@@ -2565,7 +2565,7 @@ sgs.LoadTranslationTable{
     ["jiebuqu"] = "不屈",
     [":jiebuqu"] = "锁定技，你进入濒死状态时，你摸一张牌，并将一张手牌置入“创”，若“创”的花色均不相同，你回复体力至1点。",
     ["jiefenji"] = "奋激",
-    [":jiefenji"] = "每回合限一次，一名角色不因使用或打出失去手牌时，你可以失去1点体力，令其摸两张牌。",
+    [":jiefenji"] = "每回合限一次，一名角色不因使用或打出失去手牌时，若你不处于濒死状态，你可以失去1点体力，令其摸两张牌。",
 	["@jiefenji-draw"] = "奋激：是否失去1点体力令%dest摸两张牌",
 	["@jiebuqu-put"] = "不屈：请选择一张手牌置入“创”",
 }
