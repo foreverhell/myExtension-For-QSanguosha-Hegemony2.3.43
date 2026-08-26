@@ -1538,7 +1538,7 @@ duanqiu = sgs.CreateTriggerSkill{
         if player and player:isAlive() and player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start then  
             -- 检查是否有其他势力角色  
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do  
-                if p:hasShownOneGeneral() and not player:isFriendWith(p) then  --p:getKingdom() ~= player:getKingdom()
+                if p:hasShownOneGeneral() and not player:isFriendWith(p) then
                     return self:objectName()  
                 end  
             end  
@@ -1555,36 +1555,28 @@ duanqiu = sgs.CreateTriggerSkill{
                 targets:append(p) 
             end  
         end  
-          
+
         local target_player = room:askForPlayerChosen(player, targets, self:objectName(), true, true)  
 
         if target_player then  
-            local target_kingdom = target_player:getKingdom()  
-            local duel_targets = {}  
-              
+            local duel_targets = sgs.SPlayerList()
+
             -- 找到该势力的所有角色  
-            for _, p in sgs.qlist(room:getAllPlayers()) do  
-                if target_player:hasShownOneGeneral() and p:hasShownOneGeneral() and target_player:isFriendWith(p) then  
-                    table.insert(duel_targets, p)  
-                end  
-            end  
-              
-            -- 对每个目标使用决斗  
-            for _, target in ipairs(duel_targets) do  
-                local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, -1)  
-                duel:setSkillName(self:objectName())  
-                  
-                local use = sgs.CardUseStruct()  
-                use.card = duel  
-                use.from = player  
-                use.to:append(target)  
-                  
-                room:useCard(use)  
-                duel:deleteLater()
-            end  
-        end  
-          
-        room:setPlayerProperty(player, "duanqiu_target", sgs.QVariant(""))  
+            for _, p in sgs.qlist(room:getAllPlayers()) do
+                if target_player:hasShownOneGeneral() and p:hasShownOneGeneral() and target_player:isFriendWith(p) then
+                    duel_targets:append(p)
+                end
+            end
+            local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, -1)
+            duel:setSkillName(self:objectName())
+            duel:deleteLater()
+
+            local use = sgs.CardUseStruct()
+            use.card = duel
+            use.from = player
+            use.to = duel_targets
+            room:useCard(use)  
+        end
     end  
 }
 
@@ -1855,25 +1847,26 @@ bingxin = sgs.CreateTriggerSkill{
     events = {sgs.CardsMoveOneTime, sgs.HpChanged},  
     frequency = sgs.Skill_Frequent, 
     can_trigger = function(self, event, room, player, data)  
-        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
+        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
             return ""  
         end  
           
         -- 检查手牌数是否等于体力值  
-        if player:getHandcardNum() ~= player:getHp() then  
+        if player:getHandcardNum() ~= player:getHp() or player:getHandcardNum() == 0 then  
             return ""  
         end  
           
         -- 检查手牌颜色是否相同  
-        local handcards = player:getHandcards()
-        if not handcards:isEmpty() then
-            local first_color = handcards:first():getColor()  
-            for _, card in sgs.qlist(handcards) do  
-                if card:getColor() ~= first_color then  
-                    return ""  
-                end  
-            end
-        end
+        local handcards = player:getHandcards()  
+        if handcards:isEmpty() then return "" end  
+          
+        local first_color = handcards:first():getColor()  
+        for _, card in sgs.qlist(handcards) do  
+            if card:getColor() ~= first_color then  
+                return ""  
+            end  
+        end  
+          
         return self:objectName()  
     end,  
       
@@ -1946,6 +1939,7 @@ bingxin = sgs.CreateTriggerSkill{
         return false  
     end  
 }
+
 bingxinVS = sgs.CreateZeroCardViewAsSkill{  
     name = "bingxin",  
     response_or_use = true,  -- 关键参数，允许既主动使用又响应使用  
