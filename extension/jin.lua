@@ -1847,26 +1847,25 @@ bingxin = sgs.CreateTriggerSkill{
     events = {sgs.CardsMoveOneTime, sgs.HpChanged},  
     frequency = sgs.Skill_Frequent, 
     can_trigger = function(self, event, room, player, data)  
-        if not player or not player:isAlive() or not player:hasSkill(self:objectName()) then  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then
             return ""  
         end  
           
         -- 检查手牌数是否等于体力值  
-        if player:getHandcardNum() ~= player:getHp() or player:getHandcardNum() == 0 then  
+        if player:getHandcardNum() ~= player:getHp() then  
             return ""  
         end  
           
         -- 检查手牌颜色是否相同  
-        local handcards = player:getHandcards()  
-        if handcards:isEmpty() then return "" end  
-          
-        local first_color = handcards:first():getColor()  
-        for _, card in sgs.qlist(handcards) do  
-            if card:getColor() ~= first_color then  
-                return ""  
-            end  
-        end  
-          
+        local handcards = player:getHandcards()
+        if not handcards:isEmpty() then
+            local first_color = handcards:first():getColor()  
+            for _, card in sgs.qlist(handcards) do  
+                if card:getColor() ~= first_color then  
+                    return ""  
+                end  
+            end
+        end          
         return self:objectName()  
     end,  
       
@@ -1991,7 +1990,8 @@ bingxinVS = sgs.CreateZeroCardViewAsSkill{
 		end
 		return ""
 	end,
-}  
+}
+
 bingxin = sgs.CreateTriggerSkill{  
     name = "bingxin",  
     events = {sgs.CardUsed, sgs.CardResponded},  
@@ -2023,7 +2023,9 @@ bingxin = sgs.CreateTriggerSkill{
         return false  
     end  
 }
+
 wangxiang:addSkill(bingxin)
+
 sgs.LoadTranslationTable{
 ["#wangxiang"] = "卧冰求鲤",  
 ["wangxiang"] = "王祥",  
@@ -2032,6 +2034,7 @@ sgs.LoadTranslationTable{
 [":bingxin"] = "你手牌数或体力值变化时，若你的手牌数量等于体力值且颜色相同，你可以展示所有手牌并摸一张牌，视为使用一张基本牌。",
 [":bingxin"] = "当你需要使用或打出基本牌时，若你的手牌数量等于体力值且颜色相同，你可以展示所有手牌并摸一张牌，视为使用之。",
 }
+
 weiguan = sgs.General(extension, "weiguan", "jin", 3)  
 weiguan_ol = sgs.General(extension, "weiguan_ol", "jin", 3)  
   
