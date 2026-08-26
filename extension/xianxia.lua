@@ -2887,7 +2887,7 @@ sgs.LoadTranslationTable{
 	["shizhi"] = "矢志",
 	[":shizhi"] = "当你体力值为1时，你的闪可以视为杀，你以此法使用的杀无次数限制",
 }
-]]
+
 zhonghuiQuan = sgs.General(extension, "zhonghuiQuan", "wei", 3)
 quanji = sgs.CreateTriggerSkill{  
     name = "jiequanji",  
@@ -2922,7 +2922,7 @@ sgs.LoadTranslationTable{
     ["jiequanji"] = "权计",
     [":jiequanji"] = "你受到伤害后，你可以摸1张牌并将1张牌置于“权”牌堆；你的手牌上限+X，X为“权”的数量"
 }
---[[
+
 zhoucang = sgs.General(extension, "zhoucang", "shu", 4)  
 zhongyong = sgs.CreateTriggerSkill{
     name = "zhongyong",
@@ -3267,8 +3267,8 @@ xili = sgs.CreateTriggerSkill{
     end  
 }
 
-huaman3VS = sgs.CreateViewAsSkill{  
-    name = "huaman3",  
+manyiVS = sgs.CreateViewAsSkill{  
+    name = "manyi",  
       
     view_filter = function(self, selected, to_select)  
         return #selected < sgs.Self:getHandcardNum()
@@ -3287,19 +3287,19 @@ huaman3VS = sgs.CreateViewAsSkill{
     end,  
       
     enabled_at_play = function(self, player)  
-        return not player:isKongcheng() and not player:hasFlag("huaman3_used")
+        return not player:isKongcheng() and not player:hasFlag("manyi_used")
     end  
 }  
-huaman3 = sgs.CreateTriggerSkill{  
-    name = "huaman3",  
+manyi = sgs.CreateTriggerSkill{  
+    name = "manyi",  
     events = {sgs.CardUsed},  
-    view_as_skill = huaman3VS,
+    view_as_skill = manyiVS,
     can_trigger = function(self, event, room, player, data)  
-        if not (player and player:isAlive() and player:hasSkill("huaman3")) then return "" end  
+        if not (player and player:isAlive() and player:hasSkill("manyi")) then return "" end  
         -- 当使用衔镜技能时设置标记  
         local use = data:toCardUse()  
         card = use.card  
-        if card:getSkillName() == "huaman3" then  
+        if card:getSkillName() == "manyi" then  
             return self:objectName()  
         end  
         return ""  
@@ -3310,13 +3310,13 @@ huaman3 = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data)  
-        room:setPlayerFlag(player, "huaman3_used")  
+        room:setPlayerFlag(player, "manyi_used")  
         return false  
     end  
 }
 --huaman:addSkill(mansi)--这个技能暂时有问题
 huaman:addSkill(zhanyuan)
-huaman:addSkill(huaman3)
+huaman:addSkill(manyi)
 if not sgs.Sanguosha:getSkill("xili") then skills:append(xili) end
 sgs.LoadTranslationTable{
     ["huaman"] = "花鬘",  
@@ -3327,8 +3327,8 @@ sgs.LoadTranslationTable{
     ["xili"] = "系力",  
     [":xili"] = "你使用杀指定目标时，其他拥有【系力】的角色可以弃置一张牌，令此杀伤害+1",
     ["@xili-discard"] = "你可以弃置1张牌，令此杀伤害+1",
-    ["huaman3"] = "技能3",  
-    [":huaman3"] = "出牌阶段限一次。你可以将所有手牌当作【南蛮入侵】使用",      
+    ["manyi"] = "蛮裔",  
+    [":manyi"] = "出牌阶段限一次。你可以将所有手牌当作【南蛮入侵】使用",      
 }
 
 
@@ -3774,7 +3774,7 @@ xiaoguoActive = sgs.CreateTriggerSkill{
     can_trigger = function(self, event, room, player, data)
         local owner = room:findPlayerBySkillName(self:objectName())
         if not (owner and owner:isAlive() and owner:hasSkill(self:objectName())) then return "" end
-        if player:getPhase() == sgs.Player_Finish and player ~= owner then
+        if player:getPhase() == sgs.Player_Start and player ~= owner then
             return self:objectName(),owner:objectName()
         end
         return ""
@@ -3880,7 +3880,7 @@ sgs.LoadTranslationTable{
     ["jueyanArea"] = "决堰",
     [":jueyanArea"] = "主将技，-1阴阳鱼。准备阶段，若你判定区有牌，你可以弃置判定区所有牌，本回合获得集智；若你手牌区有牌，你可以弃置手牌区所有牌，令本回合出杀次数+3；若你装备区有牌，你可以弃置装备区所有牌，摸3张牌，令本回合手牌上限+3",
     ["xiaoguoActive"] = "骁果",
-    [":xiaoguoActive"] = "其他角色的结束阶段，你可以弃置任意数量的基本牌，然后你弃置该角色装备区X张牌（X为你弃置的基本牌数量），若该角色装备区牌数小于你弃置的基本牌数，你摸1张牌，并对其造成1点伤害",
+    [":xiaoguoActive"] = "其他角色的准备阶段，你可以弃置任意数量的基本牌，然后你弃置该角色装备区X张牌（X为你弃置的基本牌数量），若该角色装备区牌数小于你弃置的基本牌数，你摸1张牌，并对其造成1点伤害",
     ["myzhujun"] = "朱儁",
     ["gongjian"] = "攻坚",
     [":gongjian"] = "其他角色因弃置而失去牌时，你可以获得其中的杀；每回合限一次，一名角色使用杀指定目标后，若目标角色与上一张杀相同，你可以令目标角色弃置2张牌",
