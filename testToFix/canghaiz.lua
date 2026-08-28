@@ -34,7 +34,7 @@ jieluxun:addCompanion("sunhuan")
 luajushou = sgs.General(canghaiz, "luajushou", "qun", 3)
 luahuangfusong = sgs.General(canghaiz, "luahuangfusong", "qun")
 luachengong = sgs.General(canghaiz, "luachengong", "qun", 3)
-lualiuyan = sgs.General(canghaiz, "lualiuyan", "qun")
+lualiuyan = sgs.General(canghaiz, "lualiuyan", "qun", 4)
 luacaiyong = sgs.General(canghaiz, "luacaiyong", "qun", 3)
 
 local skills = sgs.SkillList()
@@ -3546,6 +3546,7 @@ sgs.LoadTranslationTable{
 	[":jieqianxun"] = "当一张延时锦囊牌或者其他角色使用的普通锦囊牌对你生效时，若你是此牌的唯一目标，则你可以将所有手牌扣置于" ..
     "武将牌上（此回合结束时，你获得这些牌），令至多等量名角色各摸一张牌。",
     ["#jieqianxunObtain"] = "%from获得了自己武将牌上的%arg 张牌",
+    ["~lualuxun"] = "我的未竟之业……",
 }
 
 luadingjunCard = sgs.CreateSkillCard{
@@ -3644,14 +3645,14 @@ luadingjun = sgs.CreateTriggerSkill{
 
 luaenyuanCard = sgs.CreateSkillCard{
     name = "luaenyuanCard",
-    skill_name = "luaenyuanGive",
+    skill_name = "luaenyuangive",
     will_throw = false,
     handling_method = sgs.Card_MethodNone,
     about_to_use = function(self, room, cardUse)
         local source = cardUse.from
         local target = cardUse.to:first()
-        local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, target:objectName(), source:objectName(), "luaenyuanGive","")
-        room:moveCardTo(self, source, sgs.Player_PlaceHand, reason)
+        local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, source:objectName(), target:objectName(), "luaenyuanGive","")
+        room:moveCardTo(self, target, sgs.Player_PlaceHand, reason)
     end
 }
 
@@ -3743,11 +3744,16 @@ sgs.LoadTranslationTable{
     "交给你至少两张手牌。",
     ["@luadingjun-give"] = "定军：请选择两张手牌",
     ["@luadingjun-slash"] = "定军：请选择一名角色成为【杀】的目标",
-    ["@luadingjun-toslash"] = "定军：你可以视为对%from使用一张【杀】，点“取消”则交还至少两张手牌",
+    ["@luadingjun-toslash"] = "定军：你可以视为对%dest使用一张【杀】，点“取消”则交还至少两张手牌",
     ["luaenyuan"] = "恩怨",
     [":luaenyuan"] = "锁定技，当你获得其他角色至少两张牌时后，你令其摸一张牌；当你受到其他角色造成的伤害后，你令其需交给你" ..
     "一张♥手牌，否则失去1点体力。",
-    ["@luaenyuan-give"] = "恩怨：请交给%from一张♥手牌，否则你失去1点体力",
+    ["@luaenyuan-give"] = "恩怨：请交给%dest一张♥手牌，否则你失去1点体力",
+    ["$luadingjun1"] = "虚名虽无实用，可沽万人之心。",
+    ["$luadingjun2"] = "效金台碣馆之事，布礼贤仁德之名。",
+    ["$luaenyuan1"] = "善因得善果，恶因得恶报。",
+    ["$luaenyuan2"] = "死我者赠之琼瑶，厌我者报之斧钺。",
+    ["~luafazheng"] = "蜀翼双折，吾主王业，就靠孔明了……",
 }
 
 sgs.Sanguosha:addSkills(skills)
