@@ -2378,6 +2378,204 @@ sgs.LoadTranslationTable{
 }  
 
 
+jiangji = sgs.General(extension, "jiangji", "wei", 3)
+
+xuxieVS = sgs.CreateOneCardViewAsSkill{
+    name = "xuxie",
+    filter_pattern = ".|.|.|hand,equipped",
+    response_pattern = "nullification",
+    response_or_use = true,
+
+    view_as = function(self, card)
+        local nullification = sgs.Sanguosha:cloneCard("nullification",
+            card:getSuit(), card:getNumber())
+        nullification:addSubcard(card:getId())
+        nullification:setSkillName(self:objectName())
+        nullification:setShowSkill(self:objectName())
+        return nullification
+    end,
+
+    enabled_at_play = function(self, player)
+        return false
+    end,
+
+    enabled_at_response = function(self, player, pattern)
+        return pattern == "nullification" and player:getMark("xuxie_used_round") == 0
+    end,
+
+    enabled_at_nullification = function(self, player)
+        return player:getMark("xuxie_used_round") == 0 and not player:isNude()
+    end,
+}
+
+xuxie = sgs.CreateTriggerSkill{
+    name = "xuxie",
+    events = {sgs.CardUsed, sgs.CardFinished, sgs.EventPhaseStart},
+    view_as_skill = xuxieVS,
+    frequency = sgs.Skill_Frequent,
+
+    on_record = function(self, event, room, player, data)
+        if event == sgs.EventPhaseStart and player and player:hasSkill(self:objectName())
+            and player:getPhase() == sgs.Player_RoundStart then
+            room:setPlayerMark(player, "xuxie_used_round", 0)
+        end
+    end,
+
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then
+            return ""
+        end
+        if event == sgs.CardUsed then
+            local use = data:toCardUse()
+            if use.card and use.card:isKindOf("Nullification")
+                and use.card:getSkillName() == self:objectName()
+                and not room:getOtherPlayers(player):isEmpty() then
+                return self:objectName()
+            end
+        elseif event == sgs.CardFinished then
+            local use = data:toCardUse()
+            if use.card and use.card:isKindOf("Nullification")
+                and use.card:getSkillName() == self:objectName()
+                and use.card:getTag("xuxie_target"):toString() ~= "" then
+                return self:objectName()
+            end
+        end
+        return ""
+    end,
+
+    on_cost = function(self, event, room, player, data)
+        if event == sgs.CardFinished then return true end
+
+        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player),
+            self:objectName(), "@xuxie-give", false, false)
+        if not target then return false end
+        local use = data:toCardUse()
+        use.card:setTag("xuxie_target", sgs.QVariant(target:objectName()))
+        room:broadcastSkillInvoke(self:objectName(), player)
+        return true
+    end,
+
+    on_effect = function(self, event, room, player, data)
+        local use = data:toCardUse()
+        if event == sgs.CardUsed then
+            room:addPlayerMark(player, "xuxie_used_round")
+            local target = room:findPlayer(use.card:getTag("xuxie_target"):toString())
+            if not (target and target:isAlive()) then return false end
+
+            local pattern = nil
+            if use.card:isRed() then
+                pattern = ".|red"
+            elseif use.card:isBlack() then
+                pattern = ".|black"
+            end
+            if pattern then
+                room:setPlayerCardLimitation(player, "use", pattern, true)
+                room:setPlayerCardLimitation(target, "use", pattern, true)
+            end
+            return false
+        end
+
+        local target = room:findPlayer(use.card:getTag("xuxie_target"):toString())
+        if not (target and target:isAlive()) then return false end
+        local card_ids = sgs.IntList()
+        for _, card_id in sgs.qlist(use.card:getSubcards()) do
+            if room:getCardPlace(card_id) == sgs.Player_DiscardPile
+                or room:getCardPlace(card_id) == sgs.Player_PlaceTable then
+                card_ids:append(card_id)
+            end
+        end
+        if not card_ids:isEmpty() then
+            local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE,
+                player:objectName(), target:objectName(), self:objectName(), "")
+            local move = sgs.CardsMoveStruct(card_ids, target, sgs.Player_PlaceHand, reason)
+            room:moveCardsAtomic(move, true)
+        end
+        return false
+    end,
+}
+
+local function liuluTarget(event, data, owner)
+    if event == sgs.Damaged then
+        local damage = data:toDamage()
+        if damage.to and damage.to:objectName() == owner:objectName()
+            and damage.from and damage.from:isAlive()
+            and damage.from:objectName() ~= owner:objectName() then
+            return damage.from
+        end
+        return nil
+    end
+
+    for _, move_data in sgs.qlist(data:toList()) do
+        local move = move_data:toMoveOneTime()
+        if move.to and move.to:isAlive()
+            and move.to:objectName() ~= owner:objectName()
+            and (move.to_place == sgs.Player_PlaceHand
+                or move.to_place == sgs.Player_PlaceEquip) then
+            local directly_from_owner = move.from and move.from:objectName() == owner:objectName()
+            --local given_by_xuxie = move.reason.m_skillName == "xuxie" and move.reason.m_playerId == owner:objectName()
+            if directly_from_owner then--or given_by_xuxie then
+                return move.to
+            end
+        end
+    end
+    return nil
+end
+
+liulu = sgs.CreateTriggerSkill{
+    name = "liulu",
+    events = {sgs.Damaged, sgs.CardsMoveOneTime},
+    frequency = sgs.Skill_Frequent,
+
+    can_trigger = function(self, event, room, player, data)
+        local skill_list = {}
+        local owner_list = {}
+        for _, owner in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
+            if owner:isAlive() and liuluTarget(event, data, owner) then
+                table.insert(skill_list, self:objectName())
+                table.insert(owner_list, owner:objectName())
+            end
+        end
+        return table.concat(skill_list, "|"), table.concat(owner_list, "|")
+    end,
+
+    on_cost = function(self, event, room, player, data, ask_who)
+        local target = liuluTarget(event, data, ask_who)
+        if not target then return false end
+        ask_who:setTag("liulu_target", sgs.QVariant(target:objectName()))
+        if ask_who:askForSkillInvoke(self:objectName(), data) then
+            room:broadcastSkillInvoke(self:objectName(), ask_who)
+            return true
+        end
+        ask_who:removeTag("liulu_target")
+        return false
+    end,
+
+    on_effect = function(self, event, room, player, data, ask_who)
+        local target = room:findPlayer(ask_who:getTag("liulu_target"):toString())
+        ask_who:removeTag("liulu_target")
+        if not (target and target:isAlive()) then return false end
+
+        target:drawCards(1, self:objectName())
+        if ask_who:isAlive() and target:isAlive() and not target:isNude() then
+            local card_id = room:askForCardChosen(ask_who, target, "he",
+                self:objectName(), false, sgs.Card_MethodNone)
+            room:obtainCard(ask_who, card_id, false)
+        end
+        return false
+    end,
+}
+jiangji:addSkill(xuxie)
+jiangji:addSkill(liulu)
+sgs.LoadTranslationTable{
+    ["jiangji"] = "蒋济",
+    ["#jiangji"] = "筹画明达",
+    ["xuxie"] = "虚懈",
+    [":xuxie"] = "每轮限一次。你可以将一张牌当【无懈可击】使用并交给一名其他角色，本回合你与其不能使用此牌颜色的牌。",
+    ["@xuxie-give"] = "虚懈：请选择一名其他角色，结算后将转化所用的牌交给其",
+    ["liulu"] = "流赂",
+    [":liulu"] = "当你受到其他角色的伤害后，或其他角色得到你的牌后，你可以令其摸一张牌，然后你获得其一张牌。",
+}
+
 jianyong = sgs.General(extension, "jianyong", "shu", 3)
 
 qiaoshuoCard = sgs.CreateSkillCard{  
