@@ -1968,7 +1968,7 @@ bingxinVS = sgs.CreateZeroCardViewAsSkill{
     end,  
       
     enabled_at_response = function(self, player, pattern)
-        if pattern == "slash" or pattern == "jink" or pattern == "peach" or pattern == "analeptic" then
+        if pattern == "slash" or pattern == "jink" or string.find(pattern,"peach") or string.find(pattern,"analeptic") then
             if player:getHandcardNum() ~= player:getHp() then
                 return false
             end
