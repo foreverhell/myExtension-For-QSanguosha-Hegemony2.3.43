@@ -488,7 +488,7 @@ sgs.LoadTranslationTable{
     ["$faen2"] = "法理有度，恩威并施。",
     ["~chenqun"] = "吾身虽陨，典律昭昭。",
 }
-]]
+
 cuifei = sgs.General(extension, "cuifei", "wei", 3, false) -- 蜀势力，4血，男性（默认）  
 
 yiyong = sgs.CreateTriggerSkill{
@@ -659,7 +659,7 @@ sgs.LoadTranslationTable{
 ["yashang"] = "雅殇",  
 [":yashang"] = "锁定技，当你受到伤害后，若伤害来源与你势力不同，其须将手牌弃至X张，若其未弃牌，你将手牌摸至X张；若伤害来源与你势力相同，你须将手牌弃至X张，若你未弃牌，伤害来源将手牌摸至X张。X为你空置装备栏数。",
 }
---[[
+
 dongbai = sgs.General(extension, "dongbai", "qun", 3, false)  
 
 lianzhu = sgs.CreateViewAsSkill{  
@@ -750,7 +750,7 @@ sgs.LoadTranslationTable{
 ["lianzhu_discard"] = "弃置两张牌",  
 ["@lianzhu-card"] = "连诛：选择要交给目标角色的牌"
 }
-]]
+
 dongcheng = sgs.General(extension, "dongcheng", "qun", 4)  
 chengzhao = sgs.CreateTriggerSkill{  
     name = "chengzhao",  
@@ -1056,7 +1056,7 @@ sgs.LoadTranslationTable{
     ["mingjie"] = "命劫",  
     [":mingjie"] = "结束阶段，你可以摸1张牌，若此牌为：红色，你可以重复此流程（最多摸3张）；黑色，若你的体力值大于1，你失去1点体力",  
 }
---[[
+
 guanning = sgs.General(extension, "guanning", "qun", 3)  
 
 qinggong = sgs.CreateTriggerSkill{  
@@ -1390,7 +1390,7 @@ sgs.LoadTranslationTable{
 ["muyang"] = "募养",  
 [":muyang"] = "副将技，-1阴阳鱼。你的结束阶段开始时，你可以亮出牌堆顶2张牌，获得其中的红色牌和杀。",
 }
-]]
+
 guanyinping = sgs.General(extension, "guanyinping", "shu", 4, false)
 guanyinping:setDeputyMaxHpAdjustedValue(-1)
 
@@ -1826,6 +1826,7 @@ sgs.LoadTranslationTable{
     ["weipo"] = "危迫",
     [":weipo"] = "锁定技。你受到伤害后，你摸X张牌，然后弃置X-1张牌，X为你的体力值",
 }
+]]
 liubian = sgs.General(extension, "liubian", "qun", 3)  -- 吴国，4血，男性  
 shiyuan = sgs.CreateTriggerSkill{  
     name = "shiyuan",  
@@ -2466,7 +2467,7 @@ sgs.LoadTranslationTable{
 ["biebao"] = "别抱",
 [":biebao"] = "当你失去装备区的牌后，你可以令一名手牌数最少的角色摸2张牌",
 }
--- 创建武将：
+--[[
 sunru_xianxia = sgs.General(extension, "sunru_xianxia", "wu", 3, false)  
 
 xiecui = sgs.CreateTriggerSkill{  
@@ -2794,7 +2795,6 @@ sgs.LoadTranslationTable{
     [":qingshi2"] = "你受到伤害后，你可以选择一名有明置武将的角色：若其与你势力相同，你与其各摸1张牌；若其与你势力不同，你弃置你与其各1张牌"
 }
 
---[[
 zhangyi_xianxia = sgs.General(extension, "zhangyi_xianxia", "shu", 4) 
 
 wujieCard = sgs.CreateSkillCard{  
