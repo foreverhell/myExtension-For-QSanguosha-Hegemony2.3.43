@@ -1995,7 +1995,7 @@ sgs.LoadTranslationTable{
     [":yanhuo"] = "你死亡时，你可以弃置杀死你的角色至多X张牌，X为你的牌数。",  
     ["@yanhuo-invoke"] = "你可以发动延祸",
 }
-
+--[[
 -- 创建武将：
 heqi = sgs.General(extension, "heqi", "wu", 4)
 
@@ -2123,15 +2123,6 @@ qinqing = sgs.CreateTriggerSkill{
             room:setPlayerFlag(target, "qinqing_recast")
             room:askForDiscard(target, self:objectName(), 1, 1, false, true)
             room:setPlayerFlag(target, "-qinqing_recast")
-            --[[
-            local card = room:askForCard(target, ".|.|.|.", "选择一张牌重铸")  
-            if not card then return false end
-            local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_RECAST, target:objectName(), "", self:objectName(), "")  --原因，卡牌移动来源的玩家，卡牌移动目标的玩家，导致移动的技能，其他事件名称
-            -- 方法1：直接使用 CardMoveReason  
-            --room:throwCard(card, reason, target)  
-            -- 方法2：使用 moveCardTo（推荐）  
-            room:moveCardTo(card, target, nil, sgs.Player_DiscardPile, reason, true)  
-            ]]
             target:drawCards(1,self:objectName())
             if player:isFriendWith(target) and player:getMark("qinqing_transform")==0 
             and room:askForChoice(target, "transform_qinqing", "yes+no", data, "@transform-ask:::qinqing") == "yes" then
@@ -2198,7 +2189,7 @@ sgs.LoadTranslationTable{
     ["huisheng"] = "贿生",
     [":huisheng"] = "每回合限一次。当你受到伤害时，你可以对伤害来源展示X张牌（X为其本回合造成的伤害值），其获得其中1张，然后防止此伤害",--此前未造成伤害怎么办
 }
-
+]]
 huangquan = sgs.General(extension, "huangquan", "shu", 3)  
 dianhu = sgs.CreateTriggerSkill{
 	name = "dianhu",
@@ -3829,7 +3820,7 @@ sgs.LoadTranslationTable{
     ["jueyan"] = "决堰",
     [":jueyan"] = "出牌阶段限一次。你可以弃置X张手牌（X为与你势力相同的角色数，不足则全弃，无牌则不弃），摸2张牌"
 }
---[[
+
 luyusheng_canghai = sgs.General(extension, "luyusheng_canghai", "wu", 3, false)  
 
 fengwu = sgs.CreateTriggerSkill{  
@@ -4011,7 +4002,7 @@ sgs.LoadTranslationTable{
     [":zhaojieDelay"] = "锁定技，延时锦囊对你生效时，取消之",  
     ["@fengwu-give"] = "奉无：交给 %src 一张牌"  
 }  
-]]
+
 
 luzhi = sgs.General(extension, "luzhi", "wei", 3)
 xianjingVS = sgs.CreateZeroCardViewAsSkill{  
@@ -4516,6 +4507,7 @@ sgs.LoadTranslationTable{
     [":yuce"] = "当你受到伤害时，你可以展示一张手牌，伤害来源需弃置一张类别不同的手牌，否则此伤害-1。",  
     ["@yuce-discard"] = "%src 对你使用了技能'%arg'并展示了 %arg2，请弃置一张类别不同的手牌，否则此伤害-1",
 }
+--[[
 mazhong = sgs.General(extension, "mazhong", "shu", 4)
 wenjinCard = sgs.CreateSkillCard{  
     name = "wenjinCard",  
@@ -4610,6 +4602,7 @@ sgs.LoadTranslationTable{
     ["wenjinSlash"] = "稳进-杀",
     [":wenjinSlash"] = "你可以将“稳进”牌当杀使用或打出"
 }
+]]
 pangdegong = sgs.General(extension, "pangdegong", "qun", 3)  
 
 guiyin = sgs.CreateTriggerSkill{  
@@ -4799,6 +4792,7 @@ sgs.LoadTranslationTable{
     ["anjian"] = "暗箭",  
     [":anjian"] = "锁定技，当你使用杀对目标造成伤害时，若你不在其攻击范围内，此伤害+1。"  
 }
+
 pengyang = sgs.General(extension, "pengyang", "shu", 3)
 
 daming = sgs.CreateTriggerSkill{
@@ -4891,6 +4885,7 @@ sgs.LoadTranslationTable{
     ["daming"] = "达命",  
     [":daming"] = "与你势力相同的角色出牌阶段开始时，你可以弃置一张锦囊令一名角色横置，并摸X张牌（X为横置角色的势力数），然后你选择令当前回合角色（1）视为对你指定的另一名角色使用一张不计入次数的雷杀（2）恢复1点体力",  
 }
+--[[
 qinmi = sgs.General(extension, "qinmi", "shu", 3)  
 tianbian = sgs.CreateTriggerSkill{
     name = "tianbian",
@@ -4945,7 +4940,7 @@ sgs.LoadTranslationTable{
     ["tianbian"] = "天辩",
     [":tianbian"] = "当你成为杀的目标时，你可以与使用者拼点，若你赢，此杀对你无效",
 }
-
+]]
 queze = sgs.General(extension, "queze", "wu", 3) 
 xiashu = sgs.CreateTriggerSkill{  
     name = "xiashu",  
@@ -7133,7 +7128,7 @@ sgs.LoadTranslationTable{
     ["source_show_head_general"] = "明置伤害来源的主将",  
     ["source_show_deputy_general"] = "明置伤害来源的副将",
 }
---[[
+
 xurong = sgs.General(extension, "xurong", "qun", 4)  
 Piaolu = sgs.CreateTriggerSkill{  
     name = "piaolu",  
@@ -7321,7 +7316,7 @@ sgs.LoadTranslationTable{
     [":shajue"] = "有角色进入濒死时，若其体力小于0，你可以获得造成此伤害的牌。",  
     ["@shajue-invoke"] = "%src 进入濒死状态，体力小于0，是否发动'杀绝'获得 %arg？",
 }
-]]
+
 yuantanyuanshang = sgs.General(extension, "yuantanyuanshang", "qun", 4)  
 neifa = sgs.CreateTriggerSkill{
     name = "neifa",
