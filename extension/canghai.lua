@@ -7437,7 +7437,7 @@ xingshen = sgs.CreateTriggerSkill{
         table.insert(choices, "draw")  
         table.insert(choices, "cancel")  
           
-        local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"))  
+        local choice = room:askForChoice(player, self:objectName(), table.concat(choices, "+"), data)  
         if choice ~= "cancel" then  
             player:setTag("zhangchangpu_choice", sgs.QVariant(choice))  
             room:broadcastSkillInvoke(self:objectName())  
