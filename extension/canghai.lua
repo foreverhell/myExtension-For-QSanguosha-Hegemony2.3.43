@@ -2997,11 +2997,10 @@ fenchengCard = sgs.CreateSkillCard{
         for _, player in sgs.qlist(others) do  
             if player:isAlive() then  
                 -- 让玩家选择是否弃牌  
-                local choice = room:askForChoice(player, "fencheng", "discard+damage", sgs.QVariant())  
+                local to_discard = discard_num + 1
+                local choice = room:askForChoice(player, "fencheng", "discard+damage", sgs.QVariant(to_discard))  
                 --伤害部分没问题，弃牌部分有问题
-                if choice == "discard" then  
-                    -- 选择弃牌  
-                    local to_discard = discard_num + 1
+                if choice == "discard" then -- 选择弃牌  
                     if player:getHandcardNum() < to_discard then --手牌不够弃，直接造成伤害
                         room:damage(sgs.DamageStruct("fencheng", source, player, 1, sgs.DamageStruct_Fire))
                         discard_num = 0
@@ -3009,8 +3008,7 @@ fenchengCard = sgs.CreateSkillCard{
                         room:askForDiscard(player, "fencheng", to_discard, to_discard, false, true)
                         discard_num = to_discard -- 更新下一个玩家需要弃置的牌数
                     end  
-                else  
-                    -- 选择受到伤害  
+                else  -- 选择受到伤害  
                     room:damage(sgs.DamageStruct("fencheng", source, player, 1, sgs.DamageStruct_Fire))  
                     discard_num = 0
                 end
