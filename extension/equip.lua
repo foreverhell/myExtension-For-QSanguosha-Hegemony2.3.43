@@ -888,8 +888,7 @@ shengfanSkill = sgs.CreateTriggerSkill{
             return ""  
         end  
         if player and player:isAlive() then  
-            -- 只在准备阶段触发。考虑改成任意角色的准备阶段，或者自己的每一个阶段
-            if player:getPhase() == sgs.Player_Start and player:isWounded() and not player:isNude() then  
+            if player:getPhase() == sgs.Player_Finish and player:isWounded() and not player:isNude() then  
                 return self:objectName()  
             end  
         end  
@@ -897,30 +896,26 @@ shengfanSkill = sgs.CreateTriggerSkill{
     end,  
       
     on_cost = function(self, event, room, player, data)  
-        -- 锁定技，无需询问  
         return player:askForSkillInvoke(self:objectName(),data)  
     end,  
       
     on_effect = function(self, event, room, player, data)  
         room:notifySkillInvoked(player, self:objectName())  
-        --弃一张牌
-        --local is_discard = room:askForCard(player, ".", "@shengfan-discard", data, sgs.Card_MethodDiscard)  
-        local is_discard = room:askForDiscard(player,self:objectName(),1,1,false,true)
-        if not is_discard then return false end
-        -- 回复1点体力  
-        local recover = sgs.RecoverStruct()  
-        recover.who = player  
-        recover.recover = 1  
-        room:recover(player, recover)  
-          
-        -- 发送日志信息  
-        local log = sgs.LogMessage()  
-        log.type = "#ArmorRecover"  
-        log.from = player  
-        log.arg = self:objectName()  
-        log.arg2 = tostring(1)  
-        room:sendLog(log)  
-          
+        if room:askForDiscard(player,self:objectName(),1,1,false,true) then--弃一张牌
+            -- 回复1点体力
+            local recover = sgs.RecoverStruct()  
+            recover.who = player  
+            recover.recover = 1  
+            room:recover(player, recover)  
+            
+            -- 发送日志信息
+            local log = sgs.LogMessage()  
+            log.type = "#ArmorRecover"  
+            log.from = player  
+            log.arg = self:objectName()  
+            log.arg2 = tostring(1)  
+            room:sendLog(log)  
+        end
         return false  
     end  
 }  
@@ -943,9 +938,9 @@ fantanjia = sgs.CreateArmor{
 }  
   
 -- 反弹甲技能实现 - 伤害分摊  
-fantanjiaSkill = sgs.CreateTriggerSkill{  
+fantanjiaSkill = sgs.CreateTriggerSkill{
     name = "fantanjia",  
-    events = {sgs.DamageInflicted},  
+    events = {sgs.DamageInflicted, sgs.Damaged},  
     frequency = sgs.Skill_Compulsory,  
       
     can_trigger = function(self, event, room, player, data)  
@@ -954,13 +949,20 @@ fantanjiaSkill = sgs.CreateTriggerSkill{
             return ""  
         end  
         if player and player:isAlive() and player:hasArmorEffect(self:objectName()) then  
-            local damage = data:toDamage()  
-            -- 只有当有伤害来源且伤害来源不是自己时才触发  
-            if damage.from and damage.from ~= player and damage.from:isAlive() and damage.damage >= 2 then  
-                return self:objectName()  
-            end  
-        end  
-        return ""  
+            local damage = data:toDamage()
+            if event == sgs.DamageInflicted then
+                -- 只有当有伤害来源且伤害来源不是自己时才触发  
+                if damage.from and damage.from ~= player and damage.from:isAlive() and damage.damage >= 2 then
+                    return self:objectName()
+                end
+            elseif event == sgs.Damaged then
+                -- 只有当有伤害来源且伤害来源不是自己时才触发  
+                if damage.from and damage.from ~= player and damage.from:isAlive() and player:getMark("fantanjiaDamage")>0 then
+                    return self:objectName()
+                end
+            end
+        end
+        return ""
     end,  
       
     on_cost = function(self, event, room, player, data)  
@@ -968,39 +970,41 @@ fantanjiaSkill = sgs.CreateTriggerSkill{
         return true  
     end,  
       
-    on_effect = function(self, event, room, player, data)  
-        room:notifySkillInvoked(player, self:objectName())  
-          
-        local damage = data:toDamage()  
-        local original_damage = damage.damage  
-        local half_damage = math.ceil(original_damage / 2)  --向上取整
-        local remaining_damage = original_damage - half_damage  --相当于向下取整
-          
-        -- 修改原始伤害为一半。half_damage，向上取整，自己承担的伤害更高；remaining_damage，向下取整，自己承担的伤害更低
-        damage.damage = half_damage --remaining_damage  
-        data:setValue(damage)  
-        
-        if remaining_damage > 0 then --否则会触发卖血技
-            -- 对伤害来源造成另一半伤害  
-            local reflect_damage = sgs.DamageStruct()
-            reflect_damage.from = damage.from  --这里可以考虑改为 damage.from 或 nil
-            reflect_damage.to = damage.from  
-            reflect_damage.damage = remaining_damage --half_damage  
-            reflect_damage.nature = damage.nature  
-            reflect_damage.reason = self:objectName()  
+    on_effect = function(self, event, room, player, data)
+        local damage = data:toDamage()
+        if event == sgs.DamageInflicted then
+            local original_damage = damage.damage  
+            local half_damage = math.ceil(original_damage / 2)  --向上取整
+            local remaining_damage = original_damage - half_damage  --相当于向下取整
             
-            -- 发送日志信息  
-            local log = sgs.LogMessage()  
-            log.type = "#FantanJia"  
-            log.from = player  
-            log.to:append(damage.from)  
-            log.arg = tostring(original_damage)  
-            log.arg2 = tostring(half_damage)  
-            room:sendLog(log)  
-            
-            -- 延迟造成反弹伤害，避免递归  
-            room:damage(reflect_damage)  
-        end
+            -- 修改原始伤害为一半。half_damage，向上取整，自己承担的伤害更高；remaining_damage，向下取整，自己承担的伤害更低
+            damage.damage = half_damage --remaining_damage  
+            data:setValue(damage)
+            room:setPlayerMark(player,"fantanjiaDamage",remaining_damage)
+        elseif event == sgs.Damaged then
+            remaining_damage = player:getMark("fantanjiaDamage")
+            room:setPlayerMark(player,"fantanjiaDamage",0)
+            if remaining_damage > 0 then
+                -- 对伤害来源造成另一半伤害  
+                local reflect_damage = sgs.DamageStruct()
+                reflect_damage.from = damage.from  --这里可以考虑改为 damage.from 或 nil
+                reflect_damage.to = damage.from  
+                reflect_damage.damage = remaining_damage --half_damage  
+                reflect_damage.nature = damage.nature  
+                reflect_damage.reason = self:objectName()  
+                
+                -- 发送日志信息  
+                local log = sgs.LogMessage()  
+                log.type = "#FantanJia"  
+                log.from = player  
+                log.to:append(damage.from)  
+                log.arg = tostring(original_damage)  
+                log.arg2 = tostring(half_damage)  
+                room:sendLog(log)  
+                
+                -- 延迟造成反弹伤害，避免递归  
+                room:damage(reflect_damage)  
+            end
         return false  
     end  
 }  
@@ -1565,11 +1569,11 @@ sgs.LoadTranslationTable{
     ["#WeaponDamage"] = "%from 的【%arg】效果被触发，伤害+%arg2",
 
     ["shengfan"] = "剩饭",  
-    [":shengfan"] = "装备牌·防具\n\n技能：锁定技，准备阶段，你可以弃置一张牌，回复1点体力。",  
+    [":shengfan"] = "装备牌·防具\n\n技能：锁定技，结束阶段，你可以弃置一张牌，回复1点体力。",  
     ["#ArmorRecover"] = "%from 的【%arg】效果被触发，回复了%arg2点体力",
 
     ["fantanjia"] = "反弹甲",  
-    [":fantanjia"] = "装备牌·防具\n\n技能：锁定技，当你受到伤害时，你和伤害来源各承担一半伤害来源的伤害（你受到的伤害向上取整）。",  
+    [":fantanjia"] = "装备牌·防具\n\n技能：锁定技，当你受到大于1点的伤害时，此伤害改为原伤害的一半（向上取整），且你受到此伤害后，伤害来源承担剩余来自伤害来源的伤害。",  
     ["#FantanJia"] = "%from 的【反弹甲】效果被触发，将 %arg 点伤害分摊，对 %to 造成 %arg2 点伤害",
 
     ["kuangzhanshi"] = "狂战士",  
