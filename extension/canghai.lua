@@ -2486,6 +2486,8 @@ xuxie = sgs.CreateTriggerSkill{
 }
 
 local function liuluTarget(event, data, owner)
+    if owner:hasFlag("liulu_resolving") then return nil end
+
     if event == sgs.Damaged then
         local damage = data:toDamage()
         if damage.to and damage.to:objectName() == owner:objectName()
@@ -2498,10 +2500,7 @@ local function liuluTarget(event, data, owner)
 
     for _, move_data in sgs.qlist(data:toList()) do
         local move = move_data:toMoveOneTime()
-        if move.to and move.to:isAlive()
-            and move.to:objectName() ~= owner:objectName()
-            and (move.to_place == sgs.Player_PlaceHand
-                or move.to_place == sgs.Player_PlaceEquip) then
+        if move.to and move.to:isAlive() and move.to:objectName() ~= owner:objectName() and (move.to_place == sgs.Player_PlaceHand or move.to_place == sgs.Player_PlaceEquip) then
             local directly_from_owner = move.from and move.from:objectName() == owner:objectName()
             --local given_by_xuxie = move.reason.m_skillName == "xuxie" and move.reason.m_playerId == owner:objectName()
             if directly_from_owner then--or given_by_xuxie then
@@ -2546,12 +2545,14 @@ liulu = sgs.CreateTriggerSkill{
         ask_who:removeTag("liulu_target")
         if not (target and target:isAlive()) then return false end
 
+        room:setPlayerFlag(ask_who, "liulu_resolving")
         target:drawCards(1, self:objectName())
         if ask_who:isAlive() and target:isAlive() and not target:isNude() then
             local card_id = room:askForCardChosen(ask_who, target, "he",
                 self:objectName(), false, sgs.Card_MethodNone)
             room:obtainCard(ask_who, card_id, false)
         end
+        room:setPlayerFlag(ask_who, "-liulu_resolving")
         return false
     end,
 }
