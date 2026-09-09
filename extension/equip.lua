@@ -1005,6 +1005,7 @@ fantanjiaSkill = sgs.CreateTriggerSkill{
                 -- 延迟造成反弹伤害，避免递归  
                 room:damage(reflect_damage)  
             end
+        end
         return false  
     end  
 }  
