@@ -1962,7 +1962,7 @@ luadurui = sgs.CreateTriggerSkill{
 
 luaduruiMark = sgs.CreateTriggerSkill{
     name = "#luaduruiMark",
-    events = {sgs.EventPhaseChanging, sgs.PreDamageDone, sgs.DamageInflicted},
+    events = {sgs.EventPhaseChanging, sgs.Damage, sgs.DamageInflicted},
     on_record = function(self, event, room, player, data)
         if event == sgs.EventPhaseChanging then
             local change = data:toPhaseChange()
@@ -1975,20 +1975,20 @@ luaduruiMark = sgs.CreateTriggerSkill{
                     end
                 end
             end
-        elseif event == sgs.PreDamageDone then
+        elseif event == sgs.Damage then
             local damage = data:toDamage()
             local current = room:getCurrent()
             local skill_owners = room:findPlayersBySkillName("luadurui")
             if skill_owners:isEmpty() then return false end
             for _, skill_owner in sgs.qlist(skill_owners) do
-                if skill_owner:isFriendWith(damage.from) and current:isFriendWith(skill_owner) then
+                if skill_owner:isFriendWith(damage.from) then
                     if not skill_owner:hasFlag("luaduruiEnough") then
                         room:addPlayerMark(skill_owner, "luaduruiDamage", damage.damage)
                         if skill_owner:getMark("luaduruiDamage") > 1 then
                             room:setPlayerFlag(skill_owner, "luaduruiEnough")
                         end
                     end
-                    if not skill_owner:hasFlag("luaduruiOnlyDamage") then
+                    if not skill_owner:hasFlag("luaduruiOnlyDamage") and not skill_owner:hasFlag("luaduruiNoOnly") then
                         local d = sgs.QVariant()
                         d:setValue(damage.to)
                         skill_owner:setTag("luaduruiOnlyDamage", d)
@@ -3005,6 +3005,9 @@ luaqiangzhi = sgs.CreateTriggerSkill{
                     local card
                     if use and use.card then card = use.card end
                     if card == nil then return false end
+                    if (card:isKindOf("BefriendAttacking") or card:isKindOf("AllianceFeast")) and not skill_owner:hasShownOneGeneral() then
+                        return false
+                    end
                     if (card:isKindOf("BasicCard") and skill_owner:getMark("luaqiangzhi_basic") <= 0) or (card:isKindOf("TrickCard")
                     and skill_owner:getMark("luaqiangzhi_trick") <= 0) then continue end
                     if not (card:isKindOf("Jink") or card:isKindOf("Nullification") or card:isKindOf("ThreatenEmperor")) then
@@ -3021,7 +3024,7 @@ luaqiangzhi = sgs.CreateTriggerSkill{
     on_cost = function(self, event, room, player, data, skill_owner)
         local use = skill_owner:getTag("luaqiangzhiStCard"):toCardUse()
         room:setPlayerProperty(skill_owner, "luaqiangzhiStCardId", sgs.QVariant(use.card:getEffectName()))
-        local prompt = "强识：你可以选择一张牌当作【"
+        local prompt = "强识：你可以选择一张手牌当作【"
         local invoke = (room:askForUseCard(skill_owner, "@@luaqiangzhiUse", prompt .. use.card:getName() .. "】使用") ~= nil)
         room:setPlayerProperty(skill_owner, "luaqiangzhiStCardId", sgs.QVariant())
         skill_owner:removeTag("luaqiangzhiStCard")
@@ -3643,19 +3646,6 @@ luadingjun = sgs.CreateTriggerSkill{
     end
 }
 
-luaenyuanCard = sgs.CreateSkillCard{
-    name = "luaenyuanCard",
-    skill_name = "luaenyuangive",
-    will_throw = false,
-    handling_method = sgs.Card_MethodNone,
-    about_to_use = function(self, room, cardUse)
-        local source = cardUse.from
-        local target = cardUse.to:first()
-        local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, source:objectName(), target:objectName(), "luaenyuanGive","")
-        room:moveCardTo(self, target, sgs.Player_PlaceHand, reason)
-    end
-}
-
 luaenyuangive = sgs.CreateOneCardViewAsSkill{
     name = "luaenyuangive",
     response_pattern = "@@luaenyuangive",
@@ -3664,10 +3654,7 @@ luaenyuangive = sgs.CreateOneCardViewAsSkill{
     end,
 
     view_as = function(self, card)
-		local supCard = luaenyuanCard:clone()
-        supCard:addSubcard(card:getId())
-        supCard:setSkillName(self:objectName())
-        return supCard
+        return card
 	end,
 }
 
@@ -3722,8 +3709,12 @@ luaenyuan = sgs.CreateTriggerSkill{
         elseif event == sgs.Damaged then
             local damage = data:toDamage()
             local from = damage.from
-            local result = (room:askForUseCard(from, "@@luaenyuangive", "@luaenyuan-give::" .. player:objectName()) ~= nil)
-            if not result then
+            local card = room:askForCard(from, "@@luaenyuangive", "@luaenyuan-give::" .. player:objectName(), data, sgs.Card_MethodNone)
+            if card then
+                local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE, from:objectName(), player:objectName(), self:objectName(), "")
+                local move = sgs.CardsMoveStruct(card:getEffectiveId(), player, sgs.Player_PlaceHand, reason)
+                room:moveCardsAtomic(move, true)
+            else
                 room:loseHp(from, 1)
             end
         end
