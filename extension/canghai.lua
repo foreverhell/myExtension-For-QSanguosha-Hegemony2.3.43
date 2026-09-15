@@ -6646,13 +6646,13 @@ sgs.LoadTranslationTable{
     ["draw_to_hp"] = "摸牌至体力值",  
     ["discard_recover"] = "弃置所有手牌并恢复体力"  
 }
-
+]]
 wuxian = sgs.General(extension, "wuxian", "shu", 3, false)
 
 YirongCard = sgs.CreateSkillCard{  
     name = "YirongCard",  
     target_fixed = false,  
-    will_throw = false,  
+    will_throw = true,  
     filter = function(self, targets, to_select)  
         return #targets == 0 and not to_select:isKongcheng()
     end,  
@@ -6662,7 +6662,7 @@ YirongCard = sgs.CreateSkillCard{
         local target = effect.to  
           
         -- 失去一点体力  
-        room:loseHp(source, 1)  
+        -- room:loseHp(source, 1)  
           
         -- 查看目标所有手牌  
         local handcards = target:getHandcards()  
@@ -6678,16 +6678,17 @@ YirongCard = sgs.CreateSkillCard{
 }  
   
 -- 移荣ViewAsSkill  
-yirong = sgs.CreateZeroCardViewAsSkill{  
-    name = "yirong",  
-    enabled_at_play = function(self, player)  
-        return player:getHp() > 0  
-    end,  
+yirong = sgs.CreateOneCardViewAsSkill{  
+    name = "yirong",
+    filter_pattern = ".|.|.|hand",
     view_as = function(self)  
         local card = YirongCard:clone()  
         card:setShowSkill(self:objectName())  
         return card  
-    end  
+    end,
+    enabled_at_play = function(self, player)  
+        return not player:isKongcheng()  
+    end
 }
 
 guixiangUse = sgs.CreateZeroCardViewAsSkill{
@@ -6695,15 +6696,36 @@ guixiangUse = sgs.CreateZeroCardViewAsSkill{
     response_pattern = "@@guixiangUse",
     response_or_use = true,
     view_as = function(self)
-		local card_id = sgs.Self:getMark("guixiangCardid") - 1
-		local card = sgs.Sanguosha:getCard(card_id)
+        local card_id = sgs.Self:getMark("guixiangCardid") - 1
+        local card = sgs.Sanguosha:getCard(card_id)
+
+        local card_name = sgs.Self:getTag(self:objectName()):toString()
+        local new_card = sgs.Sanguosha:cloneCard(card_name, card:getSuit(), card:getNumber())
+        --[[
         local new_card = nil
         if card:getSuit() == sgs.Card_Heart then
             new_card = sgs.Sanguosha:cloneCard("peach", card:getSuit(), card:getNumber())
+        elseif card:getSuit() == sgs.Card_Diamond then
+            new_card = sgs.Sanguosha:cloneCard("ex_nihilo", card:getSuit(), card:getNumber())
         else
             new_card = card
-        end 
+        end
+        ]]
         return new_card
+	end,
+    vs_card_names = function(self, selected)
+        if #selected == 0 then
+            local card_id = sgs.Self:getMark("guixiangCardid") - 1
+            local card = sgs.Sanguosha:getCard(card_id)
+            if card:getSuit() == sgs.Card_Heart then
+                return "peach+" .. card:objectName()
+            elseif card:getSuit() == sgs.Card_Diamond then
+                return "ex_nihilo+" .. card:objectName()
+            else
+                return card:objectName()
+            end
+        end
+		return ""
 	end,
 }
 guixiang = sgs.CreateTriggerSkill{  
@@ -6730,17 +6752,14 @@ guixiang = sgs.CreateTriggerSkill{
             room:judge(judge)  
               
             local judge_card = judge.card  
-            if judge_card then                                  
-                if judge_card:getSuit() == sgs.Card_Heart or judge_card:getTypeId() == sgs.Card_TypeBasic or   
-                    (judge_card:getTypeId() == sgs.Card_TypeTrick and not judge_card:isKindOf("DelayedTrick")) then
-                    if card:isKindOf("Jink") or card:isKindOf("Nullification") or card:isKindOf("ThreatenEmperor") then
-                        return false
-                    end
-                    room:setPlayerMark(target, "guixiangCardid", judge_card:getId() + 1)
-                    local prompt = "贵相：你可以使用判定牌（【" .. judge_card:getName() .. "】。若为红桃，你可以视为使用桃）"
-                    room:askForUseCard(target, "@@guixiangUse", prompt)
-                    room:setPlayerMark(target, "guixiangCardid", 0)
+            if judge_card then
+                if card:isKindOf("Nullification") then
+                    return false
                 end
+                room:setPlayerMark(target, "guixiangCardid", judge_card:getId() + 1)
+                local prompt = "贵相：你可以使用判定牌（【" .. judge_card:getName() .. "】。若为红桃/方片，你可以视为使用桃/无中生有）"
+                room:askForUseCard(target, "@@guixiangUse", prompt)
+                room:setPlayerMark(target, "guixiangCardid", 0)
             end
         end
     end
@@ -6754,13 +6773,13 @@ sgs.LoadTranslationTable{
     -- ... 现有翻译 ...  
     ["wuxian"] = "吴苋",  
     ["yirong"] = "移荣",  
-    [":yirong"] = "出牌阶段，你可以失去一点体力，并查看一名角色的所有手牌，然后选择一张置于牌堆顶。",  
+    [":yirong"] = "出牌阶段，你可以弃置一张手牌，并查看一名角色的所有手牌，然后选择一张置于牌堆顶。",  
     ["YirongCard"] = "移荣",  
     ["guixiang"] = "贵相",  
-    [":guixiang"] = "结束阶段，你可以令一名角色进行判定，若判定牌是基本牌或普通锦囊牌，其可以使用之；若为红桃，改为可以视为使用桃。",  
+    [":guixiang"] = "结束阶段，你可以令一名角色进行判定，其可以使用该判定牌，若判定牌为红桃/方片，其可以改为视为使用桃/无中生有。",  
     ["@guixiang"] = "贵相：选择一名角色进行判定"  
 }
-]]
+
 wuyi = sgs.General(extension, "wuyi", "shu", 4)
 benxi = sgs.CreateTriggerSkill{  
     name = "benxi",  
