@@ -2513,7 +2513,7 @@ end
 
 liulu = sgs.CreateTriggerSkill{
     name = "liulu",
-    events = {sgs.Damaged, sgs.CardsMoveOneTime},
+    events = {sgs.Damaged},--sgs.CardsMoveOneTime},
     frequency = sgs.Skill_Frequent,
 
     can_trigger = function(self, event, room, player, data)
@@ -2565,7 +2565,7 @@ sgs.LoadTranslationTable{
     [":xuxie"] = "每轮限一次。你可以将一张牌当【无懈可击】使用并交给一名其他角色，本回合你与其不能使用此牌颜色的牌。",
     ["@xuxie-give"] = "虚懈：请选择一名其他角色，结算后将转化所用的牌交给其",
     ["liulu"] = "流赂",
-    [":liulu"] = "当你受到其他角色的伤害后，或其他角色得到你的牌后，你可以令其摸一张牌，然后你获得其一张牌。",
+    [":liulu"] = "当你受到其他角色的伤害后，你可以令其摸一张牌，然后你获得其一张牌。",
 }
 
 jianyong = sgs.General(extension, "jianyong", "shu", 3)
@@ -7688,7 +7688,7 @@ sgs.LoadTranslationTable{
     ["xiongluan"] = "雄乱",
     [":xiongluan"] = "任意一名角色回合结束时，若你本回合受到过伤害，你可以将一张装备牌当作杀对所有本回合对你造成过伤害的角色使用"
 }
---[[
+
 zhangyi_canghai = sgs.General(extension, "zhangyi_canghai", "shu", 4)  
 dianjun = sgs.CreateTriggerSkill{  
     name = "dianjun",  
@@ -7809,7 +7809,7 @@ sgs.LoadTranslationTable{
     [":kangruiDamged"] = "一名角色于其回合内首次受到伤害后，你可以选择（1）令其恢复一点体力（2）令其本回合下次造成的伤害+1",
     ["damage_boost"] = "本回合下次造成的伤害+1"
 }
-]]
+
 -- 创建武将：
 zhonghui_wei = sgs.General(extension, "zhonghui_wei", "wei", 4)
 
