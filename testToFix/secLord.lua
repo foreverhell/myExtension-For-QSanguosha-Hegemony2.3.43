@@ -239,8 +239,7 @@ provinceSeal_skill = sgs.CreateTriggerSkill{
                         if player:getMaxCards() >= 2 then
                             table.insert(choices, "provinceSeal_reduceMod")
                         end
-                        if player:getMark("##luajpzzg_killer") > 0 or player:hasShownSkills("paoxiao|kuangcai") or
-                        (player:getWeapon() and player:getWeapon():objectName() == "Crossbow") then
+                        if player:getMark("##luajpzzg_killer") > 0 then
                             table.insert(choices, "provinceSeal_reduceSlash")
                         end
                         room:setPlayerMark(player, "provinceSeal_addDraw", 2)
@@ -266,8 +265,7 @@ provinceSeal_skill = sgs.CreateTriggerSkill{
                     else
                         table.insert(choices, "provinceSeal_reduceDrawAndSlash")
                         --同这里加杀次数上限判断（如有）
-                        if player:getMark("##luajpzzg_killer") > 0 or player:hasShownSkills("paoxiao|kuangcai") or
-                        (player:getWeapon() and player:getWeapon():objectName() == "Crossbow") then
+                        if player:getMark("##luajpzzg_killer") > 0 then
                             table.insert(choices, "provinceSeal_reduceSlash")
                         end
                         table.insert(choices, "provinceSeal_reduceDraw")
@@ -1451,6 +1449,7 @@ luaclearjpzzg = sgs.CreateTriggerSkill{
     events = {sgs.Death},
     can_trigger = function(self, event, room, player, data)
         local hasAnjiang = false
+        local death = data:toDeath()
         for _, p in sgs.qlist(room:getAlivePlayers()) do
             if sgs.isAnjiang(p) then
                 hasAnjiang = true
