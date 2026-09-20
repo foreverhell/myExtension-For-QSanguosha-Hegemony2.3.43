@@ -1824,3 +1824,118 @@ sgs.ai_card_intention.fushu = function(self, card, from, tos)
     local target = tos[1]
     if target then sgs.updateIntention(from, target, self:isFriend(target) and -30 or 30, card) end
 end
+
+-- 王异
+sgs.ai_skill_invoke.zhenlie = function(self, data)
+    local use = data:toCardUse()
+    local card, source = use.card, use.from
+    if not card or not source then return false end --or self.player:getHp() <= 1
+    if self:isFriend(source) then return false end
+
+    if card:isKindOf("GodSalvation") or card:isKindOf("AmazingGrace")
+        or card:isKindOf("AllianceFeast") or card:isKindOf("BefriendAttacking")
+        or card:isKindOf("AwaitExhausted") then
+        return false
+    end
+
+    if card:isKindOf("Slash") then
+        if not self:slashIsEffective(card, self.player, source) then return false end
+        if self:needDamagedEffects(self.player, source)
+            or self:needToLoseHp(self.player, source) then
+            return false
+        end
+        local damage = self:hasHeavySlashDamage(source, card, self.player, true)
+        if damage and damage > 1 then return true end
+        if self:getCardsNum("Jink") == 0 then return true end
+        return self.player:getHp() >= 3 and not source:isNude()
+    end
+
+    if not self:trickIsEffective(card, self.player, source) then return false end
+    local damage_trick = card:isKindOf("Duel") or card:isKindOf("FireAttack")
+        or card:isKindOf("BurningCamps") or card:isKindOf("SavageAssault")
+        or card:isKindOf("ArcheryAttack") or card:isKindOf("Drowning")
+    if damage_trick then
+        if self:needDamagedEffects(self.player, source)
+            or self:needToLoseHp(self.player, source) then
+            return false
+        end
+        if card:isKindOf("Duel") and self:getCardsNum("Slash") == 0 then return true end
+        if card:isKindOf("SavageAssault") and self:getCardsNum("Slash") == 0 then return true end
+        if card:isKindOf("ArcheryAttack") and self:getCardsNum("Jink") == 0 then return true end
+        if card:isKindOf("FireAttack") and not self.player:isKongcheng() and self:isWeak() then return true end
+        if card:isKindOf("BurningCamps") and self:isWeak() then return true end
+        if card:isKindOf("Drowning") and not self.player:getEquips():isEmpty() then return true end
+        return self.player:getHp() >= 3 and not source:isNude()
+    end
+
+    if card:isKindOf("IronChain") then
+        return self.player:isChained() == false and self.player:getHp() >= 3
+            and not source:isNude()
+    end
+    return self.player:getHp() >= 3 and not source:isNude()
+end
+
+sgs.ai_skill_cardchosen.zhenlie = function(self, who, flags, method, disable_list)
+    return self:askForCardChosen(who, flags, "dismantlement", method, disable_list)
+end
+
+local function canghai_miji_target(self)
+    local best, best_score
+    for _, target in sgs.qlist(self.room:getOtherPlayers(self.player)) do
+        if self:isFriend(target) and not (target:isKongcheng() and self:needKongcheng(target)) then
+            local score = 4 - target:getHandcardNum() * 0.5
+            if self:isWeak(target) then score = score + 4 end
+            if target:hasShownSkills(sgs.cardneed_skill) then score = score + 2 end
+            if target:getHp() <= 1 then score = score + 1 end
+            if not best_score or score > best_score then
+                best, best_score = target, score
+            end
+        end
+    end
+    return best
+end
+
+sgs.ai_skill_invoke.miji = true
+
+sgs.ai_skill_exchange.miji = function(self, pattern, max_num, min_num, expand_pile)
+    local target = canghai_miji_target(self)
+    self.miji_canghai_target = target
+    if not target then return {} end
+
+    local cards = sgs.QList2Table(self.player:getCards("he"))
+    self:sortByKeepValue(cards)
+    local result = {}
+    local overflow = math.max(0, self:getOverflow())
+    for _, card in ipairs(cards) do
+        if #result >= max_num then break end
+        local keep = self:getKeepValue(card)
+        local should_give = keep <= 3.8 or #result < overflow
+        if self:isWeak(target) and #result == 0 and keep <= 5 then should_give = true end
+        if card:isKindOf("Peach") then should_give = false end
+        if self:isWeak() and card:isKindOf("Jink") and self:getCardsNum("Jink") <= 1 then
+            should_give = false
+        end
+        if should_give then table.insert(result, card:getEffectiveId()) end
+    end
+    if #result == 0 then self.miji_canghai_target = nil end
+    return result
+end
+
+sgs.ai_skill_playerchosen.miji = function(self, targets)
+    local planned = self.miji_canghai_target
+    self.miji_canghai_target = nil
+    if planned then
+        for _, target in sgs.qlist(targets) do
+            if target:objectName() == planned:objectName() then return target end
+        end
+    end
+    local friends = {}
+    for _, target in sgs.qlist(targets) do
+        if self:isFriend(target) then table.insert(friends, target) end
+    end
+    if #friends == 0 then return nil end
+    self:sort(friends, "handcard")
+    return friends[1]
+end
+
+sgs.ai_playerchosen_intention.miji = -70
