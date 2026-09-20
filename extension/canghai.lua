@@ -6256,13 +6256,12 @@ zhenlie = sgs.CreateTriggerSkill{
         return false  
     end  
 }  
-miji = sgs.CreateTriggerSkill{  
-    name = "miji",  
-    frequency = sgs.Skill_Frequent,  
-    events = {sgs.EventPhaseEnd},  
-      
+miji = sgs.CreateTriggerSkill{
+    name = "miji",
+    events = {sgs.EventPhaseEnd},
+    frequency = sgs.Skill_Frequent,
     can_trigger = function(self, event, room, player, data)  
-        if not player or not player:hasSkill(self:objectName()) then  
+        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then  
             return false  
         end  
           
@@ -6292,60 +6291,38 @@ miji = sgs.CreateTriggerSkill{
             msg.arg = lost_hp  
             msg.arg2 = self:objectName()  
             room:sendLog(msg)  
-            local ids = sgs.IntList()
-            ids = room:getNCards(lost_hp)
-            room:setPlayerMark(player, "miji_card1", ids:at(0))
-            local dummy = sgs.DummyCard(ids)  
-            player:obtainCard(dummy)
-            dummy:deleteLater()
-			
+            player:drawCards(lost_hp, self:objectName())
+
+            if player:isAlive() and not player:isNude() and not room:getOtherPlayers(player):isEmpty() then
+                local ids = room:askForExchange(player, self:objectName(), lost_hp, 0,
+                    "@miji-give:::" .. lost_hp, "", ".|.|.|hand,equipped")
+                if ids and not ids:isEmpty() then
+                    local target = room:askForPlayerChosen(player, room:getOtherPlayers(player),
+                        self:objectName(), "@miji-target:::" .. ids:length(), false)
+                    if target then
+                        local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE,
+                            player:objectName(), target:objectName(), self:objectName(), "")
+                        local move = sgs.CardsMoveStruct(ids, target, sgs.Player_PlaceHand, reason)
+                        room:moveCardsAtomic(move, false)
+                    end
+                end
+            end
         end  
           
         return false  
     end  
 }  
 
-mijiAsk = sgs.CreateTriggerSkill{
-    name = "#mijiAsk",
-    events = {sgs.CardsMoveOneTime},
-    can_trigger = function(self, event, room, player, data)
-        if skillTriggerable(player, self:objectName()) and player:getPhase() == sgs.Player_Finish then
-            local move_datas = data:toList()
-			for _, move_data in sgs.qlist(move_datas) do
-				local move = move_data:toMoveOneTime()
-				if move and move.to and move.to:objectName() == player:objectName()then
-                    local ids = sgs.IntList()
-                    local isCard = false
-					for _, id in sgs.qlist(move.card_ids) do
-						if not isCard then
-                            if player:getMark("miji_card1") == id then
-                                isCard = true
-                            end
-                        end
-                        if isCard then
-                            ids:append(id)
-                        end
-					end
-                    if ids:isEmpty() then return false end
-                    while room:askForYiji(player, ids, self:objectName(), false, false, true, -1, room:getOtherPlayers(player)) do
-                        if player:isDead() then return false end
-                    end
-                end
-            end
-        end
-        return false
-    end
-}
 wangyi:addSkill(zhenlie)
 wangyi:addSkill(miji)
-wangyi:addSkill(mijiAsk)
-extension:insertRelatedSkills("miji", "#mijiAsk")
 sgs.LoadTranslationTable{
     ["wangyi"] = "王异",
     ["zhenlie"] = "贞烈",
     [":zhenlie"] = "你成为杀或非延时性锦囊的目标时，你可以失去一点体力并取消之，然后摸一张牌，弃置来源一张牌",
     ["miji"] = "秘计",  
-    [":miji"] = "结束阶段，你可以摸X张牌（X为你已损失的体力值），并任意分配这些牌",  
+    [":miji"] = "结束阶段，你可以摸X张牌（X为你已损失的体力值），然后你可以将至多X张牌交给一名其他角色。",  
+    ["@miji-give"] = "秘计：你可以将至多 %arg 张牌交给一名其他角色",  
+    ["@miji-target"] = "秘计：请选择一名其他角色，交给其 %arg 张牌",  
     ["#mijiDraw"] = "%from 发动了【%arg2】，摸了 %arg 张牌",  
 }
 
