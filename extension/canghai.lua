@@ -1873,44 +1873,44 @@ mouzhuCard = sgs.CreateSkillCard{
             local card_id = room:askForCardChosen(target, target, "h", "mouzhu")  
             room:obtainCard(source, card_id, false)  
         end  
-          
+
         -- 检查手牌数比较  
         if target:getHandcardNum() < source:getHandcardNum() then  
             -- 让目标选择使用杀或决斗  
-            local choices = {}  
-            local slash = sgs.Sanguosha:cloneCard("slash")  
-            local duel = sgs.Sanguosha:cloneCard("duel")  
-            slash:deleteLater()
-            duel:deleteLater()
-            if not target:isCardLimited(slash, sgs.Card_MethodUse) then  
-                table.insert(choices, "slash")  
-            end  
-            if not target:isCardLimited(duel, sgs.Card_MethodUse) then  
-                table.insert(choices, "duel")  
-            end  
-              
-            if #choices > 0 then  
-                local choice = room:askForChoice(target, "mouzhu", table.concat(choices, "+"))  
-                local card_to_use = nil  
-                  
-                if choice == "slash" then  
-                    card_to_use = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)  
-                elseif choice == "duel" then  
-                    card_to_use = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, 0)  
-                end  
-                card_to_use:deleteLater()
-                if card_to_use then  
-                    card_to_use:setSkillName("_mouzhu")  
-                    -- 这里可能要让目标选择使用目标
-                    victim = room:askForPlayerChosen(target,  room:getOtherPlayers(target), self:objectName())
-                    local use = sgs.CardUseStruct()  
-                    use.card = card_to_use  
-                    use.from = target  
-                    use.to:append(victim)
-                    room:useCard(use, false)  
-                end  
-            end  
-        end  
+            local choice = room:askForChoice(target, "mouzhu", "slash+duel")  
+            local card_to_use = sgs.Sanguosha:cloneCard(choice, sgs.Card_NoSuit, 0)
+            card_to_use:deleteLater()
+            card_to_use:setSkillName("mouzhu")  
+            
+            local candidates = sgs.SPlayerList()
+            local selected = sgs.PlayerList()
+
+            -- 检查这张牌本身是否可以使用
+            if target:isCardLimited(card_to_use, sgs.Card_MethodUse) then
+                return false
+            end
+
+            for _, p in sgs.qlist(room:getOtherPlayers(target)) do
+                -- targetFilter：检查牌的目标规则
+                -- isProhibited：检查目标是否禁止被该牌指定
+                if card_to_use:targetFilter(selected, p, target)
+                    and not target:isProhibited(p, card_to_use) then
+                    candidates:append(p)
+                end
+            end
+
+            if candidates:isEmpty() then
+                return false
+            end
+            local victim = room:askForPlayerChosen(target, candidates, self:objectName(), "@mouzhu-target:" .. choice, false, true)
+            if victim then
+                local use = sgs.CardUseStruct()  
+                use.card = card_to_use  
+                use.from = target  
+                use.to:append(victim)
+                room:useCard(use, false)
+            end
+        end
     end  
 }
 
@@ -1989,8 +1989,10 @@ sgs.LoadTranslationTable{
     ["hejin"] = "何进",
     ["mouzhu"] = "谋诛",  
     [":mouzhu"] = "出牌阶段限一次，你可以令一名其他角色交给你一张手牌，然后若其手牌数小于你，其视为使用一张杀或决斗。",  
-    ["@mouzhu-invoke"] = "你可以发动谋诛",  
+    ["@mouzhu-invoke"] = "你可以发动谋诛",
     ["~mouzhu"] = "选择一名其他角色",
+    ["@mouzhu-target:slash"] = "谋诛：请选择【杀】的合法目标",
+    ["@mouzhu-target:duel"] = "谋诛：请选择【决斗】的合法目标",
     ["yanhuo"] = "延祸",  
     [":yanhuo"] = "你死亡时，你可以弃置杀死你的角色至多X张牌，X为你的牌数。",  
     ["@yanhuo-invoke"] = "你可以发动延祸",
