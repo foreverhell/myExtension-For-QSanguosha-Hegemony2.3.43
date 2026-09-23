@@ -179,7 +179,7 @@ sgs.LoadTranslationTable{
     [":fujian"] = "结束阶段或你受到伤害后，你可以将一张牌置于“谋”牌堆，然后摸一张牌",
     ["mou"] = "谋"
 }
-caozhi_wu = sgs.General(extension, "caozhi_wu", "wu", 3)
+caozhi_ol = sgs.General(extension, "caozhi_ol", "wei", 3)
 
 zongshu = sgs.CreateTriggerSkill{
     name = "zongshu",
@@ -326,19 +326,116 @@ jiushi1Showed = sgs.CreateTriggerSkill{
 	end,
 }
 
-caozhi_wu:addSkill(zongshu)
-caozhi_wu:addSkill(jiushi1)
-caozhi_wu:addSkill(jiushi1Showed)
+caozhi_ol:addSkill(zongshu)
+caozhi_ol:addSkill(jiushi1)
+caozhi_ol:addSkill(jiushi1Showed)
 extension:insertRelatedSkills("jiushi1", "#jiushi1-showed")
 if not sgs.Sanguosha:getSkill("jiushiRecast") then skills:append(jiushiRecast) end
 sgs.LoadTranslationTable{
-    ["caozhi_wu"] = "曹植",
+    ["caozhi_ol"] = "曹植",
     ["zongshu"] = "纵书",
     [":zongshu"] = "其他角色的牌不因使用进入弃牌堆后，你可以获得其中的锦囊牌和坐骑牌。",
     ["jiushi1"] = "酒诗",
     [":jiushi1"] = "你明置该武将牌后，若当前回合角色可以使用酒，你可以令其视为使用之；当你受到伤害后，若你的武将均明置，你可以重铸任意张梅花牌并暗置此武将牌",
     ["jiushi1-recast"] = "你可以重铸任意张梅花牌并暗置此武将牌",
 }
+chenzhen = sgs.General(extension, "chenzhen", "shu", 3)
+
+shamengCard = sgs.CreateSkillCard{
+    name = "shamengCard",
+    target_fixed = false,
+    will_throw = true,
+
+    filter = function(self, targets, to_select, Self)
+        return #targets == 0
+            and to_select:objectName() ~= Self:objectName()
+            --and to_select:hasShownOneGeneral()
+    end,
+
+    feasible = function(self, targets, Self)
+        return #targets == 1
+    end,
+
+    on_use = function(self, room, source, targets)
+        local target = targets[1]
+        local yuanjiao
+        local subcards = self:getSubcards()
+
+        if subcards:length() == 1 then
+            local original = sgs.Sanguosha:getCard(subcards:first())
+            yuanjiao = sgs.Sanguosha:cloneCard(
+                "befriend_attacking", original:getSuit(), original:getNumber())
+        else
+            yuanjiao = sgs.Sanguosha:cloneCard(
+                "befriend_attacking", sgs.Card_NoSuit, 0)
+        end
+
+        yuanjiao:setSkillName("shameng")
+        yuanjiao:setShowSkill("shameng")
+        for _, id in sgs.qlist(subcards) do
+            yuanjiao:addSubcard(id)
+        end
+
+        local use = sgs.CardUseStruct()
+        use.card = yuanjiao
+        use.from = source
+        use.to:append(target)
+        room:useCard(use, false)
+        yuanjiao:deleteLater()
+    end,
+}
+
+shameng = sgs.CreateViewAsSkill{
+    name = "shameng",
+    n = 2,
+
+    view_filter = function(self, selected, to_select)
+        if to_select:isEquipped() or sgs.Self:isJilei(to_select) then
+            return false
+        end
+        return #selected == 0 or to_select:isRed() == selected[1]:isRed()
+    end,
+
+    view_as = function(self, cards)
+        if #cards ~= 1 and #cards ~= 2 then return nil end
+        if #cards == 1 and not cards[1]:isKindOf("BefriendAttacking") then
+            return nil
+        end
+        if #cards == 2 and cards[1]:isRed() ~= cards[2]:isRed() then
+            return nil
+        end
+        if #cards == 2 and sgs.Self:hasUsed("#shamengCard") then
+            return nil
+        end
+
+        local card = shamengCard:clone()
+        for _, selected in ipairs(cards) do
+            card:addSubcard(selected)
+        end
+        card:setSkillName(self:objectName())
+        card:setShowSkill(self:objectName())
+        return card
+    end,
+
+    enabled_at_play = function(self, player)
+        if not player:hasUsed("#shamengCard") then return true end
+        for _, card in sgs.qlist(player:getHandcards()) do
+            if card:isKindOf("BefriendAttacking") then return true end
+        end
+        return false
+    end,
+}
+
+chenzhen:addSkill(shameng)
+
+sgs.LoadTranslationTable{
+    ["chenzhen"] = "陈震",
+    ["#chenzhen"] = "歃盟使者",
+    ["shameng"] = "歃盟",
+    [":shameng"] = "你使用【远交近攻】无势力限制。出牌阶段限一次。你可以将两张颜色相同的手牌当【远交近攻】使用。",
+    ["shamengCard"] = "歃盟",
+}
+
 --[[
 chenqun = sgs.General(extension, "chenqun", "wei", 3)
 
