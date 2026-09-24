@@ -360,7 +360,12 @@ shamengCard = sgs.CreateSkillCard{
         local target = targets[1]
         local yuanjiao
         local subcards = self:getSubcards()
-
+        --使用真远交近攻
+        --只使用了这一次，清除标记，可以使用转化远交近攻
+        --包括这一次使用了大于1次，说明使用了转化远交近攻，不清除标记，不能再使用转化远交近攻
+        if subcards:length() == 1 and source:usedTimes("#shamengCard") <= 1 then
+            room:addPlayerHistory(source, "#shamengCard", 0)
+        end
         if subcards:length() == 1 then
             local original = sgs.Sanguosha:getCard(subcards:first())
             yuanjiao = sgs.Sanguosha:cloneCard(
