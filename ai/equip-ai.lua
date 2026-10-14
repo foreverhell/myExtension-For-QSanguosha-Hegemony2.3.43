@@ -68,7 +68,7 @@ sgs.ai_weapon_value.kuangzhanshi = function(self, enemy, player)
     return player:getHp() > 2 and 2 or 0
 end
 
-sgs.ai_skill_invoke["#anshajian_skill"] = function(self, data)
+sgs.ai_skill_invoke["anshajian_skill"] = function(self, data)
     local damage = data:toDamage()
     local target = damage.to
     local source = damage.from or self.player
@@ -154,16 +154,16 @@ local function shengfanDiscard(self)
         end
     end
 end
-sgs.ai_skill_invoke["#shengfan_skill"] = function(self)
+sgs.ai_skill_invoke["shengfan_skill"] = function(self)
     return self.player:isWounded() and shengfanDiscard(self) ~= nil
 end
-sgs.ai_skill_discard["#shengfan_skill"] = function(self)
+sgs.ai_skill_discard["shengfan_skill"] = function(self)
     local id = shengfanDiscard(self)
     if id then return { id } end
     -- Once invoked the discard is compulsory; use the standard fallback.
     return nil
 end
-sgs.ai_skill_invoke["#kuangzhanshi_skill"] = function(self, data)
+sgs.ai_skill_invoke["kuangzhanshi_skill"] = function(self, data)
     local damage = data:toDamage()
     local target = damage.to
     if not target or not self:isEnemy(target) or self.player:getHp() < 2 then return false end
@@ -258,7 +258,7 @@ sgs.ai_skill_invoke["@bileizhen_attract"] = function(self, data)
     local damage = data:toDamage()
     return damage.to and self:isFriend(damage.to)
 end
-sgs.ai_skill_choice["#Bileizhen_skill"] = function(self, choices)
+sgs.ai_skill_choice["Bileizhen_skill"] = function(self, choices)
     if self.player:isWounded() and choices:match("recover") then return "recover" end
     return "draw"
 end
