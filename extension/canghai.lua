@@ -792,32 +792,48 @@ zhongjieEmper = sgs.CreateTriggerSkill{
         end
     end  
 }
+
 farou = sgs.CreateTriggerSkill{
     name = "farou",
-    events = {sgs.QuitDying},--濒死事件每个角色会询问一次，所以不需要room:findPlayerBySkillName，否则会多次触发
+    events = {sgs.QuitDying},--Dying事件每个角色会询问一次，但是QuitDying事件只询问脱离濒死的角色
     can_trigger = function(self, event, room, player, data)
-        if not (player and player:isAlive() and player:hasSkill(self:objectName())) then return "" end
-        if player:hasFlag("farou_used") then return "" end
         local dying = data:toDying()
-        if player:isFriendWith(dying.who) then return "" end
+        if not (dying.who and dying.who:isAlive() and dying.who:getHp() > 0) then return "" end
         local current = room:getCurrent()
         local damage = dying.damage
-        if player:isFriendWith(current) or (damage and damage.from and player:isFriendWith(damage.from)) then
-            return self:objectName()
+        local skill_list, owner_list = {}, {}
+        for _, owner in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
+            if owner:isAlive() and not owner:hasFlag("farou_used") and not owner:isNude()
+                and not owner:isFriendWith(dying.who)
+                and ((current and owner:isFriendWith(current))
+                    or (damage and damage.from and owner:isFriendWith(damage.from))) then
+                table.insert(skill_list, self:objectName())
+                table.insert(owner_list, owner:objectName())
+            end
         end
-        return false
+        return table.concat(skill_list, "|"), table.concat(owner_list, "|")
     end,
-    on_cost = function(self, event, room, player, data)
-        if player:askForSkillInvoke(self:objectName(),data) and room:askForDiscard(player, self:objectName(), 1, 1, false, true) then
-            room:setPlayerFlag(player,"farou_used")
+    on_cost = function(self, event, room, player, data, ask_who)
+        local target = data:toDying().who
+        if not (ask_who and ask_who:isAlive() and not ask_who:hasFlag("farou_used")
+            and target and target:isAlive() and target:getHp() > 0) then return false end
+        if ask_who:askForSkillInvoke(self:objectName(), data) then
+            -- 弃牌会插入其他结算，先占用次数，防止嵌套脱离濒死时再次发动。
+            room:setPlayerFlag(ask_who, "farou_used")
+            if not room:askForDiscard(ask_who, self:objectName(), 1, 1, false, true) then
+                room:setPlayerFlag(ask_who, "-farou_used")
+                return false
+            end
             return true
         end
         return false
     end,  
-    on_effect = function(self, event, room, player, data)
+    on_effect = function(self, event, room, player, data, ask_who)
         local dying = data:toDying()
+        if not (ask_who and ask_who:isAlive() and dying.who and dying.who:isAlive()
+            and dying.who:getHp() > 0) then return false end
         local damage = sgs.DamageStruct()
-        damage.from = player
+        damage.from = ask_who
         damage.to = dying.who
         damage.damage = 1
         damage.reason = self:objectName()
