@@ -3219,6 +3219,21 @@ end
 --positive：为 true 时，本【无懈可击】使 trick 失效，否则本【无懈可击】使 trick 生效
 function SmartAI:askForNullification(trick, from, to, positive) --from对to使用的trick
 	if self.player:isDead() then return nil end
+	--【无懈可击】可以反无懈：从第 2 层开始，引擎传进来的 trick 是上一层打出的那张【无懈可击】，from 也换成了那个出牌的人
+	--（判定阶段的延时锦囊由 cardEffect(trick, NULL, player) 触发，from 本身还可能是 NULL）
+	--所以要把这条无懈链最底下那张锦囊记下来，后面的判断一律以它为准
+	if trick:isKindOf("Nullification") then
+		local chain = self.nullification_chain
+		local times = self.room:getTag("NullifyingTimes"):toInt()
+		if chain and to and chain.to_name == to:objectName() and chain.times < times then
+			trick, from = chain.trick, chain.from
+		else
+			self.nullification_chain = nil
+		end
+	else
+		self.nullification_chain = { trick = trick, from = from, to_name = to and to:objectName() or "",
+									times = self.room:getTag("NullifyingTimes"):toInt() }
+	end
 	if trick:isKindOf("SavageAssault") and self:isFriend(to) and positive then
 		local menghuo = sgs.findPlayerByShownSkillName("huoshou")
 		if menghuo and self:isFriend(to, menghuo) and menghuo:hasShownSkill("zhiman") then return nil end
@@ -3298,6 +3313,8 @@ function SmartAI:askForNullification(trick, from, to, positive) --from对to使�
 		return nil
 	end
 
+	--乐、兵的连环无懈不受"留一张无懈给被乐的友方"这条规则的限制，否则从第 2 层起就走不到后面的分支
+	if keep and (trick:isKindOf("Indulgence") or trick:isKindOf("SupplyShortage")) then keep = false end
 	local callback = sgs.ai_nullification[trick:getClassName()]
 	if type(callback) == "function" then
 		local shouldUse, single = callback(self, trick, from, to, positive, keep)
@@ -3491,7 +3508,9 @@ function SmartAI:askForNullification(trick, from, to, positive) --from对to使�
 			if self:isEnemy(to) and self:evaluateKingdom(to) ~= "unknown" and self:isWeak(to) then return null_card end
 		end
 	else
-		if from and from:objectName() == self.player:objectName() then return end--不使自己的锦囊生效？
+		--自己打出的乐、兵被人无懈时应当反击，否则自己的延时锦囊等于白贴
+		if from and from:objectName() == self.player:objectName()
+			and not (trick:isKindOf("Indulgence") or trick:isKindOf("SupplyShortage")) then return end--不使自己的锦囊生效？
 
 		if (trick:isKindOf("FireAttack") or trick:isKindOf("Duel")) and self:cantbeHurt(to, from) then
 			if from and self:isEnemy(from) then return null_card end
@@ -3509,6 +3528,16 @@ function SmartAI:askForNullification(trick, from, to, positive) --from对to使�
 			return from and self:isFriend(from) and not self:isFriend(to) and null_card
 		elseif trick:isKindOf("GodSalvation") then
 			if self:isFriend(to) and self:isWeak(to) then return null_card end
+		elseif trick:isKindOf("Indulgence") then--乐、兵要排在下面那条 SingleTargetTrick 通用分支之前，否则永远轮不到
+			if not self:isFriend(to) then--and not to:isSkipped(sgs.Player_Play) then
+				if to:hasShownSkills("jieguanxing|jieyizhi|luajuxian") then return nil end
+				return null_card
+			end
+		elseif trick:isKindOf("SupplyShortage") then
+			if not self:isFriend(to) then--and not to:isSkipped(sgs.Player_Draw) then
+				if to:hasShownSkills("jieguanxing|jieyizhi|luajuxian") then return nil end
+				return null_card
+			end
 		elseif trick:isKindOf("AmazingGrace") then
 			if self:isFriend(to) then return null_card end
 		elseif not (trick:isKindOf("GlobalEffect") or trick:isKindOf("AOE")) then
@@ -3516,18 +3545,6 @@ function SmartAI:askForNullification(trick, from, to, positive) --from对to使�
 				if ("snatch|dismantlement"):match(trick:objectName()) and to:isNude() then
 				elseif trick:isKindOf("FireAttack") and to:isKongcheng() then
 				else return null_card end
-			end
-		elseif trick:isKindOf("Indulgence") then
-			if not self:isFriend(to) then--and not to:isSkipped(sgs.Player_Play) then
-				Global_room:writeToConsole(from .. "乐的" .. to .."应打无懈")
-				if to:hasShownSkills("jieguanxing|jieyizhi|luajuxian") then return nil end
-				return null_card
-			end
-		elseif trick:isKindOf("SupplyShortage") then
-			Global_room:writeToConsole(from .. "兵的" .. to .."应打无懈")
-			if not self:isFriend(to) then--and not to:isSkipped(sgs.Player_Draw) then
-				if to:hasShownSkills("jieguanxing|jieyizhi|luajuxian") then return nil end
-				return null_card
 			end
 		end
 	end
