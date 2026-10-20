@@ -1,4 +1,6 @@
 extension = sgs.Package("27", sgs.Package_GeneralPack)
+equip = sgs.Package("27Equip",sgs.Package_CardPack)
+local equip27_skills = sgs.SkillList()
 
 zhuling27 = sgs.General(extension, "zhuling27", "wei", 4)
 
@@ -1587,4 +1589,233 @@ sgs.LoadTranslationTable{
     [":qingyin27"] = "限定技。出牌阶段，你可以令所有与你势力相同的角色各回复1点体力，然后你移除此武将牌。",
 }
 
-return {extension}
+yanwangxuezhou = sgs.CreateArmor{
+    name = "yanwangxuezhou",
+    class_name = "yanwangxuezhou",
+    suit = sgs.Card_Heart,
+    number = 2,
+}
+
+yanwangxuezhou_skill = sgs.CreateTriggerSkill{
+    name = "yanwangxuezhou_skill",
+    global = true,
+    frequency = sgs.Skill_Compulsory,
+    events = {sgs.DamageInflicted},
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasArmorEffect("yanwangxuezhou")) then
+            return ""
+        end
+        local damage = data:toDamage()
+        if damage.card and damage.card:isKindOf("Slash") then return self:objectName() end
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data)
+        return true
+    end,
+    on_effect = function(self, event, room, player, data)
+        if not player:isKongcheng() then
+            return room:askForDiscard(player, "yanwangxuezhou", 1, 1, false, false,
+                "@yanwangxuezhou-discard")
+        end
+        local damage = data:toDamage()
+        damage.damage = damage.damage + 1
+        data:setValue(damage)
+        return false
+    end,
+}
+
+siming = sgs.CreateTreasure{
+    name = "siming",
+    class_name = "siming",
+    suit = sgs.Card_Diamond,
+    number = 2,
+    on_install = function(self, player)
+        if not player:isAlive() then return end
+        local room = player:getRoom()
+        if player:isWounded() then
+            local recover = sgs.RecoverStruct()
+            recover.who, recover.recover = player, player:getMaxHp() - player:getHp()
+            room:recover(player, recover)
+        end
+        if player:isAlive() then
+            local count = 5 - player:getHandcardNum()
+            if count > 0 then player:drawCards(count, self:objectName()) end
+        end
+    end,
+    on_uninstall = function(self, player)
+        if player:isAlive() and player:getHp() > 0 then
+            player:getRoom():loseHp(player, player:getHp())
+        end
+    end,
+}
+
+tianxingluji = sgs.CreateWeapon{
+    name = "tianxingluji",
+    class_name = "tianxingluji",
+    suit = sgs.Card_Club,
+    number = 12,
+    range = 3,
+}
+
+local tianxingluji_uses = {}
+local function tianxinglujiUse(room, card)
+    for i = #tianxingluji_uses, 1, -1 do
+        local entry = tianxingluji_uses[i]
+        if entry.room == room and entry.card == card then return entry, i end
+    end
+end
+
+tianxingluji_skill = sgs.CreateTriggerSkill{
+    name = "tianxingluji_skill",
+    global = true,
+    frequency = sgs.Skill_Compulsory,
+    events = {sgs.TargetChosen, sgs.DamageCaused, sgs.DamageDone, sgs.CardFinished},
+    on_record = function(self, event, room, player, data)
+        if event == sgs.TargetChosen then
+            local use = data:toCardUse()
+            if not (use.card and use.card:isKindOf("Slash") and use.from) then return end
+            local entry = tianxinglujiUse(room, use.card)
+            if not entry and use.from:hasWeapon("tianxingluji") then
+                entry = {room = room, card = use.card, owner = use.from,
+                    id = use.from:getWeapon():getEffectiveId(), damaged = false}
+                table.insert(tianxingluji_uses, entry)
+            end
+            if entry then entry.target = use.to:length() == 1 and use.to:first() or nil end
+        elseif event == sgs.DamageDone then
+            local damage = data:toDamage()
+            local entry = damage.card and tianxinglujiUse(room, damage.card)
+            if entry and damage.damage > 0 then entry.damaged = true end
+        end
+    end,
+    can_trigger = function(self, event, room, player, data)
+        if event == sgs.DamageCaused then
+            local damage = data:toDamage()
+            local entry = damage.card and tianxinglujiUse(room, damage.card)
+            if entry and entry.target == damage.to and damage.from == entry.owner
+                and not damage.chain and not damage.transfer
+                and entry.owner:hasWeapon("tianxingluji") then
+                return self:objectName(), entry.owner:objectName()
+            end
+        elseif event == sgs.CardFinished then
+            local use = data:toCardUse()
+            local entry = use.card and tianxinglujiUse(room, use.card)
+            if entry then return self:objectName(), entry.owner:objectName() end
+        end
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data, ask_who)
+        return true
+    end,
+    on_effect = function(self, event, room, player, data, ask_who)
+        if event == sgs.DamageCaused then
+            local damage = data:toDamage()
+            damage.damage = damage.damage + 1
+            data:setValue(damage)
+        else
+            local use = data:toCardUse()
+            local entry, index = tianxinglujiUse(room, use.card)
+            if not entry then return false end
+            table.remove(tianxingluji_uses, index)
+            if not entry.damaged and entry.target and entry.target:isAlive()
+                and room:getCardOwner(entry.id) == entry.owner
+                and room:getCardPlace(entry.id) == sgs.Player_PlaceEquip then
+                room:obtainCard(entry.target, entry.id, true)
+            end
+        end
+        return false
+    end,
+}
+
+xuesezhixi = sgs.CreateTreasure{
+    name = "xuesezhixi",
+    class_name = "xuesezhixi",
+    suit = sgs.Card_Spade,
+    number = 12,
+}
+
+local function xuesezhixiCanUse(room, player, target)
+    if not (player:isAlive() and not player:hasShownOneGeneral() and target:isAlive()
+        and target ~= player and target:hasTreasure("xuesezhixi")) then return false end
+    local card = sgs.Sanguosha:cloneCard("known_both")
+    card:setSkillName("xuesezhixi")
+    local available = not player:isCardLimited(card, sgs.Card_MethodUse)
+        and not room:isProhibited(player, target, card)
+        and card:targetFilter(sgs.PlayerList(), target, player)
+    card:deleteLater()
+    return available
+end
+
+xuesezhixi_skill = sgs.CreateTriggerSkill{
+    name = "xuesezhixi_skill",
+    global = true,
+    events = {sgs.DrawNCards, sgs.EventPhaseStart},
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive()) then return "" end
+        if event == sgs.DrawNCards then
+            if player:hasTreasure("xuesezhixi") then return self:objectName() end
+        elseif player:getPhase() == sgs.Player_Play and not player:hasShownOneGeneral() then
+            local skills, owners = {}, {}
+            for _, target in sgs.qlist(room:getOtherPlayers(player)) do
+                if xuesezhixiCanUse(room, player, target) then
+                    table.insert(skills, self:objectName())
+                    table.insert(owners, target:objectName())
+                end
+            end
+            return table.concat(skills, "|"), table.concat(owners, "|")
+        end
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data, ask_who)
+        if event == sgs.DrawNCards then return true end
+        local target_data = sgs.QVariant()
+        target_data:setValue(ask_who)
+        return player:askForSkillInvoke("xuesezhixi", target_data)
+    end,
+    on_effect = function(self, event, room, player, data, ask_who)
+        if event == sgs.DrawNCards then
+            data:setValue(data:toInt() + 2)
+        elseif xuesezhixiCanUse(room, player, ask_who) then
+            local card = sgs.Sanguosha:cloneCard("known_both")
+            card:setSkillName("xuesezhixi")
+            local use = sgs.CardUseStruct()
+            use.card, use.from = card, player
+            use.to:append(ask_who)
+            room:useCard(use, false)
+            card:deleteLater()
+        end
+        return false
+    end,
+}
+
+yanwangxuezhou:setParent(equip)
+xuesezhixi:setParent(equip)
+tianxingluji:setParent(equip)
+siming:setParent(equip)
+if not sgs.Sanguosha:getSkill("yanwangxuezhou_skill") then
+    equip27_skills:append(yanwangxuezhou_skill)
+end
+if not sgs.Sanguosha:getSkill("tianxingluji_skill") then
+    equip27_skills:append(tianxingluji_skill)
+end
+if not sgs.Sanguosha:getSkill("xuesezhixi_skill") then
+    equip27_skills:append(xuesezhixi_skill)
+end
+sgs.Sanguosha:addSkills(equip27_skills)
+
+sgs.LoadTranslationTable{
+    ["27Equip"] = "27国典装备",
+    ["yanwangxuezhou"] = "燕王血胄",
+    ["yanwangxuezhou_skill"] = "燕王血胄",
+    [":yanwangxuezhou"] = "装备牌·防具\n\n锁定技。当你受到【杀】的伤害时，若你有手牌，你须弃置一张手牌，防止此伤害；若你没有手牌，此伤害+1。",
+    ["@yanwangxuezhou-discard"] = "燕王血胄：弃置一张手牌，防止此次【杀】的伤害",
+    ["siming"] = "司命",
+    ["xuesezhixi"] = "血色之玺",
+    ["xuesezhixi_skill"] = "血色之玺",
+    [":xuesezhixi"] = "装备牌·宝物\n\n摸牌阶段，你多摸两张牌；未确定势力的其他角色出牌阶段开始时，其可以视为对你使用一张【知己知彼】。",
+    ["tianxingluji"] = "天刑戮脊",
+    ["tianxingluji_skill"] = "天刑戮脊",
+    [":tianxingluji"] = "装备牌·武器\n\n攻击范围：3\n锁定技。你使用【杀】对唯一目标造成的伤害+1；结算后，若此【杀】未造成伤害，唯一目标获得此装备。",
+    [":siming"] = "装备牌·宝物\n\n锁定技。此牌进入你的装备区时，你回复所有体力并将手牌摸至五张；此牌离开你的装备区时，你失去所有体力。",
+}
+
+return {extension, equip}
