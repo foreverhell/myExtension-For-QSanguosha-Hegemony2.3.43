@@ -425,8 +425,7 @@ shicai27Card = sgs.CreateSkillCard{
     on_use = function(self, room, source, targets)
         local target = targets[1]
         local id = self:getSubcards():first()
-        if not (source:isAlive() and target and target:isAlive() and target:isKongcheng()
-            and room:getCardOwner(id) == source and room:getCardPlace(id) == sgs.Player_PlaceHand) then return end
+        if not (source:isAlive() and target and target:isAlive() and target:isKongcheng()) then return end
         local card = sgs.Sanguosha:getCard(id)
         local mark = "shicai27_type_" .. tostring(card:getTypeId())
         if source:getMark(mark) > 0 then return end
@@ -1147,7 +1146,7 @@ wenji27_effect = sgs.CreateTriggerSkill{
         elseif event == sgs.CardUsed or event == sgs.TargetChosen then
             local use = data:toCardUse()
             if not (use.from and use.card) then return end
-            -- 包括技能牌；只要曾经指定过其他角色，就不满足新版屯江。
+            if use.card:getTypeId() == sgs.Card_TypeSkill then return end
             for _, target in sgs.qlist(use.to) do
                 if target ~= use.from then
                     room:setPlayerFlag(use.from, "tunjiang27_targeted")
@@ -1475,69 +1474,6 @@ sgs.LoadTranslationTable{
 
 liuba27 = sgs.General(extension, "liuba27", "shu", 3)
 
-tongdu27 = sgs.CreateTriggerSkill{
-    name = "tongdu27",
-    global = true,
-    events = {sgs.EventPhaseChanging, sgs.CardsMoveOneTime, sgs.EventPhaseEnd},
-    on_record = function(self, event, room, player, data)
-        if not player then return end
-        if event == sgs.EventPhaseChanging then
-            local change = data:toPhaseChange()
-            if change.from == sgs.Player_Discard or change.to == sgs.Player_Discard then
-                room:setPlayerMark(player, "tongdu27_discard", 0)
-            end
-        elseif event == sgs.CardsMoveOneTime and player:getPhase() == sgs.Player_Discard then
-            local function record(move)
-                if not move.from or move.from:objectName() ~= player:objectName() then return end
-                if bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON)
-                    ~= sgs.CardMoveReason_S_REASON_DISCARD then return end
-                local count = 0
-                for i = 0, move.card_ids:length() - 1 do
-                    local place = move.from_places:at(i)
-                    if place == sgs.Player_PlaceHand or place == sgs.Player_PlaceEquip then
-                        count = count + 1
-                    end
-                end
-                if count > 0 then room:addPlayerMark(player, "tongdu27_discard", count) end
-            end
-            local moves = data:toList()
-            if moves:isEmpty() then
-                record(data:toMoveOneTime())
-            else
-                for _, move_data in sgs.qlist(moves) do record(move_data:toMoveOneTime()) end
-            end
-        end
-    end,
-    can_trigger = function(self, event, room, player, data)
-        if event ~= sgs.EventPhaseEnd or not player or not player:isAlive()
-            or player:getPhase() ~= sgs.Player_Discard
-            or player:getMark("tongdu27_discard") == 0 then return "" end
-        local skills, owners = {}, {}
-        for _, owner in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
-            if owner:isAlive() and owner:hasShownSkill(self:objectName()) and owner:isFriendWith(player) then
-                table.insert(skills, self:objectName())
-                table.insert(owners, owner:objectName())
-            end
-        end
-        return table.concat(skills, "|"), table.concat(owners, "|")
-    end,
-    on_cost = function(self, event, room, player, data, ask_who)
-        local owner_data = sgs.QVariant()
-        owner_data:setValue(ask_who)
-        if player:askForSkillInvoke(self:objectName(), owner_data) then
-            room:broadcastSkillInvoke("tongdu", ask_who)
-            return true
-        end
-        return false
-    end,
-    on_effect = function(self, event, room, player, data, ask_who)
-        if player:isAlive() then
-            player:drawCards(math.min(player:getMark("tongdu27_discard"), 2), self:objectName())
-        end
-        return false
-    end,
-}
-
 qingyin27Card = sgs.CreateSkillCard{
     name = "qingyin27Card",
     target_fixed = true,
@@ -1576,14 +1512,11 @@ qingyin27 = sgs.CreateZeroCardViewAsSkill{
     end,
 }
 
-liuba27:addSkill(tongdu27)
+liuba27:addSkill("tongdu")
 liuba27:addSkill(qingyin27)
 
 sgs.LoadTranslationTable{
     ["liuba27"] = "刘巴",
-    ["tongdu27"] = "统度",
-    ["tongdu27_discard"] = "统度弃牌数",
-    [":tongdu27"] = "与你势力相同的角色弃牌阶段结束时，其可以摸X张牌（X为其此阶段弃牌数，且至多为2）。",
     ["qingyin27"] = "清隐",
     ["@qingyin27"] = "清隐",
     [":qingyin27"] = "限定技。出牌阶段，你可以令所有与你势力相同的角色各回复1点体力，然后你移除此武将牌。",
