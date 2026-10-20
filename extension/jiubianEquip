@@ -1,0 +1,349 @@
+extension = sgs.Package("jiubianEquip", sgs.Package_CardPack)
+local skills = sgs.SkillList()
+
+yangsuiqiang = sgs.CreateWeapon{
+    name = "yangsuiqiang",
+    class_name = "yangsuiqiang",
+    suit = sgs.Card_Diamond,
+    number = 11,
+    range = 3,
+}
+
+yangsuiqiang_skill = sgs.CreateTriggerSkill{
+    name = "yangsuiqiang_skill",
+    global = true,
+    frequency = sgs.Skill_Compulsory,
+    events = {sgs.Damage},
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasWeapon("yangsuiqiang")) then
+            return ""
+        end
+        local damage = data:toDamage()
+        if damage.from == player and damage.to and damage.to:isAlive()
+            and damage.card and damage.card:isKindOf("Slash")
+            and not damage.chain and not damage.transfer then
+            return self:objectName()
+        end
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data)
+        return true
+    end,
+    on_effect = function(self, event, room, player, data)
+        local target = data:toDamage().to
+        if target and target:isAlive() then
+            local damage = sgs.DamageStruct()
+            damage.to = target
+            damage.damage = 1
+            damage.nature = sgs.DamageStruct_Fire
+            damage.reason = "yangsuiqiang"
+            -- 不设置 from 和 card：这是独立的无来源火焰伤害。
+            room:damage(damage)
+        end
+        return false
+    end,
+}
+
+huohuanyi = sgs.CreateArmor{
+    name = "huohuanyi",
+    class_name = "huohuanyi",
+    suit = sgs.Card_Diamond,
+    number = 12,
+}
+
+huohuanyi_skill = sgs.CreateTriggerSkill{
+    name = "huohuanyi_skill",
+    global = true,
+    events = {sgs.DamageInflicted, sgs.TargetConfirmed},
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasArmorEffect("huohuanyi")) then
+            return ""
+        end
+        if event == sgs.DamageInflicted then
+            if data:toDamage().nature ~= sgs.DamageStruct_Normal then return self:objectName() end
+        else
+            local use = data:toCardUse()
+            if use.card and use.card:isKindOf("Slash") and use.to:contains(player)
+                and use.from and use.from:isAlive() and player:canDiscard(player, "h") then
+                return self:objectName()
+            end
+        end
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data)
+        if event == sgs.DamageInflicted then return true end
+        return room:askForDiscard(player, "huohuanyi", 1, 1, true, false,
+            "@huohuanyi-discard:" .. data:toCardUse().from:objectName())
+    end,
+    on_effect = function(self, event, room, player, data)
+        if event == sgs.DamageInflicted then return true end
+        local source = data:toCardUse().from
+        if source and source:isAlive() then
+            local damage = sgs.DamageStruct()
+            damage.from, damage.to = player, source
+            damage.damage = 1
+            damage.nature = sgs.DamageStruct_Fire
+            damage.reason = "huohuanyi"
+            room:damage(damage)
+        end
+        return false
+    end,
+}
+
+baiqilin = sgs.DefensiveHorse(sgs.Card_Heart, 2, 2)--花色，点数，距离修正
+baiqilin:setObjectName("baiqilin")
+
+baiqilin_skill = sgs.CreateTriggerSkill{
+    name = "baiqilin_skill",
+    global = true,
+    frequency = sgs.Skill_Compulsory,
+    events = {sgs.CardUsed},
+    can_trigger = function(self, event, room, player, data)
+        local use = data:toCardUse()
+        if use.card and use.card:objectName() == "baiqilin"
+            and use.from and use.from:isAlive() then
+            return self:objectName(), use.from:objectName()
+        end
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data, ask_who)
+        return true
+    end,
+    on_effect = function(self, event, room, player, data, ask_who)
+        local targets = sgs.SPlayerList()
+        for _, target in sgs.qlist(room:getOtherPlayers(ask_who)) do
+            if target:getHp() > ask_who:getHp() then targets:append(target) end
+        end
+        room:sortByActionOrder(targets)
+        for _, target in sgs.qlist(targets) do
+            if target:isAlive() then
+                local damage = sgs.DamageStruct()
+                damage.from, damage.to = ask_who, target
+                damage.damage = 1
+                damage.nature = sgs.DamageStruct_Thunder
+                damage.reason = "baiqilin"
+                room:damage(damage)
+            end
+        end
+        return false
+    end,
+}
+
+yingwubei = sgs.CreateTreasure{
+    name = "yingwubei",
+    class_name = "yingwubei",
+    suit = sgs.Card_Heart,
+    number = 9,
+    on_install = function(self, player)
+        player:getRoom():attachSkillToPlayer(player, "yingwubei_skill")
+    end,
+    on_uninstall = function(self, player)
+        player:getRoom():detachSkillFromPlayer(player, "yingwubei_skill", true)
+    end,
+}
+
+yingwubei_skill = sgs.CreateZeroCardViewAsSkill{
+    name = "yingwubei_skill",
+    response_or_use = true,
+    view_as = function(self)
+        local card = sgs.Sanguosha:cloneCard("analeptic")
+        card:setSkillName("yingwubei")
+        return card
+    end,
+    enabled_at_play = function(self, player)
+        if not player:hasTreasure("yingwubei") or player:getMark("yingwubei_used") >= 9 then return false end
+        local card = sgs.Sanguosha:cloneCard("analeptic")
+        card:setSkillName("yingwubei")
+        local available = card:isAvailable(player)
+        card:deleteLater()
+        return available
+    end,
+    enabled_at_response = function(self, player, pattern)
+        return player:hasTreasure("yingwubei") and player:getMark("yingwubei_used") < 9 and string.find(pattern, "analeptic")
+    end,
+}
+
+yingwubei_record = sgs.CreateTriggerSkill{
+    name = "#yingwubei-record",
+    global = true,
+    events = {sgs.TurnStart, sgs.PreCardUsed, sgs.CardResponded},
+    on_record = function(self, event, room, player, data)
+        if event == sgs.TurnStart then
+            for _, target in sgs.qlist(room:getAllPlayers(true)) do
+                room:setPlayerMark(target, "yingwubei_used", 0)
+            end
+            return
+        end
+        local card, source
+        if event == sgs.PreCardUsed then
+            local use = data:toCardUse()
+            card, source = use.card, use.from
+        else
+            local response = data:toCardResponse()
+            if not response.m_isUse then return end
+            card, source = response.m_card, player
+        end
+        if not (card and source and card:isKindOf("Analeptic")
+            and card:getSkillName() == "yingwubei") then return end
+        -- 兼容同一次使用同时通知使用和响应事件的客户端。
+        if card:hasFlag("yingwubei_paid") then return end
+        card:setFlags("yingwubei_paid")
+        room:addPlayerMark(source, "yingwubei_used", 1)
+        local ids = room:getNCards(1, false)
+        if ids:isEmpty() then return end
+        local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_NATURAL_ENTER,
+            source:objectName(), "yingwubei", "")
+        room:throwCard(sgs.Sanguosha:getCard(ids:first()), reason, nil)
+    end,
+    can_trigger = function(self, event, room, player, data)
+        return ""
+    end,
+}
+
+dunjiatianshu = sgs.CreateTreasure{
+    name = "dunjiatianshu",
+    class_name = "dunjiatianshu",
+    suit = sgs.Card_Spade,
+    number = 3,
+    on_install = function(self, player)
+        player:getRoom():attachSkillToPlayer(player, "dunjiatianshu_skill")
+    end,
+    on_uninstall = function(self, player)
+        player:getRoom():detachSkillFromPlayer(player, "dunjiatianshu_skill", true)
+    end,
+}
+
+dunjiatianshuCard = sgs.CreateSkillCard{
+    name = "dunjiatianshuCard",
+    target_fixed = true,
+    on_use = function(self, room, source, targets)
+        if source:isAlive() and source:hasTreasure("dunjiatianshu") and source:canTransform() then
+            room:setPlayerFlag(source, "dunjiatianshu_transform")
+            room:transformDeputyGeneral(source)
+            room:setPlayerFlag(source, "-dunjiatianshu_transform")
+        end
+    end,
+}
+
+dunjiatianshu_skill = sgs.CreateZeroCardViewAsSkill{
+    name = "dunjiatianshu_skill",
+    view_as = function(self)
+        local card = dunjiatianshuCard:clone()
+        card:setSkillName("dunjiatianshu")
+        return card
+    end,
+    enabled_at_play = function(self, player)
+        return player:hasTreasure("dunjiatianshu") and player:canTransform()
+            and player:usedTimes("#dunjiatianshuCard") < 2
+    end,
+}
+
+dunjiatianshu_transform = sgs.CreateTriggerSkill{
+    name = "#dunjiatianshu-transform",
+    global = true,
+    priority = -10,
+    events = {sgs.GeneralTransforming},
+    can_trigger = function(self, event, room, player, data)
+        if player and player:hasFlag("dunjiatianshu_transform") then return self:objectName() end
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data)
+        return true
+    end,
+    on_effect = function(self, event, room, player, data)
+        -- 与荐才相同的数量接口，在增加备选数量的技能之后固定为一张。
+        data:setValue(1)
+        return false
+    end,
+}
+
+zhanshejian = sgs.CreateWeapon{
+    name = "zhanshejian",
+    class_name = "zhanshejian",
+    suit = sgs.Card_Spade,
+    number = 1,
+    range = 2,
+}
+
+zhanshejian_skill = sgs.CreateTriggerSkill{
+    name = "zhanshejian_skill",
+    global = true,
+    events = {sgs.Damage},
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:hasWeapon("zhanshejian")) then return "" end
+        local damage = data:toDamage()
+        if damage.from == player and damage.card and damage.card:isKindOf("Slash")
+            and not damage.chain and not damage.transfer then return self:objectName() end
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data)
+        return true
+    end,
+    on_effect = function(self, event, room, player, data)
+        local damage = data:toDamage()
+        local target = damage.to
+        -- 先固定身份判断，避免回复体力插入的结算改变本次效果。
+        local execute = target and (target:getRole() == "careerist"
+            or (target:getGeneral() and target:getGeneral():isLord()))
+        if player:isWounded() then
+            local recover = sgs.RecoverStruct()
+            recover.who, recover.recover = player, 1
+            room:recover(player, recover)
+        end
+        if execute and target:isAlive() then
+            -- 直接死亡，保留本次杀的伤害来源以正常处理击杀奖惩。
+            room:killPlayer(target, damage)
+        end
+        return false
+    end,
+}
+
+yangsuiqiang:setParent(extension)
+zhanshejian:setParent(extension)
+dunjiatianshu:setParent(extension)
+yingwubei:setParent(extension)
+baiqilin:setParent(extension)
+huohuanyi:setParent(extension)
+if not sgs.Sanguosha:getSkill("yangsuiqiang_skill") then
+    skills:append(yangsuiqiang_skill)
+end
+if not sgs.Sanguosha:getSkill("huohuanyi_skill") then
+    skills:append(huohuanyi_skill)
+end
+if not sgs.Sanguosha:getSkill("baiqilin_skill") then
+    skills:append(baiqilin_skill)
+end
+if not sgs.Sanguosha:getSkill("yingwubei_skill") then skills:append(yingwubei_skill) end
+if not sgs.Sanguosha:getSkill("#yingwubei-record") then skills:append(yingwubei_record) end
+extension:insertRelatedSkills("yingwubei_skill", "#yingwubei-record")
+if not sgs.Sanguosha:getSkill("dunjiatianshu_skill") then skills:append(dunjiatianshu_skill) end
+if not sgs.Sanguosha:getSkill("#dunjiatianshu-transform") then skills:append(dunjiatianshu_transform) end
+extension:insertRelatedSkills("dunjiatianshu_skill", "#dunjiatianshu-transform")
+if not sgs.Sanguosha:getSkill("zhanshejian_skill") then skills:append(zhanshejian_skill) end
+sgs.Sanguosha:addSkills(skills)
+
+sgs.LoadTranslationTable{
+    ["jiubianEquip"] = "九变篇装备",
+    ["yangsuiqiang"] = "阳燧枪",
+    ["yangsuiqiang_skill"] = "阳燧枪",
+    [":yangsuiqiang"] = "装备牌·武器\n\n攻击范围：3\n锁定技。你使用【杀】对目标造成伤害后，其再受到1点无来源的火焰伤害。",
+    ["huohuanyi"] = "火浣衣",
+    ["huohuanyi_skill"] = "火浣衣",
+    [":huohuanyi"] = "装备牌·防具\n\n防止你受到的属性伤害；当你成为【杀】的目标后，你可以弃置一张手牌，对使用者造成1点火焰伤害。",
+    ["@huohuanyi-discard"] = "火浣衣：你可以弃置一张手牌，对 %src 造成1点火焰伤害",
+    ["baiqilin"] = "白麒麟",
+    ["baiqilin_skill"] = "白麒麟",
+    [":baiqilin"] = "装备牌·坐骑\n\n其他角色计算与你的距离+2。你使用此牌时，你对所有体力值大于你的角色依次造成1点雷电伤害。",
+    ["yingwubei"] = "鹦鹉杯",
+    ["yingwubei_skill"] = "鹦鹉杯",
+    ["yingwubei_used"] = "鹦鹉杯次数",
+    [":yingwubei"] = "装备牌·宝物\n\n每回合限九次。当你需要使用【酒】时，你可以弃置牌堆顶一张牌，视为使用一张【酒】。",
+    ["dunjiatianshu"] = "遁甲天书",
+    ["dunjiatianshu_skill"] = "遁甲天书",
+    [":dunjiatianshu"] = "装备牌·宝物\n\n出牌阶段限两次。你可以变更副将，以此法变更副将时只能从一张武将牌中选择。",
+    ["zhanshejian"] = "斩蛇剑",
+    ["zhanshejian_skill"] = "斩蛇剑",
+    [":zhanshejian"] = "装备牌·武器\n\n攻击范围：2\n你使用【杀】造成伤害后，回复1点体力，若目标为君主或野心家，杀死该角色。",
+}
+
+return {extension}
