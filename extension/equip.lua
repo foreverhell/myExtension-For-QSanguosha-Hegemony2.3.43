@@ -1,28 +1,6 @@
 extension = sgs.Package("equip", sgs.Package_CardPack)  
 local skills = sgs.SkillList()
 
-qiankundai = sgs.CreateArmor{  
-    name = "qiankundai",  
-    class_name = "QianKunDai",  
-    suit = sgs.Card_Club,  
-    number = 2,  
-    on_uninstall = function(self, player)  
-        local room = player:getRoom()
-        room:drawCards(player, 1, "qiankundai")  
-        -- 失去时摸一张牌  
-    end  
-}
-
-qiankundai_skill = sgs.CreateMaxCardsSkill{  
-    name = "qiankundai_skill",  
-    extra_func = function(self, player)  
-        if player and player:isAlive() and player:hasArmorEffect("qiankundai") then
-            return 1  
-        end  
-        return 0  
-    end  
-}
-
 shixuejian = sgs.CreateWeapon{  
     name = "shixuejian",  
     class_name = "ShiXueJian",   
@@ -103,106 +81,6 @@ anshajian_skill = sgs.CreateTriggerSkill{
     end  
 }
 
-jinxiuzhengpao = sgs.CreateArmor{  
-    name = "jinxiuzhengpao",  
-    class_name = "jinxiuzhengpao",   
-    suit = sgs.Card_Heart,  
-    number = 2,  
-      
-    on_install = function(self, player)  
-        local room = player:getRoom()  
-        room:acquireSkill(player, "jinxiuzhengpao", true, true)  
-    end,  
-      
-    on_uninstall = function(self, player)  
-        local room = player:getRoom()  
-        room:detachSkillFromPlayer(player, "jinxiuzhengpao", true, false, true)  
-    end  
-}
-jinxiuzhengpao_skill = sgs.CreateTriggerSkill{  
-    name = "jinxiuzhengpao",  
-    events = {sgs.DamageInflicted},  
-    frequency = sgs.Skill_Frequent,  
-      
-    can_trigger = function(self, event, room, player, data)  
-        if not player:hasArmorEffect("jinxiuzhengpao") then return "" end
-        local damage = data:toDamage()  
-        local armor = damage.to:getArmor()
-        if armor and armor:isKindOf("jinxiuzhengpao") and damage.card   
-           and damage.card:getSuit() ~= sgs.Card_NoSuit and damage.card:getSuit() ~= sgs.Card_NoSuitBlack and damage.card:getSuit() ~= sgs.Card_NoSuitRed then  
-            -- 检查手牌中是否没有该花色  
-            local has_suit = false  
-            local handcards = damage.to:getHandcards()  
-            for _, card in sgs.qlist(handcards) do  
-                if card:getSuit() == damage.card:getSuit() then  
-                    has_suit = true  
-                    break  
-                end  
-            end  
-            if not has_suit then  
-                return self:objectName()  
-            end  
-        end  
-        return ""  
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        local damage = data:toDamage()  
-        local prompt = string.format("@jinxiuzhengpao:%s::%s",   
-                                    damage.from and damage.from:objectName() or "",   
-                                    damage.card:getSuitString())  
-        return room:askForSkillInvoke(damage.to, self:objectName(), data)  
-    end,  
-      
-    on_effect = function(self, event, room, player, data)  
-        local damage = data:toDamage()  
-          
-        -- 展示所有手牌  
-        local handcards = player:getHandcards()  
-        if not handcards:isEmpty() then  
-            room:showAllCards(damage.to)  
-        end  
-          
-        -- 获得该牌  
-        damage.to:obtainCard(damage.card)  
-          
-        -- 检查是否包含所有花色  
-        local suits = {}  
-        local all_cards = damage.to:getHandcards()  
-        for _, card in sgs.qlist(all_cards) do  
-            local suit = card:getSuit()  
-            if suit ~= sgs.Card_NoSuit then  
-                suits[suit] = true  
-            end  
-        end  
-          
-        -- 检查是否有四种花色  
-        local suit_count = 0  
-        for suit = sgs.Card_Spade, sgs.Card_Diamond do  
-            if suits[suit] then  
-                suit_count = suit_count + 1  
-            end  
-        end  
-          
-        if suit_count >= 4 then  
-            -- 免疫伤害  
-            damage.damage = 0
-            data:setValue(damage)
-            --room:setEmotion(player, "armor/jinxiuzhengpao")  
-              
-            local log = sgs.LogMessage()  
-            log.type = "JinxiuZhengpaoNullify"  
-            log.from = player  
-            log.arg = self:objectName()  
-            room:sendLog(log)  
-              
-            return true -- 阻止伤害  
-        end  
-          
-        return false  
-    end  
-}
-
 xiuliQiankun = sgs.CreateArmor{  
     name = "XiuliQiankun",  
     class_name = "XiuliQiankun",  
@@ -249,455 +127,6 @@ xiuliQiankunSkill = sgs.CreateTriggerSkill{
         return true  --返回true，终止效果结算
     end  
 }
-
-bileizhen = sgs.CreateArmor{  
-    name = "Bileizhen",  
-    class_name = "Bileizhen",   
-    suit = sgs.Card_Spade,  
-    number = 3
-}
---[[
---免疫雷属性伤害
-bileizhenSkill = sgs.CreateTriggerSkill{  
-    name = "Bileizhen_skill",
-    global = true,  
-    events = {sgs.DamageInflicted},  
-    frequency = sgs.Skill_Compulsory,  
-      
-    can_trigger = function(self, event, room, player, data)  
-        local armor = player:getArmor()
-        if not (armor and armor:isKindOf("Bileizhen")) then  
-            return ""  
-        end  
-          
-        local damage = data:toDamage()  
-        if damage.nature == sgs.DamageStruct_Thunder then  
-            return self:objectName()  
-        end  
-          
-        return ""  
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        return true -- 锁定技，自动触发  
-    end,  
-      
-    on_effect = function(self, event, room, player, data)  
-        local damage = data:toDamage()  
-        damage.damage = 0
-        data:setValue(damage)
-        -- 记录日志  
-        local log = sgs.LogMessage()  
-        log.type = "ArmorNullify"  
-        log.from = player  
-        log.arg = self:objectName()  
-        log.arg2 = "thunder_nature"  
-        room:sendLog(log)  
-          
-        -- 播放防具效果  
-        --room:setEmotion(player, "armor/bileizhen")  
-          
-        return true -- 返回true阻止雷电伤害  
-    end  
-}
-]]
-
---任意角色受到雷属性伤害时，若其不为你，你可以选择将该伤害转移给自己；若其为你，你可以免疫此伤害
---当你受到雷属性伤害后，你可以选择（1）恢复1点体力（2）获得1个摸牌阶段（3）获得一个出牌阶段
-bileizhenSkill = sgs.CreateTriggerSkill{  
-    name = "Bileizhen_skill",
-    global = true,  
-    events = {sgs.DamageInflicted, sgs.Damaged},  
-    frequency = sgs.Skill_NotFrequent,  
-      
-    can_trigger = function(self, event, room, player, data)
-        if not (player and player:isAlive()) then return "" end
-        local owner
-        for _, candidate in sgs.qlist(room:getAlivePlayers()) do
-            if candidate:hasArmorEffect("Bileizhen") then
-                owner = candidate
-                break
-            end
-        end
-        if not owner then return "" end
-          
-        local damage = data:toDamage()  
-        if damage.nature == sgs.DamageStruct_Thunder then  
-            if event == sgs.DamageInflicted then --任意角色受到伤害时
-                return self:objectName(), owner:objectName()  
-            elseif event == sgs.Damaged and damage.to == owner then --自己受到伤害后
-                return self:objectName(), owner:objectName()  
-            end
-        end
-        return ""
-    end,  
-      
-    on_cost = function(self, event, room, player, data, ask_who)  
-        --return ask_who:askForSkillInvoke(self:objectName(),data) -- 锁定技，自动触发 
-        local damage = data:toDamage()  
-        if event == sgs.DamageInflicted then --任意角色受到伤害时
-            if damage.to:objectName() ~= ask_who:objectName() then
-                room:setPlayerFlag(ask_who,"bilenzhen-attract")
-                return ask_who:askForSkillInvoke("@bileizhen-attract",data)  
-            else
-                room:setPlayerFlag(ask_who,"bilenzhen-immuse")
-                return ask_who:askForSkillInvoke("@bileizhen-immuse",data)  
-            end
-        elseif event == sgs.Damaged and damage.to == ask_who then --自己受到伤害后
-            --room:setPlayerFlag(ask_who,"bilenzhen-effect")
-            return ask_who:askForSkillInvoke("@bileizhen-effect",data)  
-        end
-
-    end,  
-      
-    on_effect = function(self, event, room, player, data, ask_who)
-        local damage = data:toDamage()  
-        if event == sgs.DamageInflicted then --任意角色受到伤害时
-            if damage.to:objectName() ~= ask_who:objectName() then
-                new_damage = sgs.DamageStruct("bileizhen", damage.from, ask_who, damage.damage, sgs.DamageStruct_Thunder)
-                room:damage(new_damage)
-                return true
-            else
-                damage.damage = 0
-                data:setValue(damage)
-                return true
-            end
-        elseif event == sgs.Damaged and damage.to:objectName() == ask_who:objectName() then --自己受到伤害后
-            local choice = room:askForChoice(ask_who, self:objectName(), "recover+draw+play") 
-            if choice == "recover" then 
-                local recover = sgs.RecoverStruct()  
-                recover.who = ask_who  
-                recover.recover = 1  
-                room:recover(ask_who, recover)  
-            elseif choice == "draw" then
-                --[[
-                local phases = sgs.PhaseList()
-                phases:append(sgs.Player_Draw)
-                --phases:append(sgs.Player_NotActive)
-                ask_who:play(phases)
-                ]]
-                room:drawCards(ask_who, 2)  
-            elseif choice == "play" then
-                local phases = sgs.PhaseList()
-                phases:append(sgs.Player_Play)
-                phases:append(sgs.Player_NotActive)
-                ask_who:play(phases)  
-            end
-        end
-        return false -- 返回true阻止雷电伤害  
-    end  
-}
-
-zhenkongzhao = sgs.CreateArmor{  
-    name = "ZhenKongZhao",  
-    class_name = "ZhenKongZhao",   
-    suit = sgs.Card_Heart,  
-    number = 2,  
-    on_install = function(self, player)  
-        local room = player:getRoom()  
-        room:acquireSkill(player, "ZhenKongZhao", true, true)  
-    end,  
-      
-    on_uninstall = function(self, player)  
-        local room = player:getRoom()  
-        room:detachSkillFromPlayer(player, "ZhenKongZhao", true, false, true)  
-    end  
-}
-
-zhenkongzhaoSkill = sgs.CreateTriggerSkill{  
-    name = "ZhenKongZhao",  
-    events = {sgs.DamageInflicted},  
-    frequency = sgs.Skill_Compulsory,  
-      
-    can_trigger = function(self, event, room, player, data)  
-        local armor = player:getArmor()
-        if not (armor and armor:isKindOf("ZhenKongZhao")) then  
-            return ""  
-        end  
-        local damage = data:toDamage()  
-        if damage.nature ~= sgs.DamageStruct_Normal then  
-            return self:objectName()  
-        end  
-        return ""  
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        return true -- 锁定技，无需询问  
-    end,  
-      
-    on_effect = function(self, event, room, player, data)  
-        local damage = data:toDamage()  
-          
-        -- 记录日志  
-        local log = sgs.LogMessage()  
-        log.type = "ZhenKongZhaoNatureDamage"  
-        log.from = damage.from  
-        log.to:append(damage.to)  
-        log.arg = tostring(damage.damage)  
-          
-        local nature_name = "normal_nature"  
-        if damage.nature == sgs.DamageStruct_Fire then  
-            nature_name = "fire_nature"  
-        elseif damage.nature == sgs.DamageStruct_Thunder then  
-            nature_name = "thunder_nature"  
-        end  
-        log.arg2 = nature_name  
-          
-        room:sendLog(log)  
-        --room:setEmotion(damage.to, "armor/zhenkongzhao")  
-          
-        -- 将属性伤害转换为无属性伤害  
-        damage.nature = sgs.DamageStruct_Normal  
-        data:setValue(damage)  
-          
-        return false -- 不阻止伤害，继续伤害流程  
-    end  
-}
-
-yinleijian = sgs.CreateWeapon{  
-    name = "YinLeiJian",  
-    class_name = "YinLeiJian",  
-    suit = sgs.Card_Spade,  
-    number = 2,  
-    range = 4,
-    on_install = function(self, player)  
-        local room = player:getRoom()  
-        room:attachSkillToPlayer(player, "YinLeiJianSkill")  
-    end,  
-      
-    on_uninstall = function(self, player)  
-        local room = player:getRoom()  
-        room:detachSkillFromPlayer(player, "YinLeiJianSkill", true)  
-    end  
-}  
-  
--- 引雷剑技能实现
-yinleijianSkill = sgs.CreateOneCardViewAsSkill{  
-    name = "YinLeiJianSkill",  
-    filter_pattern = "%slash",  
-    response_or_use = true,  
-      
-    view_as = function(self, originalCard)  
-        local thunder_slash = sgs.Sanguosha:cloneCard("thunder_slash", originalCard:getSuit(), originalCard:getNumber())  
-        thunder_slash:addSubcard(originalCard:getId())  
-        thunder_slash:setSkillName("YinLeiJian")  
-        return thunder_slash  
-    end,
-
-    enabled_at_play = function(self, player)  
-        return player and player:hasWeapon("YinLeiJian") and sgs.Slash_IsAvailable(player)  
-    end,  
-      
-    enabled_at_response = function(self, player, pattern)
-        return player and player:hasWeapon("YinLeiJian") and pattern == "slash" and
-            sgs.Sanguosha:getCurrentCardUseReason() == sgs.CardUseStruct_CARD_USE_REASON_RESPONSE_USE 
-    end
-}
-baiBaoXiang = sgs.CreateTreasure{  
-    name = "baiBaoXiang",  
-    class_name = "baiBaoXiang",  
-    suit = sgs.Card_Heart,  
-    number = 2,  
-    on_install = function(self, player)  
-        local room = player:getRoom()  
-        room:acquireSkill(player, "baibaoxiang", true, true) 
-        room:acquireSkill(player, "baibaoxiang_trigger", true, true)          
-    end,  
-      
-    on_uninstall = function(self, player)  
-        local room = player:getRoom()  
-        local pile_cards = player:getPile("baibaoxiang")              
-        -- 将牌堆转换为Lua表  
-        for _, id in sgs.qlist(pile_cards) do  
-            room:throwCard(id,player,player)
-        end  
-        room:detachSkillFromPlayer(player, "baibaoxiang", true, false, true)  
-        room:detachSkillFromPlayer(player, "baibaoxiang_trigger", true, false, true)  
-    end  
-}
-
--- 百宝箱存储技能卡  
-baibaoxiangStoreCard = sgs.CreateSkillCard{  
-    name = "BaibaoxiangStoreCard",  
-    target_fixed = true,  
-    will_throw = false,  
-    handling_method = sgs.Card_MethodNone,  
-    on_use = function(self, room, source, targets)  
-        source:addToPile("baibaoxiang", self:getSubcards())  
-    end  
-}  
-  
--- 百宝箱取出技能卡  
-baibaoxiangRetrieveCard = sgs.CreateSkillCard{  
-    name = "BaibaoxiangRetrieveCard",  
-    target_fixed = true,  
-    will_throw = false,  
-    handling_method = sgs.Card_MethodNone,  
-    on_use = function(self, room, source, targets)  
-        local card_id = self:getSubcards():first()  
-        local card = sgs.Sanguosha:getCard(card_id)  
-        local player = source
-
-        local old_equip = nil  
-        if card:isKindOf("Weapon") then  
-            old_equip = player:getWeapon()  
-        elseif card:isKindOf("Armor") then  
-            old_equip = player:getArmor()  
-        elseif card:isKindOf("DefensiveHorse") then  
-            old_equip = player:getDefensiveHorse()  
-        elseif card:isKindOf("OffensiveHorse") then  
-            old_equip = player:getOffensiveHorse()  
-        elseif card:isKindOf("Treasure") then  
-            old_equip = player:getTreasure()  
-        end  
-        if old_equip then  
-            local old_equip_id = old_equip:getEffectiveId()
-            local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT, player:objectName(), target:objectName(), self:objectName()) 
-            player:addToPile("baibaoxiang", old_equip)--, true, sgs.SPlayerList(), reason)  
-        end 
-        room:useCard(sgs.CardUseStruct(card, player, player), false)     
-        --[[
-        if card then  
-            local location = card:location()  
-            local existing_equip = source:getEquip(location)  
-            if existing_equip then  
-                source:addToPile("baibaoxiang", existing_equip)  
-            end
-            room:useCard(sgs.CardUseStruct(card, source, source), false)     
-        end  
-        ]]
-    end  
-}  
-  
--- 百宝箱主动技能（出牌阶段使用）  
-baibaoxiang = sgs.CreateViewAsSkill{  
-    name = "baibaoxiang",  
-    n = 1,  
-    expand_pile = "baibaoxiang",  
-    view_filter = function(self, selected, to_select)  
-        if selected >= 1 or to_select:hasFlag("using") then return false end  
-          
-        -- 可以选择手牌/装备区的装备放入百宝箱  
-        if to_select:isKindOf("EquipCard") then  
-            return true  
-        end  
-          
-        -- 可以选择百宝箱中的装备取出  
-        local pat = ".|.|.|baibaoxiang"  
-        return sgs.Sanguosha:matchExpPattern(pat, sgs.Self, to_select)  
-    end,  
-    view_as = function(self, cards)  
-        if cards == 1 then  
-            local card = cards[1]  
-              
-            -- 如果选择的是百宝箱中的牌，创建取出技能卡  
-            if sgs.Self:getPile("baibaoxiang"):contains(card:getEffectiveId()) then  
-                --[[
-                local retrieve_card = baibaoxiangRetrieveCard:clone()  
-                retrieve_card:addSubcard(card)  
-                retrieve_card:setSkillName("baibaoxiang")  
-                return retrieve_card  
-                ]]
-                return card
-            else  
-                -- 否则创建存储技能卡  
-                local store_card = baibaoxiangStoreCard:clone()  
-                store_card:addSubcard(card)  
-                store_card:setSkillName("baibaoxiang")  
-                return store_card  
-            end  
-        end  
-    end,  
-    enabled_at_play = function(self, player)  
-        -- 有装备可以存储，或者百宝箱中有装备可以取出  
-        return true--not player:getCards("he"):isEmpty() or not player:getPile("baibaoxiang"):isEmpty()  
-    end  
-}  
-  
--- 百宝箱触发技能（被指定为目标时）  
-baibaoxiangTrigger = sgs.CreateTriggerSkill{  
-    name = "baibaoxiang_trigger",  
-    events = {sgs.TargetConfirmed},  --sgs.TargetConfirmed
-    can_trigger = function(self, event, room, player, data)  
-        if player and player:isAlive() and player:hasSkill("baibaoxiang") then  
-            local use = data:toCardUse()  
-            if use.from~=player and use.to:contains(player) and not player:getPile("baibaoxiang"):isEmpty() then  
-                return self:objectName()  
-            end  
-        end  
-        return ""  
-    end,  
-    on_cost = function(self, event, room, player, data)  
-        return player:askForSkillInvoke(self:objectName(),data)  
-    end,  
-    on_effect = function(self, event, room, player, data)  
-
-        --收回一张
-        if player:getCardCount(true)-player:getCardCount(false) > 1 then --不能只有百宝箱
-            local retrive_id = room:askForCardChosen(player, player, "e", self:objectName(), true, sgs.Card_MethodNone)
-            retrieve_card = sgs.Sanguosha:getCard(retrive_id)
-            if not retrieve_card:isKindOf("baiBaoXiang") then
-                player:addToPile("baibaoxiang", retrive_id)  
-            end
-        end
-
-        local pile_cards = player:getPile("baibaoxiang")  
-        if pile_cards:isEmpty() then return false end      
-        local card_ids = sgs.IntList()  
-        -- 将牌堆转换为Lua表  
-        for _, id in sgs.qlist(pile_cards) do  
-            card_ids:append(id)
-        end  
-        -- 检查牌堆是否为空  
-        if card_ids:length() == 0 then  
-            return false
-        end          
-        -- 使用AG界面让玩家选择一张牌  
-        room:fillAG(card_ids, player)  
-        local card_id = room:askForAG(player, card_ids, true, "baibaoxiang")  
-        room:clearAG(player) 
-        if card_id == nil then return false end
-        local equip = sgs.Sanguosha:getCard(card_id)
-        if equip == nil then return false end
-        room:obtainCard(player,card_id)
-        local card = player:getHandcards():last() --最后一张手牌
-        room:useCard(sgs.CardUseStruct(card, player, player), false)     
-        --[[
-        local old_equip = nil  
-        if card:isKindOf("Weapon") then  
-            old_equip = player:getWeapon()  
-        elseif card:isKindOf("Armor") then  
-            old_equip = player:getArmor()  
-        elseif card:isKindOf("DefensiveHorse") then  
-            old_equip = player:getDefensiveHorse()  
-        elseif card:isKindOf("OffensiveHorse") then  
-            old_equip = player:getOffensiveHorse()  
-        elseif card:isKindOf("Treasure") then  
-            old_equip = player:getTreasure()  
-        else --不是装备
-            return false
-        end  
-            
-        if old_equip then  
-            local old_equip_id = old_equip:getEffectiveId()
-            local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT, player:objectName(), target:objectName(), self:objectName()) 
-            player:addToPile("baibaoxiang", old_equip)--, true, sgs.SPlayerList(), reason)  
-        end 
-        room:useCard(sgs.CardUseStruct(card, player, player), false)   
-        ]]  
-        --[[
-        if card then  
-            local location = card:location()  
-            local existing_equip = player:getEquip(location)  
-            if existing_equip then  
-                player:addToPile("baibaoxiang", existing_equip)  
-            end
-            room:useCard(sgs.CardUseStruct(card, player, player), false)     
-        end
-        ]]
-        return false  
-    end  
-}  
 
 yuansuzhiren = sgs.CreateWeapon{  
     name = "yuansuzhiren",  
@@ -959,6 +388,486 @@ kuangzhanshiSkill = sgs.CreateTriggerSkill{
     end  
 }  
 
+QiyiShouhu = sgs.CreateArmor{  
+    name = "QiyiShouhu",
+    class_name = "QiyiShouhu",  
+    suit = sgs.Card_Club,  
+    number = 2
+}  
+
+
+qiankundai = sgs.CreateArmor{  
+    name = "qiankundai",  
+    class_name = "QianKunDai",  
+    suit = sgs.Card_Club,  
+    number = 2,  
+    on_uninstall = function(self, player)  
+        local room = player:getRoom()
+        room:drawCards(player, 1, "qiankundai")  
+        -- 失去时摸一张牌  
+    end  
+}
+
+qiankundai_skill = sgs.CreateMaxCardsSkill{  
+    name = "qiankundai_skill",  
+    extra_func = function(self, player)  
+        if player and player:isAlive() and player:hasArmorEffect("qiankundai") then
+            return 1  
+        end  
+        return 0  
+    end  
+}
+
+bileizhen = sgs.CreateArmor{  
+    name = "Bileizhen",  
+    class_name = "Bileizhen",   
+    suit = sgs.Card_Spade,  
+    number = 3
+}
+
+--任意角色受到雷属性伤害时，若其不为你，你可以选择将该伤害转移给自己；若其为你，你可以免疫此伤害
+--当你受到雷属性伤害后，你可以选择（1）恢复1点体力（2）获得1个摸牌阶段（3）获得一个出牌阶段
+bileizhenSkill = sgs.CreateTriggerSkill{  
+    name = "Bileizhen_skill",
+    global = true,  
+    events = {sgs.DamageInflicted, sgs.Damaged},  
+    frequency = sgs.Skill_NotFrequent,  
+      
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive()) then return "" end
+        local owner
+        for _, candidate in sgs.qlist(room:getAlivePlayers()) do
+            if candidate:hasArmorEffect("Bileizhen") then
+                owner = candidate
+                break
+            end
+        end
+        if not owner then return "" end
+          
+        local damage = data:toDamage()  
+        if damage.nature == sgs.DamageStruct_Thunder then  
+            if event == sgs.DamageInflicted then --任意角色受到伤害时
+                return self:objectName(), owner:objectName()  
+            elseif event == sgs.Damaged and damage.to == owner then --自己受到伤害后
+                return self:objectName(), owner:objectName()  
+            end
+        end
+        return ""
+    end,  
+      
+    on_cost = function(self, event, room, player, data, ask_who)  
+        --return ask_who:askForSkillInvoke(self:objectName(),data) -- 锁定技，自动触发 
+        local damage = data:toDamage()  
+        if event == sgs.DamageInflicted then --任意角色受到伤害时
+            if damage.to:objectName() ~= ask_who:objectName() then
+                room:setPlayerFlag(ask_who,"bilenzhen-attract")
+                return ask_who:askForSkillInvoke("@bileizhen-attract",data)  
+            else
+                room:setPlayerFlag(ask_who,"bilenzhen-immuse")
+                return ask_who:askForSkillInvoke("@bileizhen-immuse",data)  
+            end
+        elseif event == sgs.Damaged and damage.to == ask_who then --自己受到伤害后
+            --room:setPlayerFlag(ask_who,"bilenzhen-effect")
+            return ask_who:askForSkillInvoke("@bileizhen-effect",data)  
+        end
+
+    end,  
+      
+    on_effect = function(self, event, room, player, data, ask_who)
+        local damage = data:toDamage()  
+        if event == sgs.DamageInflicted then --任意角色受到伤害时
+            if damage.to:objectName() ~= ask_who:objectName() then
+                new_damage = sgs.DamageStruct("bileizhen", damage.from, ask_who, damage.damage, sgs.DamageStruct_Thunder)
+                room:damage(new_damage)
+                return true
+            else
+                damage.damage = 0
+                data:setValue(damage)
+                return true
+            end
+        elseif event == sgs.Damaged and damage.to:objectName() == ask_who:objectName() then --自己受到伤害后
+            local choice = room:askForChoice(ask_who, self:objectName(), "recover+draw+play") 
+            if choice == "recover" then 
+                local recover = sgs.RecoverStruct()  
+                recover.who = ask_who  
+                recover.recover = 1  
+                room:recover(ask_who, recover)  
+            elseif choice == "draw" then
+                --[[
+                local phases = sgs.PhaseList()
+                phases:append(sgs.Player_Draw)
+                --phases:append(sgs.Player_NotActive)
+                ask_who:play(phases)
+                ]]
+                room:drawCards(ask_who, 2)  
+            elseif choice == "play" then
+                local phases = sgs.PhaseList()
+                phases:append(sgs.Player_Play)
+                phases:append(sgs.Player_NotActive)
+                ask_who:play(phases)  
+            end
+        end
+        return false -- 返回true阻止雷电伤害  
+    end  
+}
+yinleijian = sgs.CreateWeapon{  
+    name = "YinLeiJian",  
+    class_name = "YinLeiJian",  
+    suit = sgs.Card_Spade,  
+    number = 2,  
+    range = 4,
+    on_install = function(self, player)  
+        local room = player:getRoom()  
+        room:attachSkillToPlayer(player, "YinLeiJianSkill")  
+    end,  
+      
+    on_uninstall = function(self, player)  
+        local room = player:getRoom()  
+        room:detachSkillFromPlayer(player, "YinLeiJianSkill", true)  
+    end  
+}  
+  
+-- 引雷剑技能实现
+yinleijianSkill = sgs.CreateOneCardViewAsSkill{  
+    name = "YinLeiJianSkill",  
+    filter_pattern = "%slash",  
+    response_or_use = true,  
+      
+    view_as = function(self, originalCard)  
+        local thunder_slash = sgs.Sanguosha:cloneCard("thunder_slash", originalCard:getSuit(), originalCard:getNumber())  
+        thunder_slash:addSubcard(originalCard:getId())  
+        thunder_slash:setSkillName("YinLeiJian")  
+        return thunder_slash  
+    end,
+
+    enabled_at_play = function(self, player)  
+        return player and player:hasWeapon("YinLeiJian") and sgs.Slash_IsAvailable(player)  
+    end,  
+      
+    enabled_at_response = function(self, player, pattern)
+        return player and player:hasWeapon("YinLeiJian") and pattern == "slash" and
+            sgs.Sanguosha:getCurrentCardUseReason() == sgs.CardUseStruct_CARD_USE_REASON_RESPONSE_USE 
+    end
+}
+-- 奇异守护技能  
+QiyiShouhuSkill = sgs.CreateTriggerSkill{  
+    name = "QiyiShouhu_skill",
+    global = true,  
+    events = {sgs.DamageInflicted},  
+    frequency = sgs.Skill_Compulsory,  
+      
+    can_trigger = function(self, event, room, player, data)  
+        if not (player and player:isAlive() and player:hasArmorEffect("QiyiShouhu")) then  
+            return ""  
+        end  
+          
+        local damage = data:toDamage()  
+        -- 只有当伤害不是由牌造成时才触发 
+        if damage.card then --普通卡，不免伤
+            return "" 
+        end
+        if not damage.card then  --没有卡；有卡，但是是技能卡
+            return self:objectName()  
+        end  
+          
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        return true -- 锁定技，无需询问  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local damage = data:toDamage()  
+          
+        -- 显示防具效果日志  
+        local log = sgs.LogMessage()  
+        log.type = "ArmorNullify"  
+        log.from = player  
+        log.arg = self:objectName()  
+        log.arg2 = damage.reason or "skill_damage"  
+        room:sendLog(log)  
+          
+        -- 播放防具音效  
+        --room:setEmotion(player, "armor/" .. string.lower(self:objectName()))  
+          
+        -- 防止伤害  
+        return true  
+    end  
+}
+
+zhenkongzhao = sgs.CreateArmor{  
+    name = "ZhenKongZhao",  
+    class_name = "ZhenKongZhao",   
+    suit = sgs.Card_Heart,  
+    number = 2,  
+    on_install = function(self, player)  
+        local room = player:getRoom()  
+        room:acquireSkill(player, "ZhenKongZhao", true, true)  
+    end,  
+      
+    on_uninstall = function(self, player)  
+        local room = player:getRoom()  
+        room:detachSkillFromPlayer(player, "ZhenKongZhao", true, false, true)  
+    end  
+}
+
+zhenkongzhaoSkill = sgs.CreateTriggerSkill{  
+    name = "ZhenKongZhao",  
+    events = {sgs.DamageInflicted},  
+    frequency = sgs.Skill_Compulsory,  
+      
+    can_trigger = function(self, event, room, player, data)  
+        local armor = player:getArmor()
+        if not (armor and armor:isKindOf("ZhenKongZhao")) then  
+            return ""  
+        end  
+        local damage = data:toDamage()  
+        if damage.nature ~= sgs.DamageStruct_Normal then  
+            return self:objectName()  
+        end  
+        return ""  
+    end,  
+      
+    on_cost = function(self, event, room, player, data)  
+        return true -- 锁定技，无需询问  
+    end,  
+      
+    on_effect = function(self, event, room, player, data)  
+        local damage = data:toDamage()  
+          
+        -- 记录日志  
+        local log = sgs.LogMessage()  
+        log.type = "ZhenKongZhaoNatureDamage"  
+        log.from = damage.from  
+        log.to:append(damage.to)  
+        log.arg = tostring(damage.damage)  
+          
+        local nature_name = "normal_nature"  
+        if damage.nature == sgs.DamageStruct_Fire then  
+            nature_name = "fire_nature"  
+        elseif damage.nature == sgs.DamageStruct_Thunder then  
+            nature_name = "thunder_nature"  
+        end  
+        log.arg2 = nature_name  
+          
+        room:sendLog(log)  
+        --room:setEmotion(damage.to, "armor/zhenkongzhao")  
+          
+        -- 将属性伤害转换为无属性伤害  
+        damage.nature = sgs.DamageStruct_Normal  
+        data:setValue(damage)  
+          
+        return false -- 不阻止伤害，继续伤害流程  
+    end  
+}
+
+baiBaoXiang = sgs.CreateTreasure{  
+    name = "baiBaoXiang",  
+    class_name = "baiBaoXiang",  
+    suit = sgs.Card_Heart,  
+    number = 2,  
+    on_install = function(self, player)  
+        local room = player:getRoom()  
+        room:acquireSkill(player, "baibaoxiang", true, true) 
+        room:acquireSkill(player, "baibaoxiang_trigger", true, true)          
+    end,  
+      
+    on_uninstall = function(self, player)  
+        local room = player:getRoom()  
+        local pile_cards = player:getPile("baibaoxiang")              
+        -- 将牌堆转换为Lua表  
+        for _, id in sgs.qlist(pile_cards) do  
+            room:throwCard(id,player,player)
+        end  
+        room:detachSkillFromPlayer(player, "baibaoxiang", true, false, true)  
+        room:detachSkillFromPlayer(player, "baibaoxiang_trigger", true, false, true)  
+    end  
+}
+
+-- 百宝箱存储技能卡  
+baibaoxiangStoreCard = sgs.CreateSkillCard{  
+    name = "BaibaoxiangStoreCard",  
+    target_fixed = true,  
+    will_throw = false,  
+    handling_method = sgs.Card_MethodNone,  
+    on_use = function(self, room, source, targets)  
+        source:addToPile("baibaoxiang", self:getSubcards())  
+    end  
+}  
+  
+-- 百宝箱取出技能卡  
+baibaoxiangRetrieveCard = sgs.CreateSkillCard{  
+    name = "BaibaoxiangRetrieveCard",  
+    target_fixed = true,  
+    will_throw = false,  
+    handling_method = sgs.Card_MethodNone,  
+    on_use = function(self, room, source, targets)  
+        local card_id = self:getSubcards():first()  
+        local card = sgs.Sanguosha:getCard(card_id)  
+        local player = source
+
+        local old_equip = nil  
+        if card:isKindOf("Weapon") then  
+            old_equip = player:getWeapon()  
+        elseif card:isKindOf("Armor") then  
+            old_equip = player:getArmor()  
+        elseif card:isKindOf("DefensiveHorse") then  
+            old_equip = player:getDefensiveHorse()  
+        elseif card:isKindOf("OffensiveHorse") then  
+            old_equip = player:getOffensiveHorse()  
+        elseif card:isKindOf("Treasure") then  
+            old_equip = player:getTreasure()  
+        end  
+        if old_equip then  
+            local old_equip_id = old_equip:getEffectiveId()
+            local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT, player:objectName(), target:objectName(), self:objectName()) 
+            player:addToPile("baibaoxiang", old_equip)--, true, sgs.SPlayerList(), reason)  
+        end 
+        room:useCard(sgs.CardUseStruct(card, player, player), false)     
+        --[[
+        if card then  
+            local location = card:location()  
+            local existing_equip = source:getEquip(location)  
+            if existing_equip then  
+                source:addToPile("baibaoxiang", existing_equip)  
+            end
+            room:useCard(sgs.CardUseStruct(card, source, source), false)     
+        end  
+        ]]
+    end  
+}  
+  
+-- 百宝箱主动技能（出牌阶段使用）  
+baibaoxiang = sgs.CreateViewAsSkill{  
+    name = "baibaoxiang",  
+    n = 1,  
+    expand_pile = "baibaoxiang",  
+    view_filter = function(self, selected, to_select)  
+        if selected >= 1 or to_select:hasFlag("using") then return false end  
+          
+        -- 可以选择手牌/装备区的装备放入百宝箱  
+        if to_select:isKindOf("EquipCard") then  
+            return true  
+        end  
+          
+        -- 可以选择百宝箱中的装备取出  
+        local pat = ".|.|.|baibaoxiang"  
+        return sgs.Sanguosha:matchExpPattern(pat, sgs.Self, to_select)  
+    end,  
+    view_as = function(self, cards)  
+        if cards == 1 then  
+            local card = cards[1]  
+              
+            -- 如果选择的是百宝箱中的牌，创建取出技能卡  
+            if sgs.Self:getPile("baibaoxiang"):contains(card:getEffectiveId()) then  
+                --[[
+                local retrieve_card = baibaoxiangRetrieveCard:clone()  
+                retrieve_card:addSubcard(card)  
+                retrieve_card:setSkillName("baibaoxiang")  
+                return retrieve_card  
+                ]]
+                return card
+            else  
+                -- 否则创建存储技能卡  
+                local store_card = baibaoxiangStoreCard:clone()  
+                store_card:addSubcard(card)  
+                store_card:setSkillName("baibaoxiang")  
+                return store_card  
+            end  
+        end  
+    end,  
+    enabled_at_play = function(self, player)  
+        -- 有装备可以存储，或者百宝箱中有装备可以取出  
+        return true--not player:getCards("he"):isEmpty() or not player:getPile("baibaoxiang"):isEmpty()  
+    end  
+}  
+  
+-- 百宝箱触发技能（被指定为目标时）  
+baibaoxiangTrigger = sgs.CreateTriggerSkill{  
+    name = "baibaoxiang_trigger",  
+    events = {sgs.TargetConfirmed},  --sgs.TargetConfirmed
+    can_trigger = function(self, event, room, player, data)  
+        if player and player:isAlive() and player:hasSkill("baibaoxiang") then  
+            local use = data:toCardUse()  
+            if use.from~=player and use.to:contains(player) and not player:getPile("baibaoxiang"):isEmpty() then  
+                return self:objectName()  
+            end  
+        end  
+        return ""  
+    end,  
+    on_cost = function(self, event, room, player, data)  
+        return player:askForSkillInvoke(self:objectName(),data)  
+    end,  
+    on_effect = function(self, event, room, player, data)  
+
+        --收回一张
+        if player:getCardCount(true)-player:getCardCount(false) > 1 then --不能只有百宝箱
+            local retrive_id = room:askForCardChosen(player, player, "e", self:objectName(), true, sgs.Card_MethodNone)
+            retrieve_card = sgs.Sanguosha:getCard(retrive_id)
+            if not retrieve_card:isKindOf("baiBaoXiang") then
+                player:addToPile("baibaoxiang", retrive_id)  
+            end
+        end
+
+        local pile_cards = player:getPile("baibaoxiang")  
+        if pile_cards:isEmpty() then return false end      
+        local card_ids = sgs.IntList()  
+        -- 将牌堆转换为Lua表  
+        for _, id in sgs.qlist(pile_cards) do  
+            card_ids:append(id)
+        end  
+        -- 检查牌堆是否为空  
+        if card_ids:length() == 0 then  
+            return false
+        end          
+        -- 使用AG界面让玩家选择一张牌  
+        room:fillAG(card_ids, player)  
+        local card_id = room:askForAG(player, card_ids, true, "baibaoxiang")  
+        room:clearAG(player) 
+        if card_id == nil then return false end
+        local equip = sgs.Sanguosha:getCard(card_id)
+        if equip == nil then return false end
+        room:obtainCard(player,card_id)
+        local card = player:getHandcards():last() --最后一张手牌
+        room:useCard(sgs.CardUseStruct(card, player, player), false)     
+        --[[
+        local old_equip = nil  
+        if card:isKindOf("Weapon") then  
+            old_equip = player:getWeapon()  
+        elseif card:isKindOf("Armor") then  
+            old_equip = player:getArmor()  
+        elseif card:isKindOf("DefensiveHorse") then  
+            old_equip = player:getDefensiveHorse()  
+        elseif card:isKindOf("OffensiveHorse") then  
+            old_equip = player:getOffensiveHorse()  
+        elseif card:isKindOf("Treasure") then  
+            old_equip = player:getTreasure()  
+        else --不是装备
+            return false
+        end  
+            
+        if old_equip then  
+            local old_equip_id = old_equip:getEffectiveId()
+            local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT, player:objectName(), target:objectName(), self:objectName()) 
+            player:addToPile("baibaoxiang", old_equip)--, true, sgs.SPlayerList(), reason)  
+        end 
+        room:useCard(sgs.CardUseStruct(card, player, player), false)   
+        ]]  
+        --[[
+        if card then  
+            local location = card:location()  
+            local existing_equip = player:getEquip(location)  
+            if existing_equip then  
+                player:addToPile("baibaoxiang", existing_equip)  
+            end
+            room:useCard(sgs.CardUseStruct(card, player, player), false)     
+        end
+        ]]
+        return false  
+    end  
+}  
+
 axiuluo = sgs.CreateWeapon{  
     name = "axiuluo",  
     class_name = "axiuluo",  
@@ -1100,61 +1009,6 @@ shenmishouhuSkill = sgs.CreateTriggerSkill{
         return true  
     end  
 }  
-
-QiyiShouhu = sgs.CreateArmor{  
-    name = "QiyiShouhu",
-    class_name = "QiyiShouhu",  
-    suit = sgs.Card_Club,  
-    number = 2
-}  
-  
--- 奇异守护技能  
-QiyiShouhuSkill = sgs.CreateTriggerSkill{  
-    name = "QiyiShouhu_skill",
-    global = true,  
-    events = {sgs.DamageInflicted},  
-    frequency = sgs.Skill_Compulsory,  
-      
-    can_trigger = function(self, event, room, player, data)  
-        if not (player and player:isAlive() and player:hasArmorEffect("QiyiShouhu")) then  
-            return ""  
-        end  
-          
-        local damage = data:toDamage()  
-        -- 只有当伤害不是由牌造成时才触发 
-        if damage.card then --普通卡，不免伤
-            return "" 
-        end
-        if not damage.card then  --没有卡；有卡，但是是技能卡
-            return self:objectName()  
-        end  
-          
-        return ""  
-    end,  
-      
-    on_cost = function(self, event, room, player, data)  
-        return true -- 锁定技，无需询问  
-    end,  
-      
-    on_effect = function(self, event, room, player, data)  
-        local damage = data:toDamage()  
-          
-        -- 显示防具效果日志  
-        local log = sgs.LogMessage()  
-        log.type = "ArmorNullify"  
-        log.from = player  
-        log.arg = self:objectName()  
-        log.arg2 = damage.reason or "skill_damage"  
-        room:sendLog(log)  
-          
-        -- 播放防具音效  
-        --room:setEmotion(player, "armor/" .. string.lower(self:objectName()))  
-          
-        -- 防止伤害  
-        return true  
-    end  
-}  
-
 xinlingganying = sgs.CreateArmor{  
     name = "xinlingganying",
     class_name = "xinlingganying",  
@@ -1325,52 +1179,36 @@ sanchajiSkill = sgs.CreateTriggerSkill{
     end  
 }
 -- 将防具牌添加到扩展包
-qiankundai:setParent(extension)
 shixuejian:setParent(extension)
 anshajian:setParent(extension)
---jinxiuzhengpao:setParent(extension)  --放到二代君包
-
 xiuliQiankun:setParent(extension)  --通过
-bileizhen:setParent(extension)
---zhenkongzhao:setParent(extension) --通过。但是太弱，在这个包里意义不明，可以考虑放到pokemon包
-yinleijian:setParent(extension)
---baiBaoXiang:setParent(extension)
-
 yuansuzhiren:setParent(extension) --通过
 shengfan:setParent(extension) --通过
 fantanjia:setParent(extension) --通过
 kuangzhanshi:setParent(extension) --通过
+--[[
+qiankundai:setParent(extension)
+bileizhen:setParent(extension)
+yinleijian:setParent(extension)
+QiyiShouhu:setParent(extension)
+]]
+--zhenkongzhao:setParent(extension) --通过。但是太弱，在这个包里意义不明，可以考虑放到pokemon包
+--baiBaoXiang:setParent(extension)
 --axiuluo:setParent(extension) --通过。但是不稳定，几乎不会用
 --shenmishouhu:setParent(extension) --通过。但是太强，作为pokemon的技能比较合适
-
-QiyiShouhu:setParent(extension)
 --xinlingganying:setParent(extension) --用的不多
 --ZhiyuZhijian:setParent(extension) --用的不多
 --sanchaji:setParent(extension)
 
-if not sgs.Sanguosha:getSkill("qiankundai_skill") then
-    skills:append(qiankundai_skill)
-end
+
 if not sgs.Sanguosha:getSkill("shixuejian_skill") then
     skills:append(shixuejian_skill)
 end
 if not sgs.Sanguosha:getSkill("anshajian_skill") then
     skills:append(anshajian_skill)
 end
---[[
---放到二代君包
-if not sgs.Sanguosha:getSkill("jinxiuzhengpao") then
-    skills:append(jinxiuzhengpao_skill)
-end
-]]
-if not sgs.Sanguosha:getSkill("Bileizhen_skill") then
-    skills:append(bileizhenSkill)
-end
 if not sgs.Sanguosha:getSkill("XiuliQiankun_skill") then
     skills:append(xiuliQiankunSkill)
-end
-if not sgs.Sanguosha:getSkill("YinLeiJianSkill") then
-    skills:append(yinleijianSkill)
 end
 if not sgs.Sanguosha:getSkill("yuansuzhiren_skill") then
     skills:append(yuansuzhirenSkill)
@@ -1384,10 +1222,19 @@ end
 if not sgs.Sanguosha:getSkill("kuangzhanshi_skill") then
     skills:append(kuangzhanshiSkill)
 end
+--[[
+if not sgs.Sanguosha:getSkill("qiankundai_skill") then
+    skills:append(qiankundai_skill)
+end
+if not sgs.Sanguosha:getSkill("Bileizhen_skill") then
+    skills:append(bileizhenSkill)
+end
+if not sgs.Sanguosha:getSkill("YinLeiJianSkill") then
+    skills:append(yinleijianSkill)
+end
 if not sgs.Sanguosha:getSkill("QiyiShouhu_skill") then
     skills:append(QiyiShouhuSkill)
 end
---[[
 if not sgs.Sanguosha:getSkill("sanchaji") then
     skills:append(sanchajiSkill)
 end
