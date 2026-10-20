@@ -346,4 +346,132 @@ sgs.LoadTranslationTable{
     [":zhanshejian"] = "装备牌·武器\n\n攻击范围：2\n你使用【杀】造成伤害后，回复1点体力，若目标为君主或野心家，杀死该角色。",
 }
 
+duoduobiren = sgs.CreateTrickCard{
+    name = "duoduobiren",
+    class_name = "duoduobiren",
+    suit = sgs.Card_NoSuit,
+    number = 0,
+    subtype = "single_target_trick",
+    target_fixed = false,
+    filter = function(self, targets, to_select, source)
+        return #targets == 0 and to_select:objectName() ~= source:objectName()
+            and to_select:hasShownOneGeneral() and not source:isProhibited(to_select, self)
+    end,
+    feasible = function(self, targets, source)
+        return #targets == 1
+    end,
+    on_effect = function(self, effect)
+        local target = effect.to
+        local room = target:getRoom()
+        if not target:isAlive() then return end
+        if target:canTransform() then
+            local source_data = sgs.QVariant()
+            source_data:setValue(effect.from)
+            if room:askForChoice(target, self:objectName(), "transform+cancel", source_data) == "transform" then
+                room:transformDeputyGeneral(target)
+            end
+        end
+        if target:isAlive() then
+            local damage = sgs.DamageStruct()
+            damage.from, damage.to = effect.from, target
+            damage.card = self
+            damage.damage = 1
+            damage.reason = self:objectName()
+            room:damage(damage)
+        end
+    end,
+}
+
+fendaoyangbiao = sgs.CreateTrickCard{
+    name = "fendaoyangbiao",
+    class_name = "fendaoyangbiao",
+    suit = sgs.Card_NoSuit,
+    number = 0,
+    subtype = "single_target_trick",
+    target_fixed = false,
+    filter = function(self, targets, to_select, source)
+        return #targets == 0 and to_select:objectName() ~= source:objectName()
+            and source:isFriendWith(to_select) and not source:isProhibited(to_select, self)
+    end,
+    feasible = function(self, targets, source)
+        return #targets == 1
+    end,
+    on_effect = function(self, effect)
+        local source, target = effect.from, effect.to
+        if not (source and source:isAlive()) then return end
+        local room = source:getRoom()
+        source:drawCards(6, self:objectName())
+        if not source:isAlive() then return end
+        if target:isAlive() and not source:isNude() then
+            local count = math.min(3, source:getCardCount(true))
+            local ids = room:askForExchange(source, self:objectName(), count, count,
+                "@fendaoyangbiao-give:" .. target:objectName(), "", ".|.|.|hand,equipped")
+            if not ids:isEmpty() and source:isAlive() and target:isAlive() then
+                local cards = sgs.DummyCard()
+                for _, id in sgs.qlist(ids) do cards:addSubcard(id) end
+                local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GIVE,
+                    source:objectName(), target:objectName(), self:objectName(), "")
+                room:obtainCard(target, cards, reason, false)
+                cards:deleteLater()
+            end
+        end
+        if source:isAlive() then
+            room:setPlayerProperty(source, "role", sgs.QVariant("careerist"))
+        end
+    end,
+}
+
+qiaoquhaoduo = sgs.CreateTrickCard{
+    name = "qiaoquhaoduo",
+    class_name = "qiaoquhaoduo",
+    suit = sgs.Card_NoSuit,
+    number = 0,
+    subtype = "single_target_trick",
+    target_fixed = false,
+    filter = function(self, targets, to_select, source)
+        return #targets == 0 and to_select:objectName() ~= source:objectName()
+            and not to_select:isKongcheng() and not source:isProhibited(to_select, self)
+    end,
+    feasible = function(self, targets, source)
+        return #targets == 1
+    end,
+    on_effect = function(self, effect)
+        local source, target = effect.from, effect.to
+        if not target:isAlive() or target:isKongcheng() then return end
+        local room = target:getRoom()
+        room:showAllCards(target)
+        if not (source and source:isAlive() and target:isAlive()) then return end
+        local cards = sgs.DummyCard()
+        for _, card in sgs.qlist(target:getHandcards()) do
+            if card:isKindOf("EquipCard") and source:canGetCard(target, card:getEffectiveId()) then
+                cards:addSubcard(card)
+            end
+        end
+        if not cards:getSubcards():isEmpty() then
+            local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_EXTRACTION,
+                source:objectName(), target:objectName(), self:objectName(), "")
+            room:obtainCard(source, cards, reason, true)
+        end
+        cards:deleteLater()
+    end,
+}
+
+duoduobiren:setParent(extension)
+fendaoyangbiao:setParent(extension)
+qiaoquhaoduo:setParent(extension)
+
+sgs.LoadTranslationTable{
+    ["duoduobiren"] = "咄咄逼人",
+    [":duoduobiren"] = "出牌阶段，对一名已确定势力的其他角色使用。其可以变更副将，然后你对其造成1点伤害。",
+    ["duoduobiren:transform"] = "变更副将",
+    ["duoduobiren:cancel"] = "不变更副将",
+
+    ["fendaoyangbiao"] = "分道扬镳",
+    [":fendaoyangbiao"] = "出牌阶段，对一名与你势力相同的其他角色使用。你摸六张牌并交给其三张牌，然后你变为野心家。",
+    ["@fendaoyangbiao-give"] = "分道扬镳：交给 %src 三张牌（不足则全部交出）",
+
+    ["qiaoquhaoduo"] = "巧取豪夺",
+    [":qiaoquhaoduo"] = "出牌阶段，对一名有手牌的其他角色使用。其展示所有手牌，然后你获得其中所有装备牌。",
+}
+
 return {extension}
