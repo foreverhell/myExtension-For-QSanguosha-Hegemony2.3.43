@@ -474,4 +474,155 @@ sgs.LoadTranslationTable{
     [":qiaoquhaoduo"] = "出牌阶段，对一名有手牌的其他角色使用。其展示所有手牌，然后你获得其中所有装备牌。",
 }
 
+toulianghuanzhu = sgs.CreateTrickCard{
+    name = "toulianghuanzhu",
+    class_name = "toulianghuanzhu",
+    suit = sgs.Card_NoSuit,
+    number = 0,
+    subtype = "single_target_trick",
+    target_fixed = false,
+    filter = function(self, targets, to_select, source)
+        if #targets >= 2 or source:isProhibited(to_select, self) then return false end
+        if #targets == 0 then return to_select:getHandcardNum() >= 1 end
+        return to_select:objectName() ~= targets[1]:objectName()
+            and to_select:getHandcardNum() >= 2
+    end,
+    feasible = function(self, targets, source)
+        return #targets == 2
+    end,
+    about_to_use = function(self, room, use)
+        if use.to:length() ~= 2 then return end
+        -- 与借刀杀人相同：在默认流程按行动顺序排序之前，区分两人的职责。
+        self:setTag("toulianghuanzhu_second", sgs.QVariant(use.to:at(1):objectName()))
+        local first = use.to:at(0)
+        use.to = sgs.SPlayerList()
+        use.to:append(first)
+        self:cardOnUse(room, use)
+        self:removeTag("toulianghuanzhu_second")
+    end,
+    on_effect = function(self, effect)
+        local first = effect.to
+        local room = first:getRoom()
+        local second = room:findPlayer(self:getTag("toulianghuanzhu_second"):toString())
+        if not (first:isAlive() and second and second:isAlive()
+            and first:getHandcardNum() >= 1 and second:getHandcardNum() >= 2) then return end
+        local first_ids = room:askForExchange(first, self:objectName(), 1, 1,
+            "@toulianghuanzhu-first:" .. second:objectName(), "", ".|.|.|hand")
+        if first_ids:length() ~= 1 then return end
+        local second_ids = room:askForExchange(second, self:objectName(), 2, 2,
+            "@toulianghuanzhu-second:" .. first:objectName(), "", ".|.|.|hand")
+        if second_ids:length() ~= 2 or not first:isAlive() or not second:isAlive() then return end
+        for _, id in sgs.qlist(first_ids) do
+            if room:getCardOwner(id) ~= first or room:getCardPlace(id) ~= sgs.Player_PlaceHand then return end
+        end
+        for _, id in sgs.qlist(second_ids) do
+            if room:getCardOwner(id) ~= second or room:getCardPlace(id) ~= sgs.Player_PlaceHand then return end
+        end
+        local moves = sgs.CardsMoveList()
+        local first_move = sgs.CardsMoveStruct()
+        first_move.card_ids = first_ids
+        first_move.from, first_move.to = first, second
+        first_move.from_place, first_move.to_place = sgs.Player_PlaceHand, sgs.Player_PlaceHand
+        first_move.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP,
+            first:objectName(), second:objectName(), self:objectName(), "")
+        moves:append(first_move)
+        local second_move = sgs.CardsMoveStruct()
+        second_move.card_ids = second_ids
+        second_move.from, second_move.to = second, first
+        second_move.from_place, second_move.to_place = sgs.Player_PlaceHand, sgs.Player_PlaceHand
+        second_move.reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_SWAP,
+            second:objectName(), first:objectName(), self:objectName(), "")
+        moves:append(second_move)
+        room:moveCardsAtomic(moves, false)
+    end,
+}
+
+local geanguanhuo_pindians = {}
+
+geanguanhuo_record = sgs.CreateTriggerSkill{
+    name = "#geanguanhuo-record",
+    global = true,
+    events = {sgs.Pindian},
+    on_record = function(self, event, room, player, data)
+        local pindian = data:toPindian()
+        if pindian.reason ~= "geanguanhuo" then return end
+        for i = #geanguanhuo_pindians, 1, -1 do
+            local entry = geanguanhuo_pindians[i]
+            if entry.room == room and entry.first == pindian.from and entry.second == pindian.to then
+                entry.result = pindian.from_number - pindian.to_number
+                break
+            end
+        end
+    end,
+    can_trigger = function(self, event, room, player, data)
+        return ""
+    end,
+}
+
+geanguanhuo = sgs.CreateTrickCard{
+    name = "geanguanhuo",
+    class_name = "geanguanhuo",
+    suit = sgs.Card_NoSuit,
+    number = 0,
+    subtype = "single_target_trick",
+    target_fixed = false,
+    filter = function(self, targets, to_select, source)
+        if #targets >= 2 or to_select:isKongcheng() or source:isProhibited(to_select, self) then return false end
+        return #targets == 0 or to_select:objectName() ~= targets[1]:objectName()
+    end,
+    feasible = function(self, targets, source)
+        return #targets == 2
+    end,
+    about_to_use = function(self, room, use)
+        if use.to:length() ~= 2 then return end
+        self:setTag("geanguanhuo_second", sgs.QVariant(use.to:at(1):objectName()))
+        local first = use.to:at(0)
+        use.to = sgs.SPlayerList()
+        use.to:append(first)
+        self:cardOnUse(room, use)
+        self:removeTag("geanguanhuo_second")
+    end,
+    on_effect = function(self, effect)
+        local first = effect.to
+        local room = first:getRoom()
+        local second = room:findPlayer(self:getTag("geanguanhuo_second"):toString())
+        if not (first:isAlive() and second and second:isAlive()
+            and not first:isKongcheng() and not second:isKongcheng()) then return end
+        local entry = {room = room, first = first, second = second}
+        table.insert(geanguanhuo_pindians, entry)
+        first:pindian(second, self:objectName())
+        table.remove(geanguanhuo_pindians)
+        -- pindian 返回的布尔值不能区分输与平局，使用事件中的最终点数。
+        if entry.result == nil then return end
+        local damage = sgs.DamageStruct()
+        damage.damage = 1
+        damage.reason = self:objectName()
+        if entry.result == 0 then
+            if not (effect.from and effect.from:isAlive()) then return end
+            damage.to = effect.from
+            -- 平局的惩罚没有伤害来源，也不归属于锦囊牌伤害。
+        else
+            local winner = entry.result > 0 and first or second
+            local loser = entry.result > 0 and second or first
+            if not (winner:isAlive() and loser:isAlive()) then return end
+            damage.from, damage.to = winner, loser
+        end
+        room:damage(damage)
+    end,
+}
+
+toulianghuanzhu:setParent(extension)
+geanguanhuo:setParent(extension)
+if not sgs.Sanguosha:getSkill("#geanguanhuo-record") then skills:append(geanguanhuo_record) end
+sgs.Sanguosha:addSkills(skills)
+
+sgs.LoadTranslationTable{
+    ["toulianghuanzhu"] = "偷梁换柱",
+    [":toulianghuanzhu"] = "出牌阶段，依次选择两名角色（第一名至少有一张手牌，第二名至少有两张手牌）。第一名角色选择一张手牌，与第二名角色选择的两张手牌交换。",
+    ["@toulianghuanzhu-first"] = "偷梁换柱：选择一张手牌，与 %src 选择的两张手牌交换",
+    ["@toulianghuanzhu-second"] = "偷梁换柱：选择两张手牌，与 %src 选择的一张手牌交换",
+    ["geanguanhuo"] = "隔岸观火",
+    [":geanguanhuo"] = "出牌阶段，选择两名有手牌的角色，令其拼点。赢的角色对输的角色造成1点伤害；若平局，你受到1点无来源伤害。",
+}
+
 return {extension}
