@@ -344,7 +344,7 @@ sgs.LoadTranslationTable{
     ["zhanshejian_skill"] = "斩蛇剑",
     [":zhanshejian"] = "装备牌·武器\n\n攻击范围：2\n你使用【杀】造成伤害后，回复1点体力，若目标为君主或野心家，杀死该角色。",
 }
-
+--[[
 duoduobiren = sgs.CreateTrickCard{
     name = "duoduobiren",
     class_name = "duoduobiren",
@@ -537,7 +537,6 @@ toulianghuanzhu = sgs.CreateTrickCard{
 }
 
 toulianghuanzhu:setParent(extension)
-sgs.Sanguosha:addSkills(skills)
 
 sgs.LoadTranslationTable{
     ["toulianghuanzhu"] = "偷梁换柱",
@@ -545,5 +544,6 @@ sgs.LoadTranslationTable{
     ["@toulianghuanzhu-first"] = "偷梁换柱：选择一张手牌，与 %src 选择的两张手牌交换",
     ["@toulianghuanzhu-second"] = "偷梁换柱：选择两张手牌，与 %src 选择的一张手牌交换",
 }
-
+]]
+sgs.Sanguosha:addSkills(skills)
 return {extension}
