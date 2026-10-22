@@ -12222,10 +12222,8 @@ jiade = sgs.CreateTriggerSkill{
             return ""
         end
         local change = data:toPhaseChange()  
-        if change.to == sgs.Player_Discard then 
-            local discard_num = player:getHandcardNum() - player:getMaxCards()
-            discard_num = math.max(discard_num,0) 
-            room:setPlayerMark(player,"@jiade",discard_num)
+        if change.to == sgs.Player_Discard then
+            room:setPlayerMark(player,"@jiade",player:getHandcardNum())
         elseif change.from == sgs.Player_Discard then
             return self:objectName()
         end  
@@ -12237,7 +12235,7 @@ jiade = sgs.CreateTriggerSkill{
     end,  
       
     on_effect = function(self, event, room, player, data)  
-        local discard_num = player:getMark("@jiade")
+        local discard_num = player:getMark("@jiade") - player:getHandcardNum()--弃牌阶段开始时的手牌数-弃牌阶段结束时手牌数=弃牌阶段弃牌数
         room:setPlayerMark(player,"@jiade",0)
 
         local targets = sgs.SPlayerList()  
@@ -12259,7 +12257,6 @@ jiade = sgs.CreateTriggerSkill{
             room:drawCards(chosen_player, 1)  
         end
         ]]
-        --player:skip(sgs.Player_Discard)
         return false  
     end  
 }
@@ -12275,7 +12272,7 @@ sgs.LoadTranslationTable{
     [":jiangmen"] = "与你势力相同的角色出牌阶段开始时，你可以摸一张牌，并交给该角色一张牌，令其本回合使用杀的次数+1，然后失去一点体力，。",  
 
     ["jiade"] = "嘉德",  
-    [":jiade"] = "弃牌阶段结束时，你可令至多X+1名相同势力角色各摸一张牌，X为你本回合的弃牌数",  
+    [":jiade"] = "弃牌阶段结束时，你可令至多X+1名相同势力角色各摸一张牌，X为你此阶段的弃牌数",  
 }
 
 wenjiang = sgs.General(extension, "wenjiang", "wei", 3, false) 
