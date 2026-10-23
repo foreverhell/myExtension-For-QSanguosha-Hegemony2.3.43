@@ -1575,10 +1575,45 @@ siming = sgs.CreateTreasure{
             if count > 0 then player:drawCards(count, self:objectName()) end
         end
     end,
-    on_uninstall = function(self, player)
-        if player:isAlive() and player:getHp() > 0 then
-            player:getRoom():loseHp(player, player:getHp())
+}
+
+siming_leave = sgs.CreateTriggerSkill{
+    name = "#siming-leave",
+    global = true,
+    frequency = sgs.Skill_Compulsory,
+    events = {sgs.CardsMoveOneTime},
+    can_trigger = function(self, event, room, player, data)
+        if not (player and player:isAlive() and player:getHp() > 0) then return "" end
+        local function leavesEquip(move)
+            -- 移牌事件会向多个角色通知，只由原装备者处理一次。
+            if not move.from or move.from:objectName() ~= player:objectName() then return false end
+            for i = 0, move.card_ids:length() - 1 do
+                if move.from_places:at(i) == sgs.Player_PlaceEquip
+                    and sgs.Sanguosha:getCard(move.card_ids:at(i)):objectName() == "siming" then
+                    return true
+                end
+            end
+            return false
         end
+        local moves = data:toList()
+        if moves:isEmpty() then
+            if leavesEquip(data:toMoveOneTime()) then return self:objectName() end
+        else
+            for _, move_data in sgs.qlist(moves) do
+                if leavesEquip(move_data:toMoveOneTime()) then return self:objectName() end
+            end
+        end
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data)
+        return true
+    end,
+    on_effect = function(self, event, room, player, data)
+        -- 此时移牌已完成，濒死结算不会重入尚未完成的卸载回调。
+        if player:isAlive() and player:getHp() > 0 then
+            room:loseHp(player, player:getHp())
+        end
+        return false
     end,
 }
 
@@ -1733,6 +1768,9 @@ end
 if not sgs.Sanguosha:getSkill("xuesezhixi_skill") then
     equip27_skills:append(xuesezhixi_skill)
 end
+if not sgs.Sanguosha:getSkill("#siming-leave") then
+    equip27_skills:append(siming_leave)
+end
 sgs.Sanguosha:addSkills(equip27_skills)
 
 sgs.LoadTranslationTable{
@@ -1742,13 +1780,13 @@ sgs.LoadTranslationTable{
     [":yanwangxuezhou"] = "装备牌·防具\n\n锁定技。当你受到【杀】的伤害时，若你有手牌，你须弃置一张手牌，防止此伤害；若你没有手牌，此伤害+1。",
     ["@yanwangxuezhou-discard"] = "燕王血胄：弃置一张手牌，防止此次【杀】的伤害",
     ["siming"] = "司命",
+    [":siming"] = "装备牌·宝物\n\n锁定技。此牌进入你的装备区时，你回复所有体力并将手牌摸至五张；此牌离开你的装备区时，你失去所有体力。",
     ["xuesezhixi"] = "血色之玺",
     ["xuesezhixi_skill"] = "血色之玺",
     [":xuesezhixi"] = "装备牌·宝物\n\n摸牌阶段，你多摸两张牌；未确定势力的其他角色出牌阶段开始时，其可以视为对你使用一张【知己知彼】。",
     ["tianxingluji"] = "天刑戮脊",
     ["tianxingluji_skill"] = "天刑戮脊",
     [":tianxingluji"] = "装备牌·武器\n\n攻击范围：3\n锁定技。你使用【杀】对唯一目标造成的伤害+1；结算后，若此【杀】未造成伤害，唯一目标获得此装备。",
-    [":siming"] = "装备牌·宝物\n\n锁定技。此牌进入你的装备区时，你回复所有体力并将手牌摸至五张；此牌离开你的装备区时，你失去所有体力。",
 }
 
 return {extension, equip}
