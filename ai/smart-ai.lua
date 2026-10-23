@@ -6810,6 +6810,12 @@ function SmartAI:useEquipCard(card, use)
 		end
 	end
 
+	if self.player:getTreasure() and self.player:getTreasure():isKindOf("siming") and card:isKindOf("Treasure") then
+		if (self:getCardsNum("Peach") + self:getCardsNum("Analeptic") <= 4) and self.player:getHandcardNum() <= 8 then
+			return
+		end
+	end
+
 	if card:isKindOf("PeaceSpell") then
 		local lord_zhangjiao = sgs.findPlayerByShownSkillName("wendao") --有君张角在其他人（体力为2/有防具）则不装备太平要术
 		if lord_zhangjiao and lord_zhangjiao:isAlive() then
@@ -6863,6 +6869,13 @@ function SmartAI:useEquipCard(card, use)
 			end
 		end
 	end
+
+	if card:isKindOf("siming") then
+		if self.player:getLostHp() < 2 and self.player:getHandcardNum() > 3 then
+			return
+		end
+	end
+
 	if card:isKindOf("ImperialEdict") then--宝物诏书
 		use.card = card
 		return
