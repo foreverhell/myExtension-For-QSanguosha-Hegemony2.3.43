@@ -1562,9 +1562,27 @@ siming = sgs.CreateTreasure{
     class_name = "siming",
     suit = sgs.Card_Diamond,
     number = 2,
-    on_install = function(self, player)
-        if not player:isAlive() then return end
-        local room = player:getRoom()
+}
+
+siming_use = sgs.CreateTriggerSkill{
+    name = "#siming-use",
+    global = true,
+    frequency = sgs.Skill_Compulsory,
+    events = {sgs.CardUsed},
+    can_trigger = function(self, event, room, player, data)
+        local use = data:toCardUse()
+        if use.card and use.card:objectName() == "siming"
+            and use.from and use.from:isAlive() then
+            return self:objectName(), use.from:objectName()
+        end
+        return ""
+    end,
+    on_cost = function(self, event, room, player, data, ask_who)
+        return true
+    end,
+    on_effect = function(self, event, room, player, data, ask_who)
+        player = ask_who
+        if not player:isAlive() then return false end
         if player:isWounded() then
             local recover = sgs.RecoverStruct()
             recover.who, recover.recover = player, player:getMaxHp() - player:getHp()
@@ -1572,9 +1590,10 @@ siming = sgs.CreateTreasure{
         end
         if player:isAlive() then
             local count = 5 - player:getHandcardNum()
-            if count > 0 then player:drawCards(count, self:objectName()) end
+            if count > 0 then player:drawCards(count, "siming") end
         end
-    end
+        return false
+    end,
 }
 
 
@@ -1708,8 +1727,6 @@ local function xuesezhixiCanUse(room, player, target)
     local card = sgs.Sanguosha:cloneCard("known_both")
     card:setSkillName("xuesezhixi")
     local available = not player:isCardLimited(card, sgs.Card_MethodUse)
-        and not room:isProhibited(player, target, card)
-        and card:targetFilter(sgs.PlayerList(), target, player)
     card:deleteLater()
     return available
 end
@@ -1769,6 +1786,9 @@ end
 if not sgs.Sanguosha:getSkill("xuesezhixi_skill") then
     equip27_skills:append(xuesezhixi_skill)
 end
+if not sgs.Sanguosha:getSkill("#siming-use") then
+    equip27_skills:append(siming_use)
+end
 if not sgs.Sanguosha:getSkill("#siming-leave") then
     equip27_skills:append(siming_leave)
 end
@@ -1781,7 +1801,7 @@ sgs.LoadTranslationTable{
     [":yanwangxuezhou"] = "装备牌·防具\n\n锁定技。当你受到【杀】的伤害时，若你有手牌，你须弃置一张手牌，防止此伤害；若你没有手牌，此伤害+1。",
     ["@yanwangxuezhou-discard"] = "燕王血胄：弃置一张手牌，防止此次【杀】的伤害",
     ["siming"] = "司命",
-    [":siming"] = "装备牌·宝物\n\n锁定技。此牌进入你的装备区时，你回复所有体力并将手牌摸至五张；此牌离开你的装备区时，你失去所有体力。",
+    [":siming"] = "装备牌·宝物\n\n锁定技。你使用此牌时，你回复所有体力并将手牌摸至五张；此牌离开你的装备区时，你失去所有体力。",
     ["xuesezhixi"] = "血色之玺",
     ["xuesezhixi_skill"] = "血色之玺",
     [":xuesezhixi"] = "装备牌·宝物\n\n摸牌阶段，你多摸两张牌；未确定势力的其他角色出牌阶段开始时，其可以视为对你使用一张【知己知彼】。",
