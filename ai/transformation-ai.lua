@@ -1567,6 +1567,9 @@ sgs.ai_skill_playerchosen.yongjin = function(self, _targets, max_num, min_num)
 
 		local friends = {}--没有敌人则简单转移队友装备
 		for _, friend in ipairs(self.friends) do
+			if friend:getTreasure() and friend:getTreasure():isKindOf("siming") then
+				continue
+			end
 			if self:getMoveCardorTarget(friend, "." ,"e") then
 				table.insert(friends, friend)
 			end
