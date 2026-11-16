@@ -6868,10 +6868,14 @@ function SmartAI:useEquipCard(card, use)
 				return
 			end
 		end
+		if self.player:getTreasure() and self.player:getTreasure():isKindOf("siming") and 
+		(self:getCardsNum("Peach") + self:getCardsNum("Analeptic") <= 8 ) then
+			return
+		end
 	end
 
 	if card:isKindOf("siming") then
-		if self.player:getLostHp() < 2 and self.player:getHandcardNum() > 3 then
+		if self.player:getLostHp() < 2 and self.player:getHandcardNum() >= 3 then
 			return
 		end
 	end
