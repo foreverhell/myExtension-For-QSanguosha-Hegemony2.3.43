@@ -1168,6 +1168,9 @@ sgs.ai_skill_use_func.GanluCard = function(card, use, self)
 			if not enemy:hasShownSkills(sgs.lose_equip_skill) then
 				local ee = enemy:getEquips():length()
 				local fe = friend:getEquips():length()
+        if friend:getTreasure() and (friend:getTreasure():isKindOf("JadeSeal") or friend:getTreasure():isKindOf("siming")) then
+          continue
+        end
 				local value = self:evaluateArmor(enemy:getArmor(),friend) - self:evaluateArmor(friend:getArmor(),enemy)
 					- self:evaluateArmor(friend:getArmor(),friend) + self:evaluateArmor(enemy:getArmor(),enemy)
 				if math.abs(ee - fe) <= lost_hp and ee > 0 and (ee > fe or ee == fe and value>0) then
@@ -1197,6 +1200,9 @@ sgs.ai_skill_use_func.GanluCard = function(card, use, self)
 
 	target = nil
 	for _, friend in ipairs(self.friends) do
+    if friend:getTreasure() and friend:getTreasure():isKindOf("siming") then
+        continue
+    end
 		if self:needToThrowArmor(friend) or (friend:hasShownSkills(sgs.lose_equip_skill)	and not friend:getEquips():isEmpty()) then
 				target = friend
 				break
@@ -1204,6 +1210,9 @@ sgs.ai_skill_use_func.GanluCard = function(card, use, self)
 	end
 	if not target then return end
 	for _,friend in ipairs(self.friends) do
+    if friend:getTreasure() and friend:getTreasure():isKindOf("siming") then
+        continue
+    end
 		if friend:objectName() ~= target:objectName() and math.abs(friend:getEquips():length() - target:getEquips():length()) <= lost_hp then
 			use.card = card
 			if use.to then
