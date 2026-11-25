@@ -8007,8 +8007,19 @@ zhugedan = sgs.General(extension, "zhugedan", "wei", 4)
 gongao = sgs.CreateTriggerSkill{  
     name = "gongao",  
     frequency = sgs.Skill_Compulsory, -- 锁定技  
-    events = {sgs.Death},  
-    can_trigger = function(self, event, room, player, data)  
+    events = {sgs.Death, sgs.BuryVictim},
+    on_record = function(self, event, room, player, data)
+        if event ~= sgs.BuryVictim then return end
+        local death = data:toDeath()
+        if death.who and death.who:hasFlag("gongao_skip_reward") then
+            room:setPlayerFlag(death.who, "-gongao_skip_reward")
+            death.damage = nil
+            data:setValue(death)
+        end
+    end,
+
+    can_trigger = function(self, event, room, player, data)
+        if event ~= sgs.Death then return "" end
         local death = data:toDeath()  
         local killer = death.damage and death.damage.from or nil  
         
@@ -8034,7 +8045,8 @@ gongao = sgs.CreateTriggerSkill{
     on_effect = function(self, event, room, player, data, ask_who)  
         local death = data:toDeath()  
         local killer = death.damage.from  
-        local dead_player = death.who  
+        local dead_player = death.who
+        room:setPlayerFlag(dead_player, "gongao_skip_reward")
         room:setPlayerFlag(ask_who,"gongao_" .. death.who:objectName())
         -- 查找与死亡角色势力相同的存活角色  
         local same_kingdom_players = sgs.SPlayerList()  
@@ -8093,7 +8105,7 @@ sgs.LoadTranslationTable{
 ["zhugedan"] = "诸葛诞",  
 ["illustrator:zhugedan"] = "插画师名称",  
 ["gongao"] = "功獒",  
-[":gongao"] = "锁定技，你杀死角色后，若有与其势力相同的角色存活，你对与其势力相同的角色各造成1点伤害；若没有与其势力相同的角色存活，你获得1个额外回合。",
+[":gongao"] = "锁定技，你杀死角色不执行奖惩，若有与其势力相同的角色存活，你对与其势力相同的角色各造成1点伤害；若没有与其势力相同的角色存活，你获得1个额外回合。",
 ["weizhong"] = "威重",
 [":weizhong"] = "你体力减少时，你可以摸一张牌，若你没有手牌，则改为摸2张"
 }
